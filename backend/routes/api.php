@@ -1,0 +1,130 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\LoyaltyController;
+use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\QueueController;
+use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\ServiceRequestController;
+use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\TableController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| All routes are prefixed with /api automatically by RouteServiceProvider.
+|
+*/
+
+// ──────────────────────────────────────────────
+//  PUBLIC ROUTES (no authentication required)
+// ──────────────────────────────────────────────
+
+Route::prefix('auth')->group(function () {
+    Route::post('/register',    [AuthController::class, 'register']);
+    Route::post('/login',       [AuthController::class, 'login']);
+    Route::post('/request-otp', [AuthController::class, 'requestOTP']);
+    Route::post('/verify-otp',  [AuthController::class, 'verifyOTP']);
+});
+
+// Public menu browsing
+Route::get('/restaurants/{restaurant}/menu',       [MenuController::class, 'index']);
+Route::get('/restaurants/{restaurant}/categories', [MenuController::class, 'categories']);
+Route::get('/categories/{category}/items',         [MenuController::class, 'categoryItems']);
+Route::get('/menu-items/search',                   [MenuController::class, 'search']);
+Route::get('/menu-items/{item}',                   [MenuController::class, 'show']);
+Route::get('/menu-items/{item}/ingredients',       [MenuController::class, 'ingredients']);
+
+// Public restaurant reviews
+Route::get('/restaurants/{restaurant}/reviews', [FeedbackController::class, 'restaurantReviews']);
+
+// Public reservation lookup
+Route::get('/reservations/{confirmationCode}', [ReservationController::class, 'show']);
+
+// Public restaurant availability
+Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
+
+
+// ──────────────────────────────────────────────
+//  AUTHENTICATED ROUTES (Sanctum token required)
+// ──────────────────────────────────────────────
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // ── Auth ──
+    Route::get('/auth/me',       [AuthController::class, 'me']);
+    Route::post('/auth/logout',  [AuthController::class, 'logout']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+
+    // ── Tables ──
+    Route::get('/tables/{qrCode}/scan', [TableController::class, 'scan']);
+
+    // ── Sessions ──
+    Route::post('/tables/{table}/start-session',      [SessionController::class, 'start']);
+    Route::post('/sessions/{session}/join',            [SessionController::class, 'join']);
+    Route::get('/sessions/{session}',                  [SessionController::class, 'show']);
+    Route::get('/sessions/{session}/participants',     [SessionController::class, 'participants']);
+    Route::post('/sessions/{session}/leave',           [SessionController::class, 'leave']);
+    Route::post('/sessions/{session}/end',             [SessionController::class, 'end']);
+
+    // ── Menu (authenticated extras) ──
+    Route::get('/menu-items/recommended', [MenuController::class, 'recommended']);
+
+    // ── Orders ──
+    Route::post('/orders',                        [OrderController::class, 'store']);
+    Route::get('/orders/history',                  [OrderController::class, 'history']);
+    Route::get('/orders/{order}',                  [OrderController::class, 'show']);
+    Route::get('/sessions/{session}/orders',       [OrderController::class, 'sessionOrders']);
+    Route::patch('/orders/{order}/status',         [OrderController::class, 'updateStatus']);
+    Route::post('/orders/{order}/cancel',          [OrderController::class, 'cancel']);
+
+    // ── Payments ──
+    Route::post('/payments/initiate',              [PaymentController::class, 'initiate']);
+    Route::post('/payments/split-bill',            [PaymentController::class, 'splitBill']);
+    Route::post('/payments/{payment}/confirm',     [PaymentController::class, 'confirm']);
+    Route::post('/payments/{payment}/refund',      [PaymentController::class, 'refund']);
+    Route::get('/sessions/{session}/bill',         [PaymentController::class, 'sessionBill']);
+
+    // ── Reservations ──
+    Route::post('/reservations',                   [ReservationController::class, 'store']);
+    Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
+
+    // ── Queue ──
+    Route::post('/queue/join',   [QueueController::class, 'join']);
+    Route::get('/queue/status',  [QueueController::class, 'status']);
+
+    // ── Service Requests ──
+    Route::post('/service-requests',                    [ServiceRequestController::class, 'store']);
+    Route::get('/service-requests',                     [ServiceRequestController::class, 'index']);
+    Route::patch('/service-requests/{id}/acknowledge',  [ServiceRequestController::class, 'acknowledge']);
+    Route::patch('/service-requests/{id}/resolve',      [ServiceRequestController::class, 'resolve']);
+
+    // ── Feedback ──
+    Route::post('/feedback',            [FeedbackController::class, 'store']);
+    Route::get('/feedback/{orderId}',   [FeedbackController::class, 'show']);
+
+    // ── Loyalty & Rewards ──
+    Route::get('/loyalty/points',        [LoyaltyController::class, 'points']);
+    Route::get('/loyalty/transactions',  [LoyaltyController::class, 'transactions']);
+    Route::get('/loyalty/rewards',       [LoyaltyController::class, 'rewards']);
+    Route::post('/loyalty/redeem',       [LoyaltyController::class, 'redeem']);
+
+    // ── Admin / Analytics (role-based access should be enforced via middleware) ──
+    Route::prefix('admin')->group(function () {
+        Route::get('/dashboard/stats',            [AdminController::class, 'dashboardStats']);
+        Route::get('/analytics/revenue',          [AdminController::class, 'revenue']);
+        Route::get('/analytics/peak-hours',       [AdminController::class, 'peakHours']);
+        Route::get('/analytics/popular-items',    [AdminController::class, 'popularItems']);
+        Route::get('/analytics/sentiment-summary', [AdminController::class, 'sentimentSummary']);
+        Route::get('/analytics/wastage-report',   [AdminController::class, 'wastageReport']);
+        Route::get('/kitchen/orders/active',      [AdminController::class, 'activeKitchenOrders']);
+        Route::patch('/menu-items/{id}',          [AdminController::class, 'updateMenuItem']);
+    });
+});
