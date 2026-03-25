@@ -34,7 +34,7 @@ class ApiClient {
         if (error.response?.status === 401) {
           // Clear token and redirect to login
           localStorage.removeItem('auth_token');
-          window.location.href = '/auth/login';
+          window.location.href = '/login';
         }
         return Promise.reject(error);
       }
@@ -50,11 +50,14 @@ class ApiClient {
     password_confirmation: string;
   }) {
     const response = await this.client.post('/auth/register', data);
+    if (response.data.success) {
+      localStorage.setItem('auth_token', response.data.data.token);
+    }
     return response.data;
   }
 
-  async login(email: string, password: string) {
-    const response = await this.client.post('/auth/login', { email, password });
+  async login(identifier: string, password: string) {
+    const response = await this.client.post('/auth/login', { identifier, password });
     if (response.data.success) {
       localStorage.setItem('auth_token', response.data.data.token);
     }
