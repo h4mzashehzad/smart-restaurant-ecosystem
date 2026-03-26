@@ -70,7 +70,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} suppressHydrationWarning>
             {error && (
                <div className="bg-red-50/80 text-red-600 px-4 py-3 rounded-xl border border-red-100/50 text-sm animate-fade-in-up text-center font-medium">
                  {error}
@@ -92,6 +92,7 @@ export default function LoginPage() {
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="block w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 focus:bg-white transition-all sm:text-sm font-medium"
                     placeholder="name@example.com"
+                    suppressHydrationWarning
                   />
                 ) : (
                   <PhoneInput 
@@ -117,6 +118,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 focus:bg-white transition-all sm:text-sm font-medium"
                   placeholder="Enter your password"
+                  suppressHydrationWarning
                 />
               </div>
             </div>

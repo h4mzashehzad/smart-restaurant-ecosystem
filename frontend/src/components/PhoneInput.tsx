@@ -57,6 +57,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({ id, name, value, onChang
         onChange={handleChange}
         className="block w-full pl-[4.5rem] pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 focus:bg-white transition-all sm:text-sm font-medium"
         placeholder="3XX XXXXXXX"
+        suppressHydrationWarning
       />
     </div>
   );
