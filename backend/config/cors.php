@@ -19,9 +19,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
+    'allowed_origins' => array_filter(array_map('trim', explode(',', env('FRONTEND_URL', 'http://localhost:3000,http://127.0.0.1:3000')))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        // Allow any local network IP (192.168.x.x) during development.
+        // This covers phones/tablets on the same WiFi hitting the dev server.
+        '#^http://192\.168\..+:[0-9]+$#',
+        '#^http://10\..+:[0-9]+$#',
+        '#^http://172\.(1[6-9]|2[0-9]|3[0-1])\..+:[0-9]+$#',
+    ],
 
     'allowed_headers' => ['*'],
 

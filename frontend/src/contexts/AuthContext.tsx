@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (identifier: string, password: string) => {
     const response = await api.login(identifier, password);
+    // api.login() returns the JSON body: { success, data: { user, token } }
     setUser(response.data.user);
   };
 
@@ -57,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: any) => {
     const response = await api.register(data);
+    // api.register() returns the JSON body: { success, data: { user, token } }
     setUser(response.data.user);
   };
 
