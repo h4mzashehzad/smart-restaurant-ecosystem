@@ -14,6 +14,7 @@ class SessionParticipant extends Model
         'session_id',
         'user_id',
         'device_id',
+        'is_host',
         'joined_at',
         'left_at',
     ];

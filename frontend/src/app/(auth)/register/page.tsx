@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInput } from '@/components/PhoneInput';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/menu';
   const { register } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -32,7 +34,7 @@ export default function RegisterPage() {
 
     try {
       await register(formData);
-      router.push('/menu');
+      router.push(redirectTo);
     } catch (err: any) {
       const backendError = err.response?.data?.errors;
       if (backendError) {
@@ -186,7 +188,7 @@ export default function RegisterPage() {
             <div className="text-center pt-6 animate-fade-in-up delay-[600ms]">
               <p className="text-sm text-gray-500 font-medium">
                 Already have an account?{' '}
-                <a href="/login" className="font-bold text-orange-500 hover:text-orange-600 transition-colors">
+                <a href={`/login?redirect=${encodeURIComponent(redirectTo)}`} className="font-bold text-orange-500 hover:text-orange-600 transition-colors">
                   Log in here
                 </a>
               </p>

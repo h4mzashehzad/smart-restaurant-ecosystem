@@ -9,11 +9,13 @@ use App\Models\TableSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class SessionController extends Controller
 {
     /**
      * Start a new dining session for a table.
+     * Supports both authenticated users and guests (via X-Device-Id header).
      */
     public function start(Request $request, Table $table): JsonResponse
     {
@@ -22,38 +24,41 @@ class SessionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Table already has an active session',
+                'data'    => ['existing_session_id' => $table->current_session_id],
             ], 409);
         }
 
         $session = TableSession::create([
             'table_id'      => $table->id,
             'restaurant_id' => $table->restaurant_id,
-            'session_code'  => strtoupper(Str::random(8)),
+            'session_token' => Str::random(32),
             'status'        => 'active',
             'started_at'    => now(),
         ]);
 
-        // Add current user as first participant
-        SessionParticipant::create([
-            'session_id'  => $session->id,
-            'user_id'     => $request->user()->id,
-            'device_id'   => $request->header('X-Device-Id'),
-            'is_host'     => true,
-            'joined_at'   => now(),
-        ]);
+        // Link the session back to the table
+        $table->update(['status' => 'occupied', 'current_session_id' => $session->id]);
 
-        // Mark table as occupied
-        $table->update(['status' => 'occupied']);
+        // Add current user as first participant (host)
+        $user = Auth::guard('sanctum')->user();
+        SessionParticipant::create([
+            'session_id' => $session->id,
+            'user_id'    => $user?->id, // null for guests
+            'device_id'  => $request->header('X-Device-Id'),
+            'is_host'    => true,
+            'joined_at'  => now(),
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Session started',
-            'data'    => $session->load('participants'),
+            'data'    => $session->load(['table', 'participants.user']),
         ], 201);
     }
 
     /**
      * Join an existing session.
+     * Supports both authenticated users and guests (via X-Device-Id header).
      */
     public function join(Request $request, TableSession $session): JsonResponse
     {
@@ -64,22 +69,36 @@ class SessionController extends Controller
             ], 409);
         }
 
-        // Check if already a participant
+        $user     = Auth::guard('sanctum')->user();
+        $userId   = $user?->id;
+        $deviceId = $request->header('X-Device-Id');
+
+        // Check if already a participant (by user_id OR device_id)
         $existing = $session->participants()
-            ->where('user_id', $request->user()->id)
+            ->where(function ($q) use ($userId, $deviceId) {
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+                if ($deviceId) {
+                    $q->orWhere('device_id', $deviceId);
+                }
+            })
+            ->whereNull('left_at')
             ->first();
 
         if ($existing) {
+            // Already in session — return current state so the frontend can continue
             return response()->json([
-                'success' => false,
-                'message' => 'You are already in this session',
-            ], 409);
+                'success' => true,
+                'message' => 'Already in this session',
+                'data'    => $session->load(['table', 'participants.user']),
+            ]);
         }
 
-        $participant = SessionParticipant::create([
+        SessionParticipant::create([
             'session_id' => $session->id,
-            'user_id'    => $request->user()->id,
-            'device_id'  => $request->header('X-Device-Id'),
+            'user_id'    => $userId,
+            'device_id'  => $deviceId,
             'is_host'    => false,
             'joined_at'  => now(),
         ]);
@@ -87,7 +106,7 @@ class SessionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Joined session successfully',
-            'data'    => $session->load('participants'),
+            'data'    => $session->load(['table', 'participants.user']),
         ]);
     }
 
@@ -109,7 +128,7 @@ class SessionController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => $session->participants()->with('user')->get(),
+            'data'    => $session->participants()->with('user')->whereNull('left_at')->get(),
         ]);
     }
 
@@ -118,8 +137,20 @@ class SessionController extends Controller
      */
     public function leave(Request $request, TableSession $session): JsonResponse
     {
+        $user     = Auth::guard('sanctum')->user();
+        $userId   = $user?->id;
+        $deviceId = $request->header('X-Device-Id');
+
         $participant = $session->participants()
-            ->where('user_id', $request->user()->id)
+            ->where(function ($q) use ($userId, $deviceId) {
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+                if ($deviceId) {
+                    $q->orWhere('device_id', $deviceId);
+                }
+            })
+            ->whereNull('left_at')
             ->first();
 
         if (! $participant) {
@@ -142,9 +173,20 @@ class SessionController extends Controller
      */
     public function end(Request $request, TableSession $session): JsonResponse
     {
+        $user     = Auth::guard('sanctum')->user();
+        $userId   = $user?->id;
+        $deviceId = $request->header('X-Device-Id');
+
         // Verify the user is the host
         $host = $session->participants()
-            ->where('user_id', $request->user()->id)
+            ->where(function ($q) use ($userId, $deviceId) {
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+                if ($deviceId) {
+                    $q->orWhere('device_id', $deviceId);
+                }
+            })
             ->where('is_host', true)
             ->first();
 
@@ -161,7 +203,10 @@ class SessionController extends Controller
         ]);
 
         // Free up the table
-        $session->table->update(['status' => 'available']);
+        $session->table->update([
+            'status'             => 'available',
+            'current_session_id' => null,
+        ]);
 
         return response()->json([
             'success' => true,

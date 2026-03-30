@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInput } from '@/components/PhoneInput';
-import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/menu';
   const { login } = useAuth();
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [identifier, setIdentifier] = useState('');
@@ -22,7 +23,7 @@ export default function LoginPage() {
 
     try {
       await login(identifier, password);
-      router.push('/menu');
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -136,7 +137,7 @@ export default function LoginPage() {
             <div className="text-center pt-6 animate-fade-in-up delay-500">
               <p className="text-sm text-gray-500 font-medium">
                 New to the ecosystem?{' '}
-                <a href="/register" className="font-bold text-orange-500 hover:text-orange-600 transition-colors">
+                <a href={`/register?redirect=${encodeURIComponent(redirectTo)}`} className="font-bold text-orange-500 hover:text-orange-600 transition-colors">
                   Create an account
                 </a>
               </p>

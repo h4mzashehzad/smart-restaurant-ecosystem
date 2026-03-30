@@ -40,9 +40,14 @@ class ApiClient {
       (response) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Clear token and redirect to login
+          const token = localStorage.getItem('auth_token');
           localStorage.removeItem('auth_token');
-          window.location.href = '/login';
+          
+          // Only redirect if we formerly had a token (expired session)
+          // and we're not already heading to an auth page.
+          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -83,13 +88,57 @@ class ApiClient {
   }
 
   // Table & Session endpoints
-  async scanQRCode(qrCode: string) {
+
+  /** Public — works for guests too. Returns table info + active session if any. */
+  async scanTable(qrCode: string) {
     const response = await this.client.get(`/tables/${qrCode}/scan`);
     return response.data.data;
   }
 
-  async startSession(tableId: number) {
-    const response = await this.client.post(`/tables/${tableId}/start-session`);
+  /** Public POST — creates or joins a session in one call. Pass deviceId for guests. */
+  async scanAndJoin(qrCode: string, deviceId: string) {
+    const response = await this.client.post(
+      `/tables/${qrCode}/scan`,
+      {},
+      { headers: { 'X-Device-Id': deviceId } }
+    );
+    return response.data.data;
+  }
+
+  async joinSession(sessionId: number, deviceId: string) {
+    const response = await this.client.post(
+      `/sessions/${sessionId}/join`,
+      {},
+      { headers: { 'X-Device-Id': deviceId } }
+    );
+    return response.data.data;
+  }
+
+  async leaveSession(sessionId: number, deviceId: string) {
+    const response = await this.client.post(
+      `/sessions/${sessionId}/leave`,
+      {},
+      { headers: { 'X-Device-Id': deviceId } }
+    );
+    return response.data;
+  }
+
+  async getSession(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}`);
+    return response.data.data;
+  }
+
+  async getSessionParticipants(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/participants`);
+    return response.data.data;
+  }
+
+  async startSession(tableId: number, deviceId: string) {
+    const response = await this.client.post(
+      `/tables/${tableId}/start-session`,
+      {},
+      { headers: { 'X-Device-Id': deviceId } }
+    );
     return response.data.data;
   }
 

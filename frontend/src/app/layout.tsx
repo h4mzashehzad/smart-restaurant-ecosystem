@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SessionProvider } from "@/contexts/SessionContext";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -38,7 +39,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          {children}
+          <SessionProvider>
+            {children}
+          </SessionProvider>
         </AuthProvider>
       </body>
     </html>

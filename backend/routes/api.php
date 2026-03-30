@@ -51,6 +51,22 @@ Route::get('/reservations/{confirmationCode}', [ReservationController::class, 's
 // Public restaurant availability
 Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
 
+// ── Public Table / QR Scan (guests + authenticated users) ──
+// GET: returns table info + whether a session exists (used on scan landing page)
+Route::get('/tables/{qrCode}/scan', [TableController::class, 'scan']);
+// POST: creates or joins a session in a single request (used on scan landing page)
+//       Optionally auth-guarded if token present, but accepts guests too
+Route::post('/tables/{qrCode}/scan', [TableController::class, 'scanAndJoin']);
+
+// ── Session Management (guests + authenticated users) ──
+Route::prefix('sessions')->group(function () {
+    Route::get('/{session}',              [SessionController::class, 'show']);
+    Route::get('/{session}/participants', [SessionController::class, 'participants']);
+    Route::post('/{session}/join',         [SessionController::class, 'join']);
+    Route::post('/{session}/leave',        [SessionController::class, 'leave']);
+    Route::post('/{session}/end',          [SessionController::class, 'end']);
+});
+Route::post('/tables/{table}/start-session', [SessionController::class, 'start']);
 
 // ──────────────────────────────────────────────
 //  AUTHENTICATED ROUTES (Sanctum token required)
@@ -64,15 +80,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 
     // ── Tables ──
-    Route::get('/tables/{qrCode}/scan', [TableController::class, 'scan']);
+    // (scan is now public above)
 
     // ── Sessions ──
-    Route::post('/tables/{table}/start-session',      [SessionController::class, 'start']);
-    Route::post('/sessions/{session}/join',            [SessionController::class, 'join']);
-    Route::get('/sessions/{session}',                  [SessionController::class, 'show']);
-    Route::get('/sessions/{session}/participants',     [SessionController::class, 'participants']);
-    Route::post('/sessions/{session}/leave',           [SessionController::class, 'leave']);
-    Route::post('/sessions/{session}/end',             [SessionController::class, 'end']);
+    // (session routes are now public above)
 
     // ── Menu (authenticated extras) ──
     Route::get('/menu-items/recommended', [MenuController::class, 'recommended']);

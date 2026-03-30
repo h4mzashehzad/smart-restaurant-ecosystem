@@ -16,6 +16,7 @@ class Table extends Model
         'restaurant_id',
         'table_number',
         'qr_code',
+        'qr_code_url',
         'capacity',
         'status',
         'current_session_id',
