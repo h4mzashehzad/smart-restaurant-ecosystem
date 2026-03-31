@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
-
+import { getEcho } from '@/lib/echo';
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface SessionUser {
@@ -120,27 +120,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Live participant polling — refresh every 5 seconds while a session is active
-  useEffect(() => {
-    if (!session?.id) return;
-    const interval = setInterval(async () => {
-      try {
-        const participants = await api.getSessionParticipants(session.id);
-        setSession((prev) => {
-          if (!prev) return prev;
-          const updated = { ...prev, participants };
-          // Update persisted copy silently (table/restaurant stay the same)
-          persistSession(updated, table, restaurant);
-          return updated;
-        });
-      } catch {
-        // Network blip — ignore, will retry next tick
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id]);
-
   const scanAndJoin = useCallback(async (qrToken: string): Promise<ActiveSession> => {
     setIsLoading(true);
     try {
@@ -193,6 +172,29 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setRestaurant(null);
     persistSession(null, null, null);
   }, []);
+
+  const refreshSessionRef = useRef(refreshSession);
+  useEffect(() => {
+    refreshSessionRef.current = refreshSession;
+  }, [refreshSession]);
+
+  // Listen for WebSocket events on the session channel
+  useEffect(() => {
+    if (!session?.id) return;
+
+    const channelName = `table-session.${session.id}`;
+    const echo = getEcho();
+    const channel = echo.channel(channelName);
+
+    channel.listen('.SessionStateChanged', () => {
+      refreshSessionRef.current();
+    });
+
+    return () => {
+      echo.leaveChannel(channelName);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
 
   return (
     <SessionContext.Provider

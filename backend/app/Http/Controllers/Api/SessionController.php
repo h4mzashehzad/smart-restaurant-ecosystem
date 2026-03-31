@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-
+use App\Events\SessionStateChanged;
 class SessionController extends Controller
 {
     /**
@@ -48,6 +48,8 @@ class SessionController extends Controller
             'is_host'    => true,
             'joined_at'  => now(),
         ]);
+
+        event(new SessionStateChanged($session->id));
 
         return response()->json([
             'success' => true,
@@ -102,6 +104,8 @@ class SessionController extends Controller
             'is_host'    => false,
             'joined_at'  => now(),
         ]);
+
+        event(new SessionStateChanged($session->id));
 
         return response()->json([
             'success' => true,
@@ -162,6 +166,8 @@ class SessionController extends Controller
 
         $participant->update(['left_at' => now()]);
 
+        event(new SessionStateChanged($session->id));
+
         return response()->json([
             'success' => true,
             'message' => 'Left session successfully',
@@ -207,6 +213,8 @@ class SessionController extends Controller
             'status'             => 'available',
             'current_session_id' => null,
         ]);
+
+        event(new SessionStateChanged($session->id));
 
         return response()->json([
             'success' => true,

@@ -124,7 +124,7 @@ class ApiClient {
   }
 
   async getSession(sessionId: number) {
-    const response = await this.client.get(`/sessions/${sessionId}`);
+    const response = await this.client.get(`/sessions/${sessionId}?_t=${Date.now()}`);
     return response.data.data;
   }
 

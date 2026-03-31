@@ -109,6 +109,8 @@ class TableController extends Controller
 
         $session->refresh()->load(['table', 'participants.user']);
 
+        event(new \App\Events\SessionStateChanged($session->id));
+
         return response()->json([
             'success' => true,
             'data'    => [

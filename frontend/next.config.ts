@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     '192.168.18.88',  // Your Mac's current LAN IP — update if it changes
     '192.168.0.0/16', // Whole 192.168.x.x subnet for convenience
+    '192.168.18.23',
+    'localhost:3000',
   ],
 
   async rewrites() {
