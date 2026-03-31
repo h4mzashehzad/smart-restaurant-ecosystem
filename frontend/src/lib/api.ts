@@ -45,7 +45,7 @@ class ApiClient {
           
           // Only redirect if we formerly had a token (expired session)
           // and we're not already heading to an auth page.
-          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register') && window.location.pathname !== '/') {
             window.location.href = '/login';
           }
         }
