@@ -2,14 +2,22 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
+import { useCart } from '@/contexts/CartContext';
 import { CategorySlider } from '@/components/Menu/CategorySlider';
 import { ProductCard } from '@/components/Menu/ProductCard';
+import { ItemDetailDrawer } from '@/components/Menu/ItemDetailDrawer';
+import { CartFab } from '@/components/cart/CartFab';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 
 export function MenuContainer() {
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [detailItemId, setDetailItemId] = useState<number | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const { addItem } = useCart();
 
   useEffect(() => {
     async function fetchMenu() {
@@ -33,8 +41,15 @@ export function MenuContainer() {
   }, [categories, activeCategoryId]);
 
   const handleAddToCart = (item: any) => {
-    // In future this will add item to Cart context
-    console.log('Added to cart', item);
+    addItem({
+      id: item.id,
+      name: item.name,
+      description: item.description ?? '',
+      base_price: parseFloat(item.base_price),
+      image_url: item.image_url ?? null,
+      is_signature: item.is_signature ?? false,
+      unitPrice: parseFloat(item.base_price),
+    });
   };
 
   if (loading) {
@@ -70,45 +85,63 @@ export function MenuContainer() {
   }
 
   return (
-    <div className="pb-24">
-      {/* Category Slider Component */}
-      <CategorySlider
-        categories={categories}
-        activeCategoryId={activeCategoryId}
-        onSelectCategory={setActiveCategoryId}
-      />
+    <>
+      <div className="pb-32">
+        {/* Category Slider Component */}
+        <CategorySlider
+          categories={categories}
+          activeCategoryId={activeCategoryId}
+          onSelectCategory={setActiveCategoryId}
+        />
 
-      {/* Main Category Display */}
-      <div className="px-4 pt-2">
-        {activeCategory && (
-          <div className="mb-6 animate-fade-in-up">
-            <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">
-              {activeCategory.name}
-            </h2>
-            {activeCategory.description && (
-              <p className="text-sm text-gray-500 font-sans leading-relaxed">
-                {activeCategory.description}
-              </p>
+        {/* Main Category Display */}
+        <div className="px-4 pt-2">
+          {activeCategory && (
+            <div className="mb-6 animate-fade-in-up">
+              <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">
+                {activeCategory.name}
+              </h2>
+              {activeCategory.description && (
+                <p className="text-sm text-gray-500 font-sans leading-relaxed">
+                  {activeCategory.description}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Product Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {activeCategory?.menu_items?.map((item: any) => (
+              <ProductCard
+                key={item.id}
+                item={item}
+                onAdd={handleAddToCart}
+                onViewDetail={(id) => setDetailItemId(id)}
+              />
+            ))}
+            {activeCategory?.menu_items?.length === 0 && (
+               <div className="py-8 text-center text-gray-400 text-sm w-full col-span-full bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                 No items available in this category.
+               </div>
             )}
           </div>
-        )}
-
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {activeCategory?.menu_items?.map((item: any) => (
-            <ProductCard 
-              key={item.id} 
-              item={item} 
-              onAdd={handleAddToCart} 
-            />
-          ))}
-          {activeCategory?.menu_items?.length === 0 && (
-             <div className="py-8 text-center text-gray-400 text-sm w-full col-span-full bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-               No items available in this category.
-             </div>
-          )}
         </div>
       </div>
-    </div>
+
+      {/* Floating Cart Button */}
+      <CartFab onClick={() => setCartOpen(true)} />
+
+      {/* Item Detail Bottom Sheet */}
+      <ItemDetailDrawer
+        itemId={detailItemId}
+        onClose={() => setDetailItemId(null)}
+      />
+
+      {/* Cart Bottom Sheet */}
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+      />
+    </>
   );
 }

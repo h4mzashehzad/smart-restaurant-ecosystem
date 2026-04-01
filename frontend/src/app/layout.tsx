@@ -3,6 +3,7 @@ import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionProvider } from "@/contexts/SessionContext";
+import { CartProvider } from "@/contexts/CartContext";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -40,7 +41,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SessionProvider>
-            {children}
+            <CartProvider>
+              {children}
+            </CartProvider>
           </SessionProvider>
         </AuthProvider>
       </body>

@@ -51,6 +51,12 @@ Route::get('/reservations/{confirmationCode}', [ReservationController::class, 's
 // Public restaurant availability
 Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
 
+// ── Orders (optional auth — guests may place orders without a token) ──
+Route::post('/orders',                        [OrderController::class, 'store']);
+Route::get('/orders/{order}',                  [OrderController::class, 'show']);
+Route::get('/sessions/{session}/orders',       [OrderController::class, 'sessionOrders']);
+Route::post('/orders/{order}/cancel',          [OrderController::class, 'cancel']);
+
 // ── Public Table / QR Scan (guests + authenticated users) ──
 // GET: returns table info + whether a session exists (used on scan landing page)
 Route::get('/tables/{qrCode}/scan', [TableController::class, 'scan']);
@@ -88,13 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Menu (authenticated extras) ──
     Route::get('/menu-items/recommended', [MenuController::class, 'recommended']);
 
-    // ── Orders ──
-    Route::post('/orders',                        [OrderController::class, 'store']);
+    // ── Orders (auth-required) ──
     Route::get('/orders/history',                  [OrderController::class, 'history']);
-    Route::get('/orders/{order}',                  [OrderController::class, 'show']);
-    Route::get('/sessions/{session}/orders',       [OrderController::class, 'sessionOrders']);
     Route::patch('/orders/{order}/status',         [OrderController::class, 'updateStatus']);
-    Route::post('/orders/{order}/cancel',          [OrderController::class, 'cancel']);
 
     // ── Payments ──
     Route::post('/payments/initiate',              [PaymentController::class, 'initiate']);

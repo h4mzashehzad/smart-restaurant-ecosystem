@@ -3,11 +3,18 @@ import Image from 'next/image';
 interface ProductCardProps {
   item: any;
   onAdd: (item: any) => void;
+  onViewDetail: (id: number) => void;
 }
 
-export function ProductCard({ item, onAdd }: ProductCardProps) {
+export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
   return (
-    <div className="bg-white rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col hover:border-orange-500/30 transition-all group overflow-hidden animate-fade-in-up">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onViewDetail(item.id)}
+      onKeyDown={(e) => e.key === 'Enter' && onViewDetail(item.id)}
+      className="bg-white rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col hover:border-orange-500/30 transition-all group overflow-hidden animate-fade-in-up cursor-pointer"
+    >
       {item.image_url && (
         <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-4 bg-gray-50">
           <Image 
@@ -38,7 +45,7 @@ export function ProductCard({ item, onAdd }: ProductCardProps) {
             Rs {parseFloat(item.base_price).toLocaleString('en-PK')}
           </div>
           <button
-            onClick={() => onAdd(item)}
+            onClick={(e) => { e.stopPropagation(); onAdd(item); }}
             className="h-10 w-10 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 hover:bg-orange-500 hover:text-white transition-all active:scale-95 border border-orange-100 hover:shadow-lg hover:shadow-orange-500/25"
             aria-label={`Add ${item.name} to order`}
           >

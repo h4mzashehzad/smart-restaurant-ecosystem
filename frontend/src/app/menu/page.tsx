@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function MenuPage() {
   return (
     <div className="min-h-[100dvh] bg-gray-50 relative selection:bg-orange-500/30">
-      <div className="max-w-md mx-auto min-h-screen bg-gray-50 relative overflow-hidden flex flex-col shadow-[0_0_50px_rgb(0,0,0,0.03)] border-x border-gray-100/50">
+      <div className="menu-scroll-container max-w-md mx-auto min-h-screen bg-gray-50 relative flex flex-col shadow-[0_0_50px_rgb(0,0,0,0.03)] border-x border-gray-100/50">
         
         {/* Top Spacer / Status bar area */}
         <div className="h-6 w-full bg-white/95 backdrop-blur-xl sticky top-0 z-40"></div>

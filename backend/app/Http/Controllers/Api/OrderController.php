@@ -10,6 +10,7 @@ use App\Models\OrderItemCustomization;
 use App\Models\TableSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -87,7 +88,7 @@ class OrderController extends Controller
                 'restaurant_id'       => $session->restaurant_id,
                 'table_id'            => $request->table_id,
                 'session_id'          => $request->session_id,
-                'user_id'             => $request->user()->id,
+                'user_id'             => Auth::guard('sanctum')->id(),
                 'order_number'        => 'ORD-' . now()->format('Ymd') . '-' . rand(1000, 9999),
                 'order_type'          => 'dine_in',
                 'subtotal'            => $subtotal,

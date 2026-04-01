@@ -9,7 +9,7 @@
     "laravel-specialist": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
-      "computedHash": "d42a21cb81a384d31b90d4a563570fa3e33441a6beb968487fcf95a338985a7e"
+      "computedHash": "3fb2841e7b0e05d64484970fdbb03063327d904c270b2e46b9217b18863132ca"
     },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
@@ -24,17 +24,17 @@
     "nextjs-developer": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
-      "computedHash": "574c295ef59cdc324c390920f9a0e26cc908dc43493b973cf265ba7d913a94f2"
+      "computedHash": "e3c64eda5c1119ef707aeeca4efa40417ad8a3a2473895f1f37e1392405b881d"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
-      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
+      "computedHash": "6337038fe1fe6bbe1b9f252ab678ee575859190bab6f0f246f4061824eb40875"
     },
     "websocket-engineer": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
-      "computedHash": "a498a3fb8345b1edff9634de603ccc33aa58f98374870d8504b672384a28513d"
+      "computedHash": "a90c56583db692bd98e0d1e1210a54b0427923970965676c6fe86101261c9ece"
     }
   }
 }
