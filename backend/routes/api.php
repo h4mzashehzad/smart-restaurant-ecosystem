@@ -51,6 +51,9 @@ Route::get('/reservations/{confirmationCode}', [ReservationController::class, 's
 // Public restaurant availability
 Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
 
+// ── Webhooks (called by socket server, no auth) ──
+Route::post('/webhooks/order-status', [OrderController::class, 'webhookUpdateStatus']);
+
 // ── Orders (optional auth — guests may place orders without a token) ──
 Route::post('/orders',                        [OrderController::class, 'store']);
 Route::get('/orders/{order}',                  [OrderController::class, 'show']);

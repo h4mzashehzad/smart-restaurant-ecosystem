@@ -29,16 +29,20 @@ const redis = new Redis(process.env.REDIS_URL);
 const redisSubscriber = new Redis(process.env.REDIS_URL);
 
 // Subscribe to Laravel broadcast channels
-redisSubscriber.subscribe('laravel_database_order:created');
-redisSubscriber.subscribe('laravel_database_order:status:updated');
+redisSubscriber.subscribe('laravel-database-order:created');
+redisSubscriber.subscribe('laravel-database-order:status:updated');
+// Pattern-subscribe for session channels (session IDs vary)
+redisSubscriber.psubscribe('laravel-database-table-session.*');
 
 // Handle Redis messages
 redisSubscriber.on('message', async (channel, message) => {
   try {
-    const data = JSON.parse(message);
+    const envelope = JSON.parse(message);
+    // Laravel Redis broadcaster wraps payload in { event, data, socket }
+    const data = envelope.data || envelope;
     console.log(`Received message on ${channel}:`, data);
 
-    if (channel === 'laravel_database_order:created') {
+    if (channel === 'laravel-database-order:created') {
       const { order, restaurant_id } = data;
 
       // Cache order in Redis
@@ -64,7 +68,7 @@ redisSubscriber.on('message', async (channel, message) => {
       console.log(`Order ${order.id} broadcast to kitchen and table`);
     }
 
-    if (channel === 'laravel_database_order:status:updated') {
+    if (channel === 'laravel-database-order:status:updated') {
       const { order_id, status, restaurant_id, table_id } = data;
 
       // Update cached order
@@ -95,6 +99,24 @@ redisSubscriber.on('message', async (channel, message) => {
     }
   } catch (error) {
     console.error('Error processing Redis message:', error);
+  }
+});
+
+// Handle pattern-matched Redis messages (session channels)
+redisSubscriber.on('pmessage', async (pattern, channel, message) => {
+  try {
+    const envelope = JSON.parse(message);
+    const data = envelope.data || envelope;
+
+    // Extract session ID from channel: laravel-database-table-session.{id}
+    const match = channel.match(/laravel-database-table-session\.(\d+)/);
+    if (match) {
+      const sessionId = match[1];
+      io.to(`session:${sessionId}`).emit('session:state:changed', data);
+      console.log(`Session ${sessionId} state changed, broadcast to room`);
+    }
+  } catch (error) {
+    console.error('Error processing session Redis message:', error);
   }
 });
 
@@ -130,6 +152,22 @@ io.on('connection', (socket) => {
     const room = `table:restaurant_${restaurantId}_table_${tableId}`;
     socket.join(room);
     console.log(`Socket ${socket.id} joined table room ${room}`);
+  });
+
+  // Customer session joins (for live participant updates)
+  socket.on('session:join', (sessionId) => {
+    const room = `session:${sessionId}`;
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined session room ${room}`);
+  });
+
+  // Cart sync — relay to other devices in the same session
+  socket.on('cart:sync', async ({ sessionId, items }) => {
+    const room = `session:${sessionId}`;
+    const sockets = await io.in(room).fetchSockets();
+    const othersCount = sockets.filter(s => s.id !== socket.id).length;
+    socket.to(room).emit('cart:sync', { sessionId, items });
+    console.log(`Cart sync from ${socket.id} to session ${sessionId} (${items.length} items) → ${othersCount} other socket(s) in room`);
   });
 
   // Kitchen staff updates order status

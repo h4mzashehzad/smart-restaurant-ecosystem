@@ -11,6 +11,8 @@ class Order extends Model
 {
     use HasFactory;
 
+    protected $appends = ['estimated_completion_at'];
+
     protected $fillable = [
         'restaurant_id',
         'table_id',
@@ -42,6 +44,15 @@ class Order extends Model
             'ready_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
+    }
+
+    // ── Accessors ──
+
+    public function getEstimatedCompletionAtAttribute()
+    {
+        $maxPrep = $this->items->max(fn ($item) => $item->menuItem?->preparation_time ?? 0);
+
+        return $this->placed_at?->addMinutes($maxPrep ?: 15);
     }
 
     // ── Relationships ──

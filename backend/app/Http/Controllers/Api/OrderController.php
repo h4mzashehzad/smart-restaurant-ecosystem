@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\OrderCreated;
+use App\Events\OrderStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Order;
@@ -122,11 +124,15 @@ class OrderController extends Controller
 
             DB::commit();
 
+            $order->load('items.menuItem', 'items.customizations', 'table', 'user');
+
+            broadcast(new OrderCreated($order));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order placed successfully',
                 'data'    => [
-                    'order' => $order->load('items.menuItem', 'items.customizations'),
+                    'order' => $order,
                 ],
             ], 201);
         } catch (\Exception $e) {
@@ -196,6 +202,13 @@ class OrderController extends Controller
             $order->update([$timestampMap[$request->status] => now()]);
         }
 
+        broadcast(new OrderStatusUpdated(
+            $order->id,
+            $request->status,
+            $order->restaurant_id,
+            $order->table_id,
+        ));
+
         return response()->json([
             'success' => true,
             'message' => 'Order status updated',
@@ -236,6 +249,49 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $orders,
+        ]);
+    }
+
+    /**
+     * Webhook for socket server to update order status.
+     */
+    public function webhookUpdateStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'status'   => 'required|in:confirmed,preparing,ready,served,completed,cancelled',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $order = Order::findOrFail($request->order_id);
+        $order->update(['status' => $request->status]);
+
+        $timestampMap = [
+            'confirmed' => 'confirmed_at',
+            'ready'     => 'ready_at',
+            'completed' => 'completed_at',
+        ];
+
+        if (isset($timestampMap[$request->status]) && ! $order->{$timestampMap[$request->status]}) {
+            $order->update([$timestampMap[$request->status] => now()]);
+        }
+
+        broadcast(new OrderStatusUpdated(
+            $order->id,
+            $request->status,
+            $order->restaurant_id,
+            $order->table_id,
+        ));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order status updated via webhook',
         ]);
     }
 }

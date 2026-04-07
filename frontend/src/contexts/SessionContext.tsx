@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
-import { getEcho } from '@/lib/echo';
+import { socketClient } from '@/lib/socket';
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface SessionUser {
@@ -48,12 +48,19 @@ export interface ActiveSession {
   participants: SessionParticipant[];
 }
 
+export interface ActiveOrder {
+  orderId: number;
+  orderNumber: string;
+  status: string;
+}
+
 interface SessionContextType {
   session: ActiveSession | null;
   table: SessionTable | null;
   restaurant: SessionRestaurant | null;
   deviceId: string;
   isLoading: boolean;
+  activeOrders: ActiveOrder[];
   /** Call when user scans a QR code token. Handles create or join. */
   scanAndJoin: (qrToken: string) => Promise<ActiveSession>;
   /** Manually refresh participant list */
@@ -102,12 +109,15 @@ function loadPersistedSession(): { session: ActiveSession; table: SessionTable; 
 
 // ─── Provider ──────────────────────────────────────────────────────────────
 
+const ACTIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'ready'];
+
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<ActiveSession | null>(null);
   const [table, setTable] = useState<SessionTable | null>(null);
   const [restaurant, setRestaurant] = useState<SessionRestaurant | null>(null);
   const [deviceId, setDeviceId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
 
   // Rehydrate from sessionStorage on mount
   useEffect(() => {
@@ -178,23 +188,71 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refreshSessionRef.current = refreshSession;
   }, [refreshSession]);
 
-  // Listen for WebSocket events on the session channel
+  // Listen for real-time events via Socket.io
   useEffect(() => {
     if (!session?.id) return;
 
-    const channelName = `table-session.${session.id}`;
-    const echo = getEcho();
-    const channel = echo.channel(channelName);
+    socketClient.connect();
 
-    channel.listen('.SessionStateChanged', () => {
+    // Join session room for participant updates
+    socketClient.joinSession(session.id);
+
+    // Join table room for order status updates
+    if (restaurant && table) {
+      socketClient.joinTable(restaurant.id, table.id);
+    }
+
+    // Fetch initial active orders for this session
+    (async () => {
+      try {
+        const orders = await api.getSessionOrders(session.id);
+        if (Array.isArray(orders)) {
+          const sessionOrders: ActiveOrder[] = orders
+            .filter((o: any) => ACTIVE_STATUSES.includes(o.status))
+            .map((o: any) => ({ orderId: o.id, orderNumber: o.order_number, status: o.status }));
+          setActiveOrders(sessionOrders);
+        }
+      } catch {
+        // Silently fail — orders will populate via socket events
+      }
+    })();
+
+    // Session participant changes
+    const handleSessionChange = () => {
       refreshSessionRef.current();
-    });
+    };
+    socketClient.onSessionStateChanged(handleSessionChange);
+
+    // New order placed at this table
+    const handleOrderConfirmed = (data: any) => {
+      setActiveOrders((prev) => {
+        if (prev.some((o) => o.orderId === data.orderId)) return prev;
+        return [...prev, { orderId: data.orderId, orderNumber: data.orderNumber, status: 'confirmed' }];
+      });
+    };
+    socketClient.onOrderConfirmed(handleOrderConfirmed);
+
+    // Order status changed from KDS
+    const handleStatusChanged = (data: any) => {
+      const { orderId, status } = data;
+      if (ACTIVE_STATUSES.includes(status)) {
+        setActiveOrders((prev) =>
+          prev.map((o) => (o.orderId === orderId ? { ...o, status } : o))
+        );
+      } else {
+        // served / completed / cancelled — remove from active
+        setActiveOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+      }
+    };
+    socketClient.onStatusChanged(handleStatusChanged);
 
     return () => {
-      echo.leaveChannel(channelName);
+      socketClient.offSessionStateChanged(handleSessionChange);
+      socketClient.offOrderConfirmed(handleOrderConfirmed);
+      socketClient.offStatusChanged(handleStatusChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id]);
+  }, [session?.id, restaurant?.id, table?.id]);
 
   return (
     <SessionContext.Provider
@@ -204,6 +262,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         restaurant,
         deviceId,
         isLoading,
+        activeOrders,
         scanAndJoin,
         refreshSession,
         leaveSession,

@@ -45,7 +45,7 @@ class ApiClient {
           
           // Only redirect if we formerly had a token (expired session)
           // and we're not already heading to an auth page.
-          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register') && window.location.pathname !== '/') {
+          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register') && !window.location.pathname.startsWith('/admin') && window.location.pathname !== '/') {
             window.location.href = '/login';
           }
         }
@@ -176,6 +176,17 @@ class ApiClient {
 
   async updateOrderStatus(orderId: number, status: string) {
     const response = await this.client.patch(`/orders/${orderId}/status`, { status });
+    return response.data.data;
+  }
+
+  async getSessionOrders(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/orders`);
+    return response.data.data;
+  }
+
+  // Admin / KDS endpoints
+  async getActiveKitchenOrders(restaurantId: number = 1) {
+    const response = await this.client.get(`/admin/kitchen/orders/active?restaurant_id=${restaurantId}`);
     return response.data.data;
   }
 }
