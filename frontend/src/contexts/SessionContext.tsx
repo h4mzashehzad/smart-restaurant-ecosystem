@@ -118,6 +118,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [deviceId, setDeviceId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
+  const leavingRef = useRef(false);
 
   // Rehydrate from sessionStorage on mount
   useEffect(() => {
@@ -139,6 +140,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newTable: SessionTable = data.table;
       const newRestaurant: SessionRestaurant = data.restaurant;
 
+      leavingRef.current = false;
       setSession(newSession);
       setTable(newTable);
       setRestaurant(newRestaurant);
@@ -151,9 +153,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const refreshSession = useCallback(async () => {
-    if (!session) return;
+    if (!session || leavingRef.current) return;
     try {
       const updated = await api.getSession(session.id);
+      // Guard again after await — leaveSession may have been called while waiting
+      if (leavingRef.current) return;
       setSession(updated);
       persistSession(updated, table, restaurant);
     } catch {
@@ -163,25 +167,37 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const leaveSession = useCallback(async () => {
     if (!session) return;
+    leavingRef.current = true;
     setIsLoading(true);
     try {
       const id = getOrCreateDeviceId();
       await api.leaveSession(session.id, id);
     } finally {
+      // Leave socket rooms so no further events reach this client
+      socketClient.leaveSession(session.id);
+      if (restaurant && table) {
+        socketClient.leaveTable(restaurant.id, table.id);
+      }
       setSession(null);
       setTable(null);
       setRestaurant(null);
       persistSession(null, null, null);
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, restaurant, table]);
 
   const clearSession = useCallback(() => {
+    if (session) {
+      socketClient.leaveSession(session.id);
+    }
+    if (restaurant && table) {
+      socketClient.leaveTable(restaurant.id, table.id);
+    }
     setSession(null);
     setTable(null);
     setRestaurant(null);
     persistSession(null, null, null);
-  }, []);
+  }, [session, restaurant, table]);
 
   const refreshSessionRef = useRef(refreshSession);
   useEffect(() => {

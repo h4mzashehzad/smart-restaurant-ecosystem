@@ -88,6 +88,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketClient.emitCartUpdate(session.id, items);
   }, [items, session?.id]);
 
+  // Reset sync state when session is cleared (user left)
+  useEffect(() => {
+    if (!session?.id) {
+      initialSyncDone.current = false;
+      lastSyncedJson.current = '';
+    }
+  }, [session?.id]);
+
   // Listen for remote cart updates
   useEffect(() => {
     if (!session?.id) return;

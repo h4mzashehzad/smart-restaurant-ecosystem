@@ -161,9 +161,28 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined session room ${room}`);
   });
 
+  // Customer session leave
+  socket.on('session:leave', (sessionId) => {
+    const room = `session:${sessionId}`;
+    socket.leave(room);
+    console.log(`Socket ${socket.id} left session room ${room}`);
+  });
+
+  // Customer table leave
+  socket.on('table:leave', ({ restaurantId, tableId }) => {
+    const room = `table:restaurant_${restaurantId}_table_${tableId}`;
+    socket.leave(room);
+    console.log(`Socket ${socket.id} left table room ${room}`);
+  });
+
   // Cart sync — relay to other devices in the same session
   socket.on('cart:sync', async ({ sessionId, items }) => {
     const room = `session:${sessionId}`;
+    // Only relay if the sender is actually in the session room
+    if (!socket.rooms.has(room)) {
+      console.log(`Cart sync from ${socket.id} REJECTED — not in room ${room}`);
+      return;
+    }
     const sockets = await io.in(room).fetchSockets();
     const othersCount = sockets.filter(s => s.id !== socket.id).length;
     socket.to(room).emit('cart:sync', { sessionId, items });

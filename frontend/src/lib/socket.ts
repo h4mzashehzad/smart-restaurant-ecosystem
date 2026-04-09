@@ -115,6 +115,16 @@ class SocketClient {
     this.socket?.emit('session:join', sessionId);
   }
 
+  leaveSession(sessionId: number) {
+    this.pendingSessionId = null;
+    this.socket?.emit('session:leave', sessionId);
+  }
+
+  leaveTable(restaurantId: number, tableId: number) {
+    this.pendingTable = null;
+    this.socket?.emit('table:leave', { restaurantId, tableId });
+  }
+
   onSessionStateChanged(callback: (data: any) => void) {
     this.socket?.on('session:state:changed', callback);
   }
