@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ServiceRequestCreated;
+use App\Events\ServiceRequestUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +14,7 @@ class ServiceRequestController extends Controller
 {
     /**
      * Create a new service request (call waiter, request bill, etc.).
+     * Public route — works for both authenticated users and guests with a session.
      */
     public function store(Request $request): JsonResponse
     {
@@ -19,7 +22,8 @@ class ServiceRequestController extends Controller
             'restaurant_id' => 'required|exists:restaurants,id',
             'table_id'      => 'required|exists:tables,id',
             'session_id'    => 'nullable|exists:table_sessions,id',
-            'request_type'  => 'required|in:call_waiter,request_bill,complaint,other',
+            // Aligned to migration enum values
+            'request_type'  => 'required|in:waiter_call,bill_request,water_refill,cutlery,complaint,other',
             'priority'      => 'nullable|in:low,medium,high,urgent',
             'message'       => 'nullable|string|max:500',
         ]);
@@ -35,7 +39,8 @@ class ServiceRequestController extends Controller
             'restaurant_id' => $request->restaurant_id,
             'table_id'      => $request->table_id,
             'session_id'    => $request->session_id,
-            'user_id'       => $request->user()->id,
+            // nullable — guests won't have an authenticated user
+            'user_id'       => $request->user()?->id,
             'request_type'  => $request->request_type,
             'priority'      => $request->priority ?? 'medium',
             'message'       => $request->message,
@@ -43,10 +48,13 @@ class ServiceRequestController extends Controller
             'created_at'    => now(),
         ]);
 
+        // Broadcast to kitchen (KDS) and customer session via Redis pub/sub
+        broadcast(new ServiceRequestCreated($serviceRequest));
+
         return response()->json([
             'success' => true,
             'message' => 'Service request created',
-            'data'    => $serviceRequest,
+            'data'    => $serviceRequest->load(['table', 'user']),
         ], 201);
     }
 
@@ -58,12 +66,10 @@ class ServiceRequestController extends Controller
         $query = ServiceRequest::with(['table', 'user', 'assignedStaff'])
             ->orderByDesc('created_at');
 
-        // Filter for staff: only their restaurant
         if ($request->has('restaurant_id')) {
             $query->where('restaurant_id', $request->restaurant_id);
         }
 
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
@@ -87,6 +93,8 @@ class ServiceRequestController extends Controller
             'acknowledged_at' => now(),
         ]);
 
+        broadcast(new ServiceRequestUpdated($serviceRequest->fresh()));
+
         return response()->json([
             'success' => true,
             'message' => 'Service request acknowledged',
@@ -97,7 +105,7 @@ class ServiceRequestController extends Controller
     /**
      * Resolve a service request (staff).
      */
-    public function resolve(int $id): JsonResponse
+    public function resolve(Request $request, int $id): JsonResponse
     {
         $serviceRequest = ServiceRequest::findOrFail($id);
 
@@ -105,6 +113,8 @@ class ServiceRequestController extends Controller
             'status'      => 'resolved',
             'resolved_at' => now(),
         ]);
+
+        broadcast(new ServiceRequestUpdated($serviceRequest->fresh()));
 
         return response()->json([
             'success' => true,

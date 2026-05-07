@@ -189,6 +189,26 @@ class ApiClient {
     const response = await this.client.get(`/admin/kitchen/orders/active?restaurant_id=${restaurantId}`);
     return response.data.data;
   }
+
+  // Service Request endpoints
+  async createServiceRequest(data: {
+    restaurant_id: number;
+    table_id: number;
+    session_id: number;
+    request_type: string;
+    priority?: string;
+    message?: string;
+  }) {
+    const response = await this.client.post('/service-requests', data);
+    return response.data.data;
+  }
+
+  async getActiveServiceRequests(restaurantId: number) {
+    const response = await this.client.get(
+      `/service-requests?restaurant_id=${restaurantId}&status=pending&status=acknowledged`
+    );
+    return response.data.data;
+  }
 }
 
 export const api = new ApiClient();

@@ -54,6 +54,14 @@ export interface ActiveOrder {
   status: string;
 }
 
+export interface ServiceRequest {
+  id: number;
+  requestType: string;
+  status: 'pending' | 'acknowledged' | 'resolved' | 'cancelled';
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
+}
+
 interface SessionContextType {
   session: ActiveSession | null;
   table: SessionTable | null;
@@ -61,6 +69,7 @@ interface SessionContextType {
   deviceId: string;
   isLoading: boolean;
   activeOrders: ActiveOrder[];
+  activeServiceRequests: ServiceRequest[];
   /** Call when user scans a QR code token. Handles create or join. */
   scanAndJoin: (qrToken: string) => Promise<ActiveSession>;
   /** Manually refresh participant list */
@@ -69,6 +78,8 @@ interface SessionContextType {
   leaveSession: () => Promise<void>;
   /** Clear session state without API call (e.g. after session ends) */
   clearSession: () => void;
+  /** Submit a waiter assistance request for the current session */
+  submitWaiterRequest: (type: string, message?: string, priority?: string) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -118,6 +129,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [deviceId, setDeviceId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
+  const [activeServiceRequests, setActiveServiceRequests] = useState<ServiceRequest[]>([]);
   const leavingRef = useRef(false);
 
   // Rehydrate from sessionStorage on mount
@@ -234,9 +246,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     })();
 
     // Session participant changes
-    const handleSessionChange = () => {
-      refreshSessionRef.current();
-    };
+    const handleSessionChange = () => { refreshSessionRef.current(); };
     socketClient.onSessionStateChanged(handleSessionChange);
 
     // New order placed at this table
@@ -252,23 +262,60 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const handleStatusChanged = (data: any) => {
       const { orderId, status } = data;
       if (ACTIVE_STATUSES.includes(status)) {
-        setActiveOrders((prev) =>
-          prev.map((o) => (o.orderId === orderId ? { ...o, status } : o))
-        );
+        setActiveOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, status } : o)));
       } else {
-        // served / completed / cancelled — remove from active
         setActiveOrders((prev) => prev.filter((o) => o.orderId !== orderId));
       }
     };
     socketClient.onStatusChanged(handleStatusChanged);
 
+    // Waiter request confirmed (sent from server after POST /service-requests)
+    const handleWaiterConfirmed = (data: any) => {
+      setActiveServiceRequests((prev) => {
+        if (prev.some((r) => r.id === data.requestId)) return prev;
+        return [...prev, { id: data.requestId, requestType: data.requestType, status: 'pending' }];
+      });
+    };
+    socketClient.onWaiterRequestConfirmed(handleWaiterConfirmed);
+
+    // Waiter request status updated (acknowledged / resolved)
+    const handleWaiterUpdated = (data: any) => {
+      const { requestId, status, acknowledgedAt, resolvedAt } = data;
+      setActiveServiceRequests((prev) =>
+        prev.map((r) =>
+          r.id === requestId ? { ...r, status, acknowledgedAt, resolvedAt } : r
+        )
+      );
+    };
+    socketClient.onWaiterRequestUpdated(handleWaiterUpdated);
+
     return () => {
       socketClient.offSessionStateChanged(handleSessionChange);
       socketClient.offOrderConfirmed(handleOrderConfirmed);
       socketClient.offStatusChanged(handleStatusChanged);
+      socketClient.offWaiterRequestConfirmed(handleWaiterConfirmed);
+      socketClient.offWaiterRequestUpdated(handleWaiterUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, restaurant?.id, table?.id]);
+
+  const submitWaiterRequest = useCallback(async (
+    type: string,
+    message?: string,
+    priority: string = 'medium'
+  ) => {
+    if (!session || !table || !restaurant) throw new Error('No active session');
+    const { api } = await import('@/lib/api');
+    await api.createServiceRequest({
+      restaurant_id: restaurant.id,
+      table_id:      table.id,
+      session_id:    session.id,
+      request_type:  type,
+      priority,
+      message,
+    });
+    // The socket server will emit 'waiter:request:confirmed' back to this session room
+  }, [session, table, restaurant]);
 
   return (
     <SessionContext.Provider
@@ -279,10 +326,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deviceId,
         isLoading,
         activeOrders,
+        activeServiceRequests,
         scanAndJoin,
         refreshSession,
         leaveSession,
         clearSession,
+        submitWaiterRequest,
       }}
     >
       {children}

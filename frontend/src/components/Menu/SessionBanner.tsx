@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { WaiterAssistanceDrawer } from './WaiterAssistanceDrawer';
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
   pending:   { bg: 'bg-gray-400/30', text: 'text-gray-100', label: 'Pending' },
@@ -16,6 +17,7 @@ export function SessionBanner() {
   const { user } = useAuth();
   const [leaving, setLeaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [waiterOpen, setWaiterOpen] = useState(false);
 
   if (!session || !table) return null;
 
@@ -34,6 +36,7 @@ export function SessionBanner() {
 
   return (
     <>
+      <WaiterAssistanceDrawer open={waiterOpen} onClose={() => setWaiterOpen(false)} />
       {/* ── Session Banner ── */}
       <div className="mx-4 my-3 rounded-2xl overflow-hidden">
         {/* Gradient background */}
@@ -152,6 +155,26 @@ export function SessionBanner() {
               </div>
             </div>
           )}
+
+          {/* ── Waiter Assistance Button ── */}
+          <div className="mt-3 pt-3 border-t border-white/20">
+            <button
+              id="waiter-assistance-btn"
+              onClick={() => setWaiterOpen(true)}
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl
+                         bg-white/15 hover:bg-white/25 border border-white/25 transition-all
+                         active:scale-[0.98] cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.8} className="w-4 h-4 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              </svg>
+              <span className="text-white text-sm font-semibold font-sans">Need Assistance?</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} className="w-3.5 h-3.5 opacity-60 ml-auto">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

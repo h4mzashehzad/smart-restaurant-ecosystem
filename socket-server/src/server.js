@@ -28,50 +28,39 @@ const io = new Server(server, {
 const redis = new Redis(process.env.REDIS_URL);
 const redisSubscriber = new Redis(process.env.REDIS_URL);
 
-// Subscribe to Laravel broadcast channels
+// ── Redis subscriptions ──────────────────────────────────────────────────────
+// Order channels (exact-match)
 redisSubscriber.subscribe('laravel-database-order:created');
 redisSubscriber.subscribe('laravel-database-order:status:updated');
-// Pattern-subscribe for session channels (session IDs vary)
+// Pattern subscriptions (variable segment)
 redisSubscriber.psubscribe('laravel-database-table-session.*');
+redisSubscriber.psubscribe('laravel-database-service-requests.*');
 
-// Handle Redis messages
+// ── Exact-match Redis messages ───────────────────────────────────────────────
 redisSubscriber.on('message', async (channel, message) => {
   try {
     const envelope = JSON.parse(message);
-    // Laravel Redis broadcaster wraps payload in { event, data, socket }
     const data = envelope.data || envelope;
-    console.log(`Received message on ${channel}:`, data);
+    console.log(`[Redis] message on ${channel}:`, data);
 
     if (channel === 'laravel-database-order:created') {
       const { order, restaurant_id } = data;
 
-      // Cache order in Redis
-      await redis.setex(
-        `order:${order.id}:details`,
-        7200,
-        JSON.stringify(order)
-      );
-
-      // Add to pending orders set
+      await redis.setex(`order:${order.id}:details`, 7200, JSON.stringify(order));
       await redis.sadd(`order:pending:${restaurant_id}`, order.id);
 
-      // Broadcast to kitchen display
       io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:created', order);
-
-      // Broadcast to customer table
       io.to(`table:restaurant_${restaurant_id}_table_${order.table_id}`).emit('order:confirmed', {
         orderId: order.id,
         orderNumber: order.order_number,
         estimatedTime: order.estimated_time
       });
-
-      console.log(`Order ${order.id} broadcast to kitchen and table`);
+      console.log(`[Orders] Order ${order.id} broadcast to kitchen and table`);
     }
 
     if (channel === 'laravel-database-order:status:updated') {
       const { order_id, status, restaurant_id, table_id } = data;
 
-      // Update cached order
       const cachedOrder = await redis.get(`order:${order_id}:details`);
       if (cachedOrder) {
         const order = JSON.parse(cachedOrder);
@@ -79,155 +68,244 @@ redisSubscriber.on('message', async (channel, message) => {
         await redis.setex(`order:${order_id}:details`, 7200, JSON.stringify(order));
       }
 
-      // Remove from pending if completed
       if (['completed', 'cancelled'].includes(status)) {
         await redis.srem(`order:pending:${restaurant_id}`, order_id);
       }
 
-      // Broadcast status update
-      io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:status:changed', {
-        orderId: order_id,
-        status
-      });
-
-      io.to(`table:restaurant_${restaurant_id}_table_${table_id}`).emit('status:changed', {
-        orderId: order_id,
-        status
-      });
-
-      console.log(`Order ${order_id} status updated to ${status}`);
+      io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:status:changed', { orderId: order_id, status });
+      io.to(`table:restaurant_${restaurant_id}_table_${table_id}`).emit('status:changed', { orderId: order_id, status });
+      console.log(`[Orders] Order ${order_id} status updated to ${status}`);
     }
   } catch (error) {
-    console.error('Error processing Redis message:', error);
+    console.error('[Redis] Error processing message:', error);
   }
 });
 
-// Handle pattern-matched Redis messages (session channels)
+// ── Pattern-matched Redis messages ───────────────────────────────────────────
 redisSubscriber.on('pmessage', async (pattern, channel, message) => {
   try {
     const envelope = JSON.parse(message);
     const data = envelope.data || envelope;
+    const eventName = envelope.event || '';
 
-    // Extract session ID from channel: laravel-database-table-session.{id}
-    const match = channel.match(/laravel-database-table-session\.(\d+)/);
-    if (match) {
-      const sessionId = match[1];
+    // ── Table session changes (participants join/leave) ──
+    const sessionMatch = channel.match(/laravel-database-table-session\.(\d+)/);
+    if (sessionMatch) {
+      const sessionId = sessionMatch[1];
       io.to(`session:${sessionId}`).emit('session:state:changed', data);
-      console.log(`Session ${sessionId} state changed, broadcast to room`);
+      console.log(`[Session] Session ${sessionId} state changed`);
+      return;
+    }
+
+    // ── Service / waiter requests ──
+    const srMatch = channel.match(/laravel-database-service-requests\.restaurant_(\d+)/);
+    if (srMatch) {
+      const restaurantId = srMatch[1];
+
+      // ServiceRequestCreated
+      if (eventName.includes('ServiceRequestCreated') || data.service_request) {
+        const { service_request, session_id } = data;
+
+        // Cache the pending request in Redis
+        await redis.setex(
+          `service-request:${service_request.id}:details`,
+          3600,
+          JSON.stringify(service_request)
+        );
+        await redis.sadd(`service-requests:pending:${restaurantId}`, service_request.id);
+
+        // Notify the KDS kitchen room
+        io.to(`kitchen:restaurant_${restaurantId}`).emit('waiter:request:new', service_request);
+
+        // Confirm to the customer's session room
+        if (session_id) {
+          io.to(`session:${session_id}`).emit('waiter:request:confirmed', {
+            requestId:   service_request.id,
+            requestType: service_request.request_type,
+            status:      'pending',
+          });
+        }
+        console.log(`[Waiter] Request ${service_request.id} → kitchen:restaurant_${restaurantId}`);
+      }
+
+      // ServiceRequestUpdated
+      if (eventName.includes('ServiceRequestUpdated') || data.request_id) {
+        const { request_id, status, session_id, acknowledged_at, resolved_at } = data;
+
+        // Update Redis cache
+        const cached = await redis.get(`service-request:${request_id}:details`);
+        if (cached) {
+          const sr = JSON.parse(cached);
+          sr.status = status;
+          if (acknowledged_at) sr.acknowledged_at = acknowledged_at;
+          if (resolved_at)     sr.resolved_at     = resolved_at;
+          await redis.setex(`service-request:${request_id}:details`, 3600, JSON.stringify(sr));
+        }
+
+        // Remove from pending set when resolved/cancelled
+        if (['resolved', 'cancelled'].includes(status)) {
+          await redis.srem(`service-requests:pending:${restaurantId}`, request_id);
+        }
+
+        const updatePayload = { requestId: request_id, status, acknowledgedAt: acknowledged_at, resolvedAt: resolved_at };
+
+        // Update KDS
+        io.to(`kitchen:restaurant_${restaurantId}`).emit('waiter:request:updated', updatePayload);
+
+        // Update customer session
+        if (session_id) {
+          io.to(`session:${session_id}`).emit('waiter:request:updated', updatePayload);
+        }
+        console.log(`[Waiter] Request ${request_id} status → ${status}`);
+      }
     }
   } catch (error) {
-    console.error('Error processing session Redis message:', error);
+    console.error('[Redis] Error processing pattern message:', error);
   }
 });
 
-// Socket.io connection handling
+// ── Socket.io connection handling ────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`[Socket] Client connected: ${socket.id}`);
 
-  // Kitchen display joins
+  // ── Kitchen Display joins ─────────────────────────────────────────────────
   socket.on('kitchen:join', async (restaurantId) => {
     socket.join(`kitchen:restaurant_${restaurantId}`);
-    console.log(`Socket ${socket.id} joined kitchen room for restaurant ${restaurantId}`);
+    console.log(`[Kitchen] Socket ${socket.id} joined kitchen room for restaurant ${restaurantId}`);
 
-    // Send active orders on connect
+    // Send active orders from Redis cache
     try {
       const activeOrderIds = await redis.smembers(`order:pending:${restaurantId}`);
       const orders = await Promise.all(
         activeOrderIds.map(async (id) => {
-          const orderData = await redis.get(`order:${id}:details`);
-          return orderData ? JSON.parse(orderData) : null;
+          const d = await redis.get(`order:${id}:details`);
+          return d ? JSON.parse(d) : null;
         })
       );
-
-      const validOrders = orders.filter(o => o !== null);
-      socket.emit('kitchen:initial:orders', validOrders);
-      console.log(`Sent ${validOrders.length} active orders to ${socket.id}`);
+      socket.emit('kitchen:initial:orders', orders.filter(Boolean));
+      console.log(`[Kitchen] Sent ${orders.filter(Boolean).length} active orders to ${socket.id}`);
     } catch (error) {
-      console.error('Error sending initial orders:', error);
+      console.error('[Kitchen] Error sending initial orders:', error);
+    }
+
+    // Send active service requests from Redis cache
+    try {
+      const pendingRequestIds = await redis.smembers(`service-requests:pending:${restaurantId}`);
+      const serviceRequests = await Promise.all(
+        pendingRequestIds.map(async (id) => {
+          const d = await redis.get(`service-request:${id}:details`);
+          return d ? JSON.parse(d) : null;
+        })
+      );
+      socket.emit('kitchen:initial:service-requests', serviceRequests.filter(Boolean));
+      console.log(`[Kitchen] Sent ${serviceRequests.filter(Boolean).length} pending service requests to ${socket.id}`);
+    } catch (error) {
+      console.error('[Kitchen] Error sending initial service requests:', error);
     }
   });
 
-  // Customer table joins
+  // ── Customer table joins ──────────────────────────────────────────────────
   socket.on('table:join', ({ restaurantId, tableId }) => {
     const room = `table:restaurant_${restaurantId}_table_${tableId}`;
     socket.join(room);
-    console.log(`Socket ${socket.id} joined table room ${room}`);
+    console.log(`[Table] Socket ${socket.id} joined ${room}`);
   });
 
-  // Customer session joins (for live participant updates)
+  // ── Customer session joins (live participant + waiter request updates) ────
   socket.on('session:join', (sessionId) => {
     const room = `session:${sessionId}`;
     socket.join(room);
-    console.log(`Socket ${socket.id} joined session room ${room}`);
+    console.log(`[Session] Socket ${socket.id} joined ${room}`);
   });
 
-  // Customer session leave
   socket.on('session:leave', (sessionId) => {
-    const room = `session:${sessionId}`;
-    socket.leave(room);
-    console.log(`Socket ${socket.id} left session room ${room}`);
+    socket.leave(`session:${sessionId}`);
+    console.log(`[Session] Socket ${socket.id} left session:${sessionId}`);
   });
 
-  // Customer table leave
   socket.on('table:leave', ({ restaurantId, tableId }) => {
-    const room = `table:restaurant_${restaurantId}_table_${tableId}`;
-    socket.leave(room);
-    console.log(`Socket ${socket.id} left table room ${room}`);
+    socket.leave(`table:restaurant_${restaurantId}_table_${tableId}`);
+    console.log(`[Table] Socket ${socket.id} left table room`);
   });
 
-  // Cart sync — relay to other devices in the same session
+  // ── Cart sync — relay to other devices in the same session ───────────────
   socket.on('cart:sync', async ({ sessionId, items }) => {
     const room = `session:${sessionId}`;
-    // Only relay if the sender is actually in the session room
     if (!socket.rooms.has(room)) {
-      console.log(`Cart sync from ${socket.id} REJECTED — not in room ${room}`);
+      console.log(`[Cart] Sync from ${socket.id} REJECTED — not in room ${room}`);
       return;
     }
     const sockets = await io.in(room).fetchSockets();
     const othersCount = sockets.filter(s => s.id !== socket.id).length;
     socket.to(room).emit('cart:sync', { sessionId, items });
-    console.log(`Cart sync from ${socket.id} to session ${sessionId} (${items.length} items) → ${othersCount} other socket(s) in room`);
+    console.log(`[Cart] Sync from ${socket.id} → session ${sessionId} (${items.length} items, ${othersCount} other(s))`);
   });
 
-  // Kitchen staff updates order status
-  socket.on('order:update:status', async (data) => {
-    const { orderId, status } = data;
-    console.log(`Received status update for order ${orderId}: ${status}`);
-
+  // ── Kitchen staff: update food order status ───────────────────────────────
+  socket.on('order:update:status', async ({ orderId, status }) => {
+    console.log(`[Orders] Status update request: order ${orderId} → ${status}`);
     try {
-      // Trigger Laravel webhook to update database
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/order-status`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, status })
       });
-
-      if (!response.ok) {
-        throw new Error(`Webhook failed: ${response.statusText}`);
-      }
-
-      console.log(`Order ${orderId} status updated via webhook`);
+      if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
+      console.log(`[Orders] Order ${orderId} status updated via webhook`);
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error('[Orders] Error updating order status:', error);
       socket.emit('error', { message: 'Failed to update order status' });
     }
   });
 
-  // Disconnect handler
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
+  // ── Kitchen staff: acknowledge waiter request ─────────────────────────────
+  socket.on('waiter:request:acknowledge', async ({ requestId }) => {
+    console.log(`[Waiter] Acknowledge request ${requestId}`);
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/waiter-request-action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId, action: 'acknowledge' })
+      });
+      if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
+      console.log(`[Waiter] Request ${requestId} acknowledged`);
+    } catch (error) {
+      console.error('[Waiter] Error acknowledging request:', error);
+      socket.emit('error', { message: 'Failed to acknowledge request' });
+    }
   });
 
-  // Error handler
+  // ── Kitchen staff: resolve waiter request ────────────────────────────────
+  socket.on('waiter:request:resolve', async ({ requestId }) => {
+    console.log(`[Waiter] Resolve request ${requestId}`);
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/waiter-request-action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId, action: 'resolve' })
+      });
+      if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
+      console.log(`[Waiter] Request ${requestId} resolved`);
+    } catch (error) {
+      console.error('[Waiter] Error resolving request:', error);
+      socket.emit('error', { message: 'Failed to resolve request' });
+    }
+  });
+
+  // ── Disconnect / error ───────────────────────────────────────────────────
+  socket.on('disconnect', () => {
+    console.log(`[Socket] Client disconnected: ${socket.id}`);
+  });
+
   socket.on('error', (error) => {
-    console.error(`Socket error for ${socket.id}:`, error);
+    console.error(`[Socket] Error for ${socket.id}:`, error);
   });
 });
 
-// Health check endpoint
+// ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -236,22 +314,22 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Start server
+// ── Start server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Socket.io server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Redis URL: ${process.env.REDIS_URL}`);
-  console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
+  console.log(`[Server] Socket.io running on port ${PORT}`);
+  console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
+  console.log(`[Server] Redis URL: ${process.env.REDIS_URL}`);
+  console.log(`[Server] Frontend URL: ${process.env.FRONTEND_URL}`);
 });
 
-// Graceful shutdown
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server...');
+  console.log('[Server] SIGTERM received, shutting down…');
   server.close(() => {
     redis.disconnect();
     redisSubscriber.disconnect();
-    console.log('Server closed');
+    console.log('[Server] Closed');
     process.exit(0);
   });
 });

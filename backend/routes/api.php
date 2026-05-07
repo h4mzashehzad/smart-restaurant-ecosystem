@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\QueueController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\ServiceRequestController;
+use App\Http\Controllers\Api\ServiceRequestWebhookController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\TableController;
 
@@ -52,7 +53,11 @@ Route::get('/reservations/{confirmationCode}', [ReservationController::class, 's
 Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
 
 // ── Webhooks (called by socket server, no auth) ──
-Route::post('/webhooks/order-status', [OrderController::class, 'webhookUpdateStatus']);
+Route::post('/webhooks/order-status',         [OrderController::class,               'webhookUpdateStatus']);
+Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController::class, 'handle']);
+
+// ── Service Requests (public — guests in a session may request assistance) ──
+Route::post('/service-requests', [ServiceRequestController::class, 'store']);
 
 // ── Orders (optional auth — guests may place orders without a token) ──
 Route::post('/orders',                        [OrderController::class, 'store']);
@@ -116,8 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/queue/join',   [QueueController::class, 'join']);
     Route::get('/queue/status',  [QueueController::class, 'status']);
 
-    // ── Service Requests ──
-    Route::post('/service-requests',                    [ServiceRequestController::class, 'store']);
+    // ── Service Requests (staff-only: list, acknowledge, resolve) ──
     Route::get('/service-requests',                     [ServiceRequestController::class, 'index']);
     Route::patch('/service-requests/{id}/acknowledge',  [ServiceRequestController::class, 'acknowledge']);
     Route::patch('/service-requests/{id}/resolve',      [ServiceRequestController::class, 'resolve']);
