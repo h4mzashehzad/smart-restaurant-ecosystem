@@ -161,7 +161,7 @@ export function SessionBanner() {
             <button
               id="waiter-assistance-btn"
               onClick={() => setWaiterOpen(true)}
-              className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl
+              className="w-full flex items-center justify-between gap-2.5 px-4 py-3.5 rounded-xl
                          bg-white/15 hover:bg-white/25 border border-white/25 transition-all
                          active:scale-[0.98] cursor-pointer"
             >
