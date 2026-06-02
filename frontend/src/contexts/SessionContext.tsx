@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { socketClient } from '@/lib/socket';
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -76,10 +77,16 @@ interface SessionContextType {
   refreshSession: () => Promise<void>;
   /** Leave the current session and clear state */
   leaveSession: () => Promise<void>;
+  /** End the current session completely for all users and clear state */
+  endSession: () => Promise<void>;
   /** Clear session state without API call (e.g. after session ends) */
   clearSession: () => void;
   /** Submit a waiter assistance request for the current session */
   submitWaiterRequest: (type: string, message?: string, priority?: string) => Promise<void>;
+  /** Orders that have been served and are awaiting feedback */
+  servedOrders: ActiveOrder[];
+  /** Remove an order from the served queue (after feedback submitted or skipped) */
+  dismissServedOrder: (orderId: number) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -130,7 +137,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
   const [activeServiceRequests, setActiveServiceRequests] = useState<ServiceRequest[]>([]);
+  const [servedOrders, setServedOrders] = useState<ActiveOrder[]>([]);
   const leavingRef = useRef(false);
+  const router = useRouter();
 
   // Rehydrate from sessionStorage on mount
   useEffect(() => {
@@ -170,12 +179,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updated = await api.getSession(session.id);
       // Guard again after await — leaveSession may have been called while waiting
       if (leavingRef.current) return;
+      
+      if (updated.status !== 'active') {
+        // Session was ended by someone else or automatically
+        leavingRef.current = true;
+        socketClient.leaveSession(session.id);
+        if (restaurant && table) {
+          socketClient.leaveTable(restaurant.id, table.id);
+        }
+        setSession(null);
+        setTable(null);
+        setRestaurant(null);
+        persistSession(null, null, null);
+        router.push('/');
+        return;
+      }
+      
       setSession(updated);
       persistSession(updated, table, restaurant);
     } catch {
       // Silently fail on refresh
     }
-  }, [session, table, restaurant]);
+  }, [session, table, restaurant, router]);
 
   const leaveSession = useCallback(async () => {
     if (!session) return;
@@ -195,8 +220,30 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setRestaurant(null);
       persistSession(null, null, null);
       setIsLoading(false);
+      router.push('/');
     }
-  }, [session, restaurant, table]);
+  }, [session, restaurant, table, router]);
+
+  const endSession = useCallback(async () => {
+    if (!session) return;
+    leavingRef.current = true;
+    setIsLoading(true);
+    try {
+      const id = getOrCreateDeviceId();
+      await api.endSession(session.id, id);
+    } finally {
+      socketClient.leaveSession(session.id);
+      if (restaurant && table) {
+        socketClient.leaveTable(restaurant.id, table.id);
+      }
+      setSession(null);
+      setTable(null);
+      setRestaurant(null);
+      persistSession(null, null, null);
+      setIsLoading(false);
+      router.push('/');
+    }
+  }, [session, restaurant, table, router]);
 
   const clearSession = useCallback(() => {
     if (session) {
@@ -261,6 +308,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Order status changed from KDS
     const handleStatusChanged = (data: any) => {
       const { orderId, status } = data;
+
+      // Track served orders for feedback drawer
+      if (status === 'served') {
+        setServedOrders((prev) => {
+          if (prev.some((o) => o.orderId === orderId)) return prev;
+          return [...prev, { orderId, orderNumber: '', status: 'served' }];
+        });
+      }
+
       if (ACTIVE_STATUSES.includes(status)) {
         setActiveOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, status } : o)));
       } else {
@@ -317,6 +373,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // The socket server will emit 'waiter:request:confirmed' back to this session room
   }, [session, table, restaurant]);
 
+  const dismissServedOrder = useCallback((orderId: number) => {
+    setServedOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+  }, []);
+
   return (
     <SessionContext.Provider
       value={{
@@ -327,11 +387,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isLoading,
         activeOrders,
         activeServiceRequests,
+        servedOrders,
         scanAndJoin,
         refreshSession,
         leaveSession,
+        endSession,
         clearSession,
         submitWaiterRequest,
+        dismissServedOrder,
       }}
     >
       {children}

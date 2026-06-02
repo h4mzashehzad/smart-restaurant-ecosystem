@@ -32,6 +32,8 @@ const redisSubscriber = new Redis(process.env.REDIS_URL);
 // Order channels (exact-match)
 redisSubscriber.subscribe('laravel-database-order:created');
 redisSubscriber.subscribe('laravel-database-order:status:updated');
+// Feedback flagging channel
+redisSubscriber.subscribe('laravel-database-feedback:flagged');
 // Pattern subscriptions (variable segment)
 redisSubscriber.psubscribe('laravel-database-table-session.*');
 redisSubscriber.psubscribe('laravel-database-service-requests.*');
@@ -75,6 +77,24 @@ redisSubscriber.on('message', async (channel, message) => {
       io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:status:changed', { orderId: order_id, status });
       io.to(`table:restaurant_${restaurant_id}_table_${table_id}`).emit('status:changed', { orderId: order_id, status });
       console.log(`[Orders] Order ${order_id} status updated to ${status}`);
+    }
+
+    // ── Flagged feedback alert ─────────────────────────────────────────
+    if (channel === 'laravel-database-feedback:flagged') {
+      const feedback = data;
+      const restaurantId = feedback.restaurant_id;
+
+      // Cache with 15-minute TTL (900 seconds) for auto-expiry
+      await redis.setex(
+        `feedback:flagged:${feedback.feedback_id}:details`,
+        900,
+        JSON.stringify(feedback)
+      );
+      await redis.sadd(`feedback:flagged:${restaurantId}`, String(feedback.feedback_id));
+
+      // Broadcast to kitchen
+      io.to(`kitchen:restaurant_${restaurantId}`).emit('feedback:flagged', feedback);
+      console.log(`[Feedback] Flagged feedback ${feedback.feedback_id} → kitchen:restaurant_${restaurantId}`);
     }
   } catch (error) {
     console.error('[Redis] Error processing message:', error);
@@ -202,6 +222,32 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('[Kitchen] Error sending initial service requests:', error);
     }
+
+    // Send flagged feedback from Redis cache (stale entries auto-expire via 15min TTL)
+    try {
+      const flaggedIds = await redis.smembers(`feedback:flagged:${restaurantId}`);
+      const flaggedFeedback = [];
+      const staleIds = [];
+
+      for (const id of flaggedIds) {
+        const d = await redis.get(`feedback:flagged:${id}:details`);
+        if (d) {
+          flaggedFeedback.push(JSON.parse(d));
+        } else {
+          staleIds.push(id); // TTL expired, clean up set
+        }
+      }
+
+      // Remove expired IDs from the set
+      if (staleIds.length > 0) {
+        await redis.srem(`feedback:flagged:${restaurantId}`, ...staleIds);
+      }
+
+      socket.emit('kitchen:initial:flagged-feedback', flaggedFeedback);
+      console.log(`[Kitchen] Sent ${flaggedFeedback.length} flagged feedback alerts to ${socket.id}`);
+    } catch (error) {
+      console.error('[Kitchen] Error sending flagged feedback:', error);
+    }
   });
 
   // ── Customer table joins ──────────────────────────────────────────────────
@@ -293,6 +339,15 @@ io.on('connection', (socket) => {
       console.error('[Waiter] Error resolving request:', error);
       socket.emit('error', { message: 'Failed to resolve request' });
     }
+  });
+
+  // ── Kitchen staff: dismiss flagged feedback alert ────────────────────
+  socket.on('feedback:flag:dismiss', async ({ feedbackId, restaurantId }) => {
+    console.log(`[Feedback] Dismiss flagged feedback ${feedbackId}`);
+    await redis.srem(`feedback:flagged:${restaurantId}`, String(feedbackId));
+    await redis.del(`feedback:flagged:${feedbackId}:details`);
+    io.to(`kitchen:restaurant_${restaurantId}`).emit('feedback:flag:dismissed', { feedbackId });
+    console.log(`[Feedback] Flagged feedback ${feedbackId} dismissed`);
   });
 
   // ── Disconnect / error ───────────────────────────────────────────────────

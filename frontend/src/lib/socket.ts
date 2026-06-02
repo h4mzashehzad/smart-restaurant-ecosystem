@@ -171,6 +171,32 @@ class SocketClient {
     this.socket?.off('cart:sync', callback);
   }
 
+  // ── Feedback flagging — Kitchen side ───────────────────────────────────
+  onFeedbackFlagged(callback: (data: any) => void) {
+    this.socket?.on('feedback:flagged', callback);
+  }
+  offFeedbackFlagged(callback?: (data: any) => void) {
+    this.socket?.off('feedback:flagged', callback);
+  }
+
+  onKitchenInitialFlaggedFeedback(callback: (data: any[]) => void) {
+    this.socket?.on('kitchen:initial:flagged-feedback', callback);
+  }
+  offKitchenInitialFlaggedFeedback(callback?: (data: any[]) => void) {
+    this.socket?.off('kitchen:initial:flagged-feedback', callback);
+  }
+
+  dismissFeedbackFlag(feedbackId: number, restaurantId: number) {
+    this.socket?.emit('feedback:flag:dismiss', { feedbackId, restaurantId });
+  }
+
+  onFeedbackFlagDismissed(callback: (data: any) => void) {
+    this.socket?.on('feedback:flag:dismissed', callback);
+  }
+  offFeedbackFlagDismissed(callback?: (data: any) => void) {
+    this.socket?.off('feedback:flag:dismissed', callback);
+  }
+
   // ── Utilities ───────────────────────────────────────────────────────────
   isConnected(): boolean { return this.socket?.connected ?? false; }
 

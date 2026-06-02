@@ -183,8 +183,8 @@ class SessionController extends Controller
         $userId   = $user?->id;
         $deviceId = $request->header('X-Device-Id');
 
-        // Verify the user is the host
-        $host = $session->participants()
+        // Verify the user is a participant
+        $participant = $session->participants()
             ->where(function ($q) use ($userId, $deviceId) {
                 if ($userId) {
                     $q->where('user_id', $userId);
@@ -193,13 +193,13 @@ class SessionController extends Controller
                     $q->orWhere('device_id', $deviceId);
                 }
             })
-            ->where('is_host', true)
+            ->whereNull('left_at')
             ->first();
 
-        if (! $host) {
+        if (! $participant) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only the session host can end the session',
+                'message' => 'Only active participants can end the session',
             ], 403);
         }
 
@@ -207,6 +207,9 @@ class SessionController extends Controller
             'status'   => 'completed',
             'ended_at' => now(),
         ]);
+
+        // Remove all users from the session
+        $session->participants()->whereNull('left_at')->update(['left_at' => now()]);
 
         // Free up the table
         $session->table->update([

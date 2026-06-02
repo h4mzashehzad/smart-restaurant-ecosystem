@@ -65,6 +65,10 @@ Route::get('/orders/{order}',                  [OrderController::class, 'show'])
 Route::get('/sessions/{session}/orders',       [OrderController::class, 'sessionOrders']);
 Route::post('/orders/{order}/cancel',          [OrderController::class, 'cancel']);
 
+// ── Feedback (public — guests + authenticated users) ──
+Route::post('/feedback',          [FeedbackController::class, 'store']);
+Route::get('/feedback/{orderId}', [FeedbackController::class, 'show']);
+
 // ── Public Table / QR Scan (guests + authenticated users) ──
 // GET: returns table info + whether a session exists (used on scan landing page)
 Route::get('/tables/{qrCode}/scan', [TableController::class, 'scan']);
@@ -126,9 +130,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/service-requests/{id}/acknowledge',  [ServiceRequestController::class, 'acknowledge']);
     Route::patch('/service-requests/{id}/resolve',      [ServiceRequestController::class, 'resolve']);
 
-    // ── Feedback ──
-    Route::post('/feedback',            [FeedbackController::class, 'store']);
-    Route::get('/feedback/{orderId}',   [FeedbackController::class, 'show']);
 
     // ── Loyalty & Rewards ──
     Route::get('/loyalty/points',        [LoyaltyController::class, 'points']);

@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { socketClient } from '@/lib/socket';
 import KDSOrderTicket from '@/components/kds/KDSOrderTicket';
 import WaiterRequestCard, { WaiterRequest } from '@/components/kds/WaiterRequestCard';
+import FlaggedFeedbackAlert, { type FlaggedFeedback } from '@/components/kds/FlaggedFeedbackAlert';
 
 interface KDSOrder {
   id: number;
@@ -44,6 +45,7 @@ export default function KDSContainer() {
   const [serviceRequests, setServiceRequests] = useState<WaiterRequest[]>([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [flaggedFeedback, setFlaggedFeedback] = useState<FlaggedFeedback[]>([]);
   const mountedRef = useRef(true);
 
   // Auth guard
@@ -132,6 +134,26 @@ export default function KDSContainer() {
       );
     });
 
+    // ── Flagged feedback alerts ──────────────────────────────────────
+
+    socketClient.onKitchenInitialFlaggedFeedback((initial: FlaggedFeedback[]) => {
+      if (mountedRef.current) setFlaggedFeedback(initial ?? []);
+    });
+
+    socketClient.onFeedbackFlagged((feedback: FlaggedFeedback) => {
+      if (!mountedRef.current) return;
+      setFlaggedFeedback((prev) =>
+        prev.some((f) => f.feedback_id === feedback.feedback_id)
+          ? prev
+          : [feedback, ...prev]
+      );
+    });
+
+    socketClient.onFeedbackFlagDismissed((data: { feedbackId: number }) => {
+      if (!mountedRef.current) return;
+      setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== data.feedbackId));
+    });
+
     setConnected(socketClient.isConnected());
 
     return () => {
@@ -142,6 +164,9 @@ export default function KDSContainer() {
       socketClient.offKitchenInitialServiceRequests();
       socketClient.offWaiterRequestNew();
       socketClient.offWaiterRequestUpdated();
+      socketClient.offFeedbackFlagged();
+      socketClient.offKitchenInitialFlaggedFeedback();
+      socketClient.offFeedbackFlagDismissed();
       socketClient.disconnect();
     };
   }, [authLoading, user, fetchOrders]);
@@ -157,6 +182,11 @@ export default function KDSContainer() {
 
   const handleRequestResolved = useCallback((id: number) => {
     setServiceRequests((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  const handleDismissFeedback = useCallback((feedbackId: number) => {
+    socketClient.dismissFeedbackFlag(feedbackId, RESTAURANT_ID);
+    setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
   }, []);
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -217,6 +247,16 @@ export default function KDSContainer() {
               </div>
             )}
 
+            {/* Flagged feedback alerts count */}
+            {flaggedFeedback.length > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-bold font-display leading-none text-red-400">
+                  {flaggedFeedback.length}
+                </p>
+                <p className="text-[10px] text-red-400/70 font-semibold uppercase tracking-wider">Alerts</p>
+              </div>
+            )}
+
             {/* Connection status */}
             <div className="flex items-center gap-1.5">
               <div className={`h-2.5 w-2.5 rounded-full ${connected
@@ -230,6 +270,37 @@ export default function KDSContainer() {
       </header>
 
       <main className="p-4 sm:p-6 space-y-6">
+
+        {/* ── Flagged Feedback Alerts Panel ───────────────────────────── */}
+        {flaggedFeedback.length > 0 && (
+          <section aria-label="Flagged Feedback">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+                  className="w-3.5 h-3.5 text-red-400">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-bold font-display text-gray-300 uppercase tracking-wider">
+                Flagged Reviews
+              </h2>
+              <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                {flaggedFeedback.length} alert{flaggedFeedback.length > 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {flaggedFeedback.map((fb) => (
+                <FlaggedFeedbackAlert
+                  key={fb.feedback_id}
+                  feedback={fb}
+                  onDismiss={handleDismissFeedback}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Waiter Requests Panel ─────────────────────────────────────── */}
         {(serviceRequests.length > 0 || pendingRequests.length > 0) && (

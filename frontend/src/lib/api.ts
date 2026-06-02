@@ -123,6 +123,15 @@ class ApiClient {
     return response.data;
   }
 
+  async endSession(sessionId: number, deviceId: string) {
+    const response = await this.client.post(
+      `/sessions/${sessionId}/end`,
+      {},
+      { headers: { 'X-Device-Id': deviceId } }
+    );
+    return response.data;
+  }
+
   async getSession(sessionId: number) {
     const response = await this.client.get(`/sessions/${sessionId}?_t=${Date.now()}`);
     return response.data.data;
@@ -208,6 +217,27 @@ class ApiClient {
       `/service-requests?restaurant_id=${restaurantId}&status=pending&status=acknowledged`
     );
     return response.data.data;
+  }
+
+  // Feedback endpoints
+  async submitFeedback(data: {
+    restaurant_id: number;
+    order_id: number;
+    rating: number;
+    review_text?: string;
+    item_ratings?: Array<{
+      menu_item_id: number;
+      rating: number;
+      review_text?: string;
+    }>;
+  }) {
+    const response = await this.client.post('/feedback', data);
+    return response.data;
+  }
+
+  async getFeedback(orderId: number) {
+    const response = await this.client.get(`/feedback/${orderId}`);
+    return response.data;
   }
 }
 

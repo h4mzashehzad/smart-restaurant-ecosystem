@@ -17,12 +17,18 @@ class FeedbackMenuItem extends Pivot
         'feedback_id',
         'menu_item_id',
         'item_rating',
+        'item_review_text',
+        'item_sentiment_score',
+        'item_sentiment_label',
+        'item_is_flagged',
     ];
 
     protected function casts(): array
     {
         return [
             'item_rating' => 'integer',
+            'item_sentiment_score' => 'decimal:4',
+            'item_is_flagged' => 'boolean',
         ];
     }
 

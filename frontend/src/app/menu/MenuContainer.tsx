@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/Menu/ProductCard';
 import { ItemDetailDrawer } from '@/components/Menu/ItemDetailDrawer';
 import { CartFab } from '@/components/cart/CartFab';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { FeedbackDrawer } from '@/components/customer/FeedbackDrawer';
 
 export function MenuContainer() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -142,6 +143,9 @@ export function MenuContainer() {
         open={cartOpen}
         onClose={() => setCartOpen(false)}
       />
+
+      {/* Feedback Drawer — auto-opens when order is served */}
+      <FeedbackDrawer />
     </>
   );
 }
