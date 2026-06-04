@@ -8,6 +8,8 @@ import { socketClient } from '@/lib/socket';
 import KDSOrderTicket from '@/components/kds/KDSOrderTicket';
 import WaiterRequestCard, { WaiterRequest } from '@/components/kds/WaiterRequestCard';
 import FlaggedFeedbackAlert, { type FlaggedFeedback } from '@/components/kds/FlaggedFeedbackAlert';
+import ReservationCard, { type Reservation } from '@/components/kds/ReservationCard';
+import QueueEntryCard, { type QueueEntry } from '@/components/kds/QueueEntryCard';
 
 interface KDSOrder {
   id: number;
@@ -46,6 +48,8 @@ export default function KDSContainer() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [flaggedFeedback, setFlaggedFeedback] = useState<FlaggedFeedback[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
   const mountedRef = useRef(true);
 
   // Auth guard
@@ -154,6 +158,38 @@ export default function KDSContainer() {
       setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== data.feedbackId));
     });
 
+    // ── Reservations ─────────────────────────────────────────────────
+
+    socketClient.onKitchenInitialReservations((initial: Reservation[]) => {
+      if (mountedRef.current) setReservations(initial ?? []);
+    });
+
+    socketClient.onReservationUpdated((data: { reservation: Reservation; action: string }) => {
+      if (!mountedRef.current) return;
+      const { reservation, action } = data;
+      if (action === 'created') {
+        setReservations((prev) => prev.some((r) => r.id === reservation.id) ? prev : [reservation, ...prev]);
+      } else {
+        setReservations((prev) => prev.map((r) => r.id === reservation.id ? reservation : r));
+      }
+    });
+
+    // ── Walk-in queue ──────────────────────────────────────────────
+
+    socketClient.onKitchenInitialQueue((initial: QueueEntry[]) => {
+      if (mountedRef.current) setQueueEntries(initial ?? []);
+    });
+
+    socketClient.onQueueUpdated((data: { entry: QueueEntry; action: string }) => {
+      if (!mountedRef.current) return;
+      const { entry, action } = data;
+      if (action === 'joined') {
+        setQueueEntries((prev) => prev.some((e) => e.id === entry.id) ? prev : [...prev, entry]);
+      } else {
+        setQueueEntries((prev) => prev.map((e) => e.id === entry.id ? entry : e));
+      }
+    });
+
     setConnected(socketClient.isConnected());
 
     return () => {
@@ -167,6 +203,10 @@ export default function KDSContainer() {
       socketClient.offFeedbackFlagged();
       socketClient.offKitchenInitialFlaggedFeedback();
       socketClient.offFeedbackFlagDismissed();
+      socketClient.offKitchenInitialReservations();
+      socketClient.offReservationUpdated();
+      socketClient.offKitchenInitialQueue();
+      socketClient.offQueueUpdated();
       socketClient.disconnect();
     };
   }, [authLoading, user, fetchOrders]);
@@ -189,6 +229,22 @@ export default function KDSContainer() {
     setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
   }, []);
 
+  const handleReservationStatus = useCallback((reservationId: number, status: string) => {
+    socketClient.updateReservationStatus(reservationId, status);
+    // Optimistic update
+    setReservations((prev) => prev.map((r) =>
+      r.id === reservationId ? { ...r, status: status as Reservation['status'] } : r
+    ));
+  }, []);
+
+  const handleQueueStatus = useCallback((entryId: number, status: string) => {
+    socketClient.updateQueueStatus(entryId, status);
+    // Optimistic update
+    setQueueEntries((prev) => prev.map((e) =>
+      e.id === entryId ? { ...e, status: status as QueueEntry['status'] } : e
+    ));
+  }, []);
+
   const sortedOrders = [...orders].sort((a, b) => {
     const statusOrder: Record<string, number> = { pending: 0, confirmed: 1, preparing: 2, ready: 3 };
     const sa = statusOrder[a.status] ?? 9, sb = statusOrder[b.status] ?? 9;
@@ -199,6 +255,9 @@ export default function KDSContainer() {
   const pendingRequests = sortRequests(
     serviceRequests.filter((r) => !['resolved', 'cancelled'].includes(r.status))
   );
+
+  const activeReservations = reservations.filter((r) => !['completed', 'cancelled', 'no_show'].includes(r.status));
+  const activeQueue = queueEntries.filter((e) => ['waiting', 'called'].includes(e.status));
 
   if (authLoading) {
     return (
@@ -254,6 +313,26 @@ export default function KDSContainer() {
                   {flaggedFeedback.length}
                 </p>
                 <p className="text-[10px] text-red-400/70 font-semibold uppercase tracking-wider">Alerts</p>
+              </div>
+            )}
+
+            {/* Reservation count */}
+            {activeReservations.length > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-bold font-display leading-none text-teal-400">
+                  {activeReservations.length}
+                </p>
+                <p className="text-[10px] text-teal-400/70 font-semibold uppercase tracking-wider">Bookings</p>
+              </div>
+            )}
+
+            {/* Queue count */}
+            {activeQueue.length > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-bold font-display leading-none text-indigo-400">
+                  {activeQueue.length}
+                </p>
+                <p className="text-[10px] text-indigo-400/70 font-semibold uppercase tracking-wider">Queue</p>
               </div>
             )}
 
@@ -376,6 +455,54 @@ export default function KDSContainer() {
             </div>
           )}
         </section>
+
+        {/* ── Reservations ─────────────────────────────────────────── */}
+        {activeReservations.length > 0 && (
+          <section aria-label="Reservations">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-teal-500/20 border border-teal-500/30 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+                  className="w-3.5 h-3.5 text-teal-400">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-bold font-display text-gray-300 uppercase tracking-wider">Reservations</h2>
+              <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                {activeReservations.length} active
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {activeReservations.map((res) => (
+                <ReservationCard key={res.id} reservation={res} onUpdateStatus={handleReservationStatus} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Walk-In Queue ───────────────────────────────────────── */}
+        {activeQueue.length > 0 && (
+          <section aria-label="Walk-In Queue">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+                  className="w-3.5 h-3.5 text-indigo-400">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-bold font-display text-gray-300 uppercase tracking-wider">Walk-In Queue</h2>
+              <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                {activeQueue.length} waiting
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {activeQueue.map((entry) => (
+                <QueueEntryCard key={entry.id} entry={entry} onUpdateStatus={handleQueueStatus} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

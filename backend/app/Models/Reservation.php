@@ -53,4 +53,22 @@ class Reservation extends Model
     {
         return $this->belongsTo(Table::class);
     }
+
+    // ── Scopes ──
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('reservation_date', '>=', today())
+            ->whereNotIn('status', ['cancelled', 'completed', 'no_show']);
+    }
+
+    public function scopeForDate($query, string $date)
+    {
+        return $query->where('reservation_date', $date);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNotIn('status', ['cancelled', 'completed', 'no_show']);
+    }
 }

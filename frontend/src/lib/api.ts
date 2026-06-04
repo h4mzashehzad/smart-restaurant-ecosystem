@@ -239,6 +239,76 @@ class ApiClient {
     const response = await this.client.get(`/feedback/${orderId}`);
     return response.data;
   }
+
+  // ── Reservation endpoints ──────────────────────────────────────────────
+
+  async getRestaurantBySlug(slug: string) {
+    const response = await this.client.get(`/restaurants/slug/${slug}`);
+    return response.data.data;
+  }
+
+  async getTableAvailability(restaurantId: number, date: string, time: string, partySize: number = 1) {
+    const response = await this.client.get(`/restaurants/${restaurantId}/tables/availability`, {
+      params: { date, time, party_size: partySize },
+    });
+    return response.data.data;
+  }
+
+  async getTimeSlots(restaurantId: number, date: string) {
+    const response = await this.client.get(`/restaurants/${restaurantId}/time-slots`, {
+      params: { date },
+    });
+    return response.data.data;
+  }
+
+  async createReservation(data: {
+    restaurant_id: number;
+    table_id: number;
+    guest_name: string;
+    guest_phone: string;
+    guest_email?: string;
+    party_size: number;
+    reservation_date: string;
+    reservation_time: string;
+    special_requests?: string;
+  }) {
+    const response = await this.client.post('/reservations', data);
+    return response.data;
+  }
+
+  async getReservation(confirmationCode: string) {
+    const response = await this.client.get(`/reservations/${confirmationCode}`);
+    return response.data.data;
+  }
+
+  async cancelReservation(reservationId: number) {
+    const response = await this.client.post(`/reservations/${reservationId}/cancel`);
+    return response.data;
+  }
+
+  async getRestaurantReservations(restaurantId: number, date?: string) {
+    const response = await this.client.get(`/admin/restaurants/${restaurantId}/reservations`, {
+      params: date ? { date } : {},
+    });
+    return response.data.data;
+  }
+
+  // ── Queue endpoints ────────────────────────────────────────────────────
+
+  async joinQueue(data: {
+    restaurant_id: number;
+    guest_name: string;
+    guest_phone: string;
+    party_size: number;
+  }) {
+    const response = await this.client.post('/queue/join', data);
+    return response.data;
+  }
+
+  async getRestaurantQueue(restaurantId: number) {
+    const response = await this.client.get(`/admin/restaurants/${restaurantId}/queue`);
+    return response.data.data;
+  }
 }
 
 export const api = new ApiClient();

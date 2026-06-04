@@ -46,15 +46,22 @@ Route::get('/menu-items/{item}/ingredients',       [MenuController::class, 'ingr
 // Public restaurant reviews
 Route::get('/restaurants/{restaurant}/reviews', [FeedbackController::class, 'restaurantReviews']);
 
-// Public reservation lookup
-Route::get('/reservations/{confirmationCode}', [ReservationController::class, 'show']);
+// ── Public Reservation Routes ──
+Route::get('/restaurants/slug/{slug}',                     [ReservationController::class, 'restaurantBySlug']);
+Route::get('/restaurants/{restaurant}/tables/availability', [ReservationController::class, 'availability']);
+Route::get('/restaurants/{restaurant}/time-slots',         [ReservationController::class, 'timeSlots']);
+Route::get('/reservations/{confirmationCode}',             [ReservationController::class, 'show']);
+Route::post('/reservations',                               [ReservationController::class, 'store']);
+Route::post('/reservations/{reservation}/cancel',          [ReservationController::class, 'cancel']);
 
-// Public restaurant availability
-Route::get('/restaurants/{restaurant}/availability', [ReservationController::class, 'availability']);
+// ── Public Queue Routes ──
+Route::post('/queue/join', [QueueController::class, 'join']);
 
 // ── Webhooks (called by socket server, no auth) ──
-Route::post('/webhooks/order-status',         [OrderController::class,               'webhookUpdateStatus']);
+Route::post('/webhooks/order-status',          [OrderController::class,               'webhookUpdateStatus']);
 Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController::class, 'handle']);
+Route::post('/webhooks/reservation-status',    [ReservationController::class,          'webhookUpdateStatus']);
+Route::post('/webhooks/queue-status',          [QueueController::class,                'webhookUpdateStatus']);
 
 // ── Service Requests (public — guests in a session may request assistance) ──
 Route::post('/service-requests', [ServiceRequestController::class, 'store']);
@@ -117,12 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments/{payment}/refund',      [PaymentController::class, 'refund']);
     Route::get('/sessions/{session}/bill',         [PaymentController::class, 'sessionBill']);
 
-    // ── Reservations ──
-    Route::post('/reservations',                   [ReservationController::class, 'store']);
-    Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
-
-    // ── Queue ──
-    Route::post('/queue/join',   [QueueController::class, 'join']);
+    // ── Queue (authenticated) ──
     Route::get('/queue/status',  [QueueController::class, 'status']);
 
     // ── Service Requests (staff-only: list, acknowledge, resolve) ──
@@ -147,5 +149,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/analytics/wastage-report',   [AdminController::class, 'wastageReport']);
         Route::get('/kitchen/orders/active',      [AdminController::class, 'activeKitchenOrders']);
         Route::patch('/menu-items/{id}',          [AdminController::class, 'updateMenuItem']);
+
+        // ── Reservation Management (staff) ──
+        Route::get('/restaurants/{restaurant}/reservations',    [ReservationController::class, 'index']);
+        Route::patch('/reservations/{reservation}/status',      [ReservationController::class, 'updateStatus']);
+
+        // ── Queue Management (staff) ──
+        Route::get('/restaurants/{restaurant}/queue',           [QueueController::class, 'index']);
+        Route::patch('/queue/{entry}/status',                   [QueueController::class, 'updateStatus']);
     });
 });

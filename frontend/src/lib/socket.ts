@@ -197,6 +197,44 @@ class SocketClient {
     this.socket?.off('feedback:flag:dismissed', callback);
   }
 
+  // ── Reservations — Kitchen side ─────────────────────────────────────────
+  onKitchenInitialReservations(callback: (data: any[]) => void) {
+    this.socket?.on('kitchen:initial:reservations', callback);
+  }
+  offKitchenInitialReservations(callback?: (data: any[]) => void) {
+    this.socket?.off('kitchen:initial:reservations', callback);
+  }
+
+  onReservationUpdated(callback: (data: any) => void) {
+    this.socket?.on('reservation:updated', callback);
+  }
+  offReservationUpdated(callback?: (data: any) => void) {
+    this.socket?.off('reservation:updated', callback);
+  }
+
+  updateReservationStatus(reservationId: number, status: string) {
+    this.socket?.emit('reservation:status:update', { reservationId, status });
+  }
+
+  // ── Queue — Kitchen side ──────────────────────────────────────────────
+  onKitchenInitialQueue(callback: (data: any[]) => void) {
+    this.socket?.on('kitchen:initial:queue', callback);
+  }
+  offKitchenInitialQueue(callback?: (data: any[]) => void) {
+    this.socket?.off('kitchen:initial:queue', callback);
+  }
+
+  onQueueUpdated(callback: (data: any) => void) {
+    this.socket?.on('queue:updated', callback);
+  }
+  offQueueUpdated(callback?: (data: any) => void) {
+    this.socket?.off('queue:updated', callback);
+  }
+
+  updateQueueStatus(entryId: number, status: string) {
+    this.socket?.emit('queue:status:update', { entryId, status });
+  }
+
   // ── Utilities ───────────────────────────────────────────────────────────
   isConnected(): boolean { return this.socket?.connected ?? false; }
 

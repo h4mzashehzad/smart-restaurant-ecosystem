@@ -34,6 +34,9 @@ redisSubscriber.subscribe('laravel-database-order:created');
 redisSubscriber.subscribe('laravel-database-order:status:updated');
 // Feedback flagging channel
 redisSubscriber.subscribe('laravel-database-feedback:flagged');
+// Reservation & queue channels
+redisSubscriber.subscribe('laravel-database-reservation:updated');
+redisSubscriber.subscribe('laravel-database-queue:updated');
 // Pattern subscriptions (variable segment)
 redisSubscriber.psubscribe('laravel-database-table-session.*');
 redisSubscriber.psubscribe('laravel-database-service-requests.*');
@@ -95,6 +98,53 @@ redisSubscriber.on('message', async (channel, message) => {
       // Broadcast to kitchen
       io.to(`kitchen:restaurant_${restaurantId}`).emit('feedback:flagged', feedback);
       console.log(`[Feedback] Flagged feedback ${feedback.feedback_id} → kitchen:restaurant_${restaurantId}`);
+    }
+
+    // ── Reservation updated ────────────────────────────────────────────
+    if (channel === 'laravel-database-reservation:updated') {
+      const { reservation, restaurant_id, action } = data;
+
+      // Cache reservation (24h TTL)
+      await redis.setex(
+        `reservation:${reservation.id}:details`,
+        86400,
+        JSON.stringify(reservation)
+      );
+
+      // Maintain today's reservation set
+      const today = new Date().toISOString().split('T')[0];
+      if (reservation.reservation_date && reservation.reservation_date.startsWith(today)) {
+        if (['cancelled', 'completed', 'no_show'].includes(reservation.status)) {
+          await redis.srem(`reservations:today:${restaurant_id}`, String(reservation.id));
+        } else {
+          await redis.sadd(`reservations:today:${restaurant_id}`, String(reservation.id));
+        }
+      }
+
+      io.to(`kitchen:restaurant_${restaurant_id}`).emit('reservation:updated', { reservation, action });
+      console.log(`[Reservation] ${action} reservation ${reservation.id} → kitchen:restaurant_${restaurant_id}`);
+    }
+
+    // ── Queue updated ─────────────────────────────────────────────────
+    if (channel === 'laravel-database-queue:updated') {
+      const { entry, restaurant_id, action } = data;
+
+      // Cache queue entry (4h TTL)
+      await redis.setex(
+        `queue:${entry.id}:details`,
+        14400,
+        JSON.stringify(entry)
+      );
+
+      // Maintain active queue set
+      if (['seated', 'cancelled', 'no_show'].includes(entry.status)) {
+        await redis.srem(`queue:active:${restaurant_id}`, String(entry.id));
+      } else {
+        await redis.sadd(`queue:active:${restaurant_id}`, String(entry.id));
+      }
+
+      io.to(`kitchen:restaurant_${restaurant_id}`).emit('queue:updated', { entry, action });
+      console.log(`[Queue] ${action} entry ${entry.id} → kitchen:restaurant_${restaurant_id}`);
     }
   } catch (error) {
     console.error('[Redis] Error processing message:', error);
@@ -248,6 +298,56 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('[Kitchen] Error sending flagged feedback:', error);
     }
+
+    // Send today's reservations from Redis cache
+    try {
+      const reservationIds = await redis.smembers(`reservations:today:${restaurantId}`);
+      const reservations = [];
+      const staleResIds = [];
+
+      for (const id of reservationIds) {
+        const d = await redis.get(`reservation:${id}:details`);
+        if (d) {
+          reservations.push(JSON.parse(d));
+        } else {
+          staleResIds.push(id);
+        }
+      }
+
+      if (staleResIds.length > 0) {
+        await redis.srem(`reservations:today:${restaurantId}`, ...staleResIds);
+      }
+
+      socket.emit('kitchen:initial:reservations', reservations);
+      console.log(`[Kitchen] Sent ${reservations.length} reservations to ${socket.id}`);
+    } catch (error) {
+      console.error('[Kitchen] Error sending reservations:', error);
+    }
+
+    // Send active queue entries from Redis cache
+    try {
+      const queueIds = await redis.smembers(`queue:active:${restaurantId}`);
+      const queueEntries = [];
+      const staleQueueIds = [];
+
+      for (const id of queueIds) {
+        const d = await redis.get(`queue:${id}:details`);
+        if (d) {
+          queueEntries.push(JSON.parse(d));
+        } else {
+          staleQueueIds.push(id);
+        }
+      }
+
+      if (staleQueueIds.length > 0) {
+        await redis.srem(`queue:active:${restaurantId}`, ...staleQueueIds);
+      }
+
+      socket.emit('kitchen:initial:queue', queueEntries);
+      console.log(`[Kitchen] Sent ${queueEntries.length} queue entries to ${socket.id}`);
+    } catch (error) {
+      console.error('[Kitchen] Error sending queue entries:', error);
+    }
   });
 
   // ── Customer table joins ──────────────────────────────────────────────────
@@ -348,6 +448,42 @@ io.on('connection', (socket) => {
     await redis.del(`feedback:flagged:${feedbackId}:details`);
     io.to(`kitchen:restaurant_${restaurantId}`).emit('feedback:flag:dismissed', { feedbackId });
     console.log(`[Feedback] Flagged feedback ${feedbackId} dismissed`);
+  });
+
+  // ── Kitchen staff: update reservation status ─────────────────────────
+  socket.on('reservation:status:update', async ({ reservationId, status }) => {
+    console.log(`[Reservation] Status update request: reservation ${reservationId} → ${status}`);
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/reservation-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reservation_id: reservationId, status })
+      });
+      if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
+      console.log(`[Reservation] Reservation ${reservationId} status updated via webhook`);
+    } catch (error) {
+      console.error('[Reservation] Error updating reservation status:', error);
+      socket.emit('error', { message: 'Failed to update reservation status' });
+    }
+  });
+
+  // ── Kitchen staff: update queue entry status ─────────────────────────
+  socket.on('queue:status:update', async ({ entryId, status }) => {
+    console.log(`[Queue] Status update request: entry ${entryId} → ${status}`);
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/queue-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry_id: entryId, status })
+      });
+      if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
+      console.log(`[Queue] Entry ${entryId} status updated via webhook`);
+    } catch (error) {
+      console.error('[Queue] Error updating queue entry status:', error);
+      socket.emit('error', { message: 'Failed to update queue entry status' });
+    }
   });
 
   // ── Disconnect / error ───────────────────────────────────────────────────
