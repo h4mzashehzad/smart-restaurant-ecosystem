@@ -24,7 +24,11 @@ return [
     // LAN IP wildcard patterns are only needed for local development where
     // phones/tablets on the same WiFi need to reach the dev server.
     // In production (APP_ENV=production) only the exact FRONTEND_URL is allowed.
-    'allowed_origins_patterns' => app()->environment('local') ? [
+    // NOTE: We use env() here instead of app()->environment() because this config
+    // file is evaluated during composer's post-autoload-dump phase (package:discover),
+    // before the Application container has fully bootstrapped — app('env') would
+    // throw "Target class [env] does not exist" at build time.
+    'allowed_origins_patterns' => env('APP_ENV', 'local') === 'local' ? [
         '#^http://192\.168\..+:[0-9]+$#',
         '#^http://10\..+:[0-9]+$#',
         '#^http://172\.(1[6-9]|2[0-9]|3[0-1])\..+:[0-9]+$#',
