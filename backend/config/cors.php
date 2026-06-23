@@ -21,13 +21,14 @@ return [
 
     'allowed_origins' => array_filter(array_map('trim', explode(',', env('FRONTEND_URL', 'http://localhost:3000,http://127.0.0.1:3000')))),
 
-    'allowed_origins_patterns' => [
-        // Allow any local network IP (192.168.x.x) during development.
-        // This covers phones/tablets on the same WiFi hitting the dev server.
+    // LAN IP wildcard patterns are only needed for local development where
+    // phones/tablets on the same WiFi need to reach the dev server.
+    // In production (APP_ENV=production) only the exact FRONTEND_URL is allowed.
+    'allowed_origins_patterns' => app()->environment('local') ? [
         '#^http://192\.168\..+:[0-9]+$#',
         '#^http://10\..+:[0-9]+$#',
         '#^http://172\.(1[6-9]|2[0-9]|3[0-1])\..+:[0-9]+$#',
-    ],
+    ] : [],
 
     'allowed_headers' => ['*'],
 

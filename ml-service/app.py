@@ -10,7 +10,12 @@ from models.sentiment_analyzer import SentimentAnalyzer
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Restrict CORS to the backend service only — the ML service is internal and
+# should never be called from a browser. ALLOWED_ORIGIN defaults to localhost
+# for local development; set it to the backend's Docker service name in production
+# (e.g. http://backend or http://laravel).
+CORS(app, origins=[os.getenv('ALLOWED_ORIGIN', 'http://localhost:8000')])
 
 # Initialize the sentiment analyzer (loads spaCy model once)
 analyzer = SentimentAnalyzer()
