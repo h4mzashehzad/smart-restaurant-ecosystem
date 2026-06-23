@@ -1,0 +1,6 @@
+[phases.install_models]
+dependsOn = ['install']
+cmds = ['python setup_nlp.py']
+
+[start]
+cmd = 'python app.py'
