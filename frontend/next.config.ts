@@ -2,13 +2,14 @@ import type { NextConfig } from "next";
 
 // BACKEND_URL is a server-side variable (no NEXT_PUBLIC_ prefix).
 // Local dev:  set in .env.local  → BACKEND_URL=http://smart-restaurant-ecosystem.test
-// Production: set in Vercel Dashboard → BACKEND_URL=https://YOUR_BACKEND_DOMAIN
+// Production: set in Coolify Environment Variables → BACKEND_URL=https://api.devh.me
 const BACKEND_URL =
   process.env.BACKEND_URL ?? "http://smart-restaurant-ecosystem.test";
 
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactCompiler: true,
 
   // allowedDevOrigins is only meaningful in development (Next.js ignores it
