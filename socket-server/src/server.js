@@ -34,18 +34,23 @@ const io = new Server(server, {
 const redis = new Redis(process.env.REDIS_URL);
 const redisSubscriber = new Redis(process.env.REDIS_URL);
 
+// Redis channel prefix — must match Laravel's REDIS_PREFIX.
+// Laravel default: Str::slug(APP_NAME) . '-database-'
+// For APP_NAME="Smart Restaurant" → "smart-restaurant-database-"
+const REDIS_PREFIX = process.env.REDIS_PREFIX || 'smart-restaurant-database-';
+
 // ── Redis subscriptions ──────────────────────────────────────────────────────
 // Order channels (exact-match)
-redisSubscriber.subscribe('laravel-database-order:created');
-redisSubscriber.subscribe('laravel-database-order:status:updated');
+redisSubscriber.subscribe(`${REDIS_PREFIX}order:created`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}order:status:updated`);
 // Feedback flagging channel
-redisSubscriber.subscribe('laravel-database-feedback:flagged');
+redisSubscriber.subscribe(`${REDIS_PREFIX}feedback:flagged`);
 // Reservation & queue channels
-redisSubscriber.subscribe('laravel-database-reservation:updated');
-redisSubscriber.subscribe('laravel-database-queue:updated');
+redisSubscriber.subscribe(`${REDIS_PREFIX}reservation:updated`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}queue:updated`);
 // Pattern subscriptions (variable segment)
-redisSubscriber.psubscribe('laravel-database-table-session.*');
-redisSubscriber.psubscribe('laravel-database-service-requests.*');
+redisSubscriber.psubscribe(`${REDIS_PREFIX}table-session.*`);
+redisSubscriber.psubscribe(`${REDIS_PREFIX}service-requests.*`);
 
 // ── Exact-match Redis messages ───────────────────────────────────────────────
 redisSubscriber.on('message', async (channel, message) => {
@@ -54,7 +59,7 @@ redisSubscriber.on('message', async (channel, message) => {
     const data = envelope.data || envelope;
     console.log(`[Redis] message on ${channel}:`, data);
 
-    if (channel === 'laravel-database-order:created') {
+    if (channel === `${REDIS_PREFIX}order:created`) {
       const { order, restaurant_id } = data;
 
       await redis.setex(`order:${order.id}:details`, 7200, JSON.stringify(order));
@@ -69,7 +74,7 @@ redisSubscriber.on('message', async (channel, message) => {
       console.log(`[Orders] Order ${order.id} broadcast to kitchen and table`);
     }
 
-    if (channel === 'laravel-database-order:status:updated') {
+    if (channel === `${REDIS_PREFIX}order:status:updated`) {
       const { order_id, status, restaurant_id, table_id } = data;
 
       const cachedOrder = await redis.get(`order:${order_id}:details`);
@@ -89,7 +94,7 @@ redisSubscriber.on('message', async (channel, message) => {
     }
 
     // ── Flagged feedback alert ─────────────────────────────────────────
-    if (channel === 'laravel-database-feedback:flagged') {
+    if (channel === `${REDIS_PREFIX}feedback:flagged`) {
       const feedback = data;
       const restaurantId = feedback.restaurant_id;
 
@@ -107,7 +112,7 @@ redisSubscriber.on('message', async (channel, message) => {
     }
 
     // ── Reservation updated ────────────────────────────────────────────
-    if (channel === 'laravel-database-reservation:updated') {
+    if (channel === `${REDIS_PREFIX}reservation:updated`) {
       const { reservation, restaurant_id, action } = data;
 
       // Cache reservation (24h TTL)
@@ -132,7 +137,7 @@ redisSubscriber.on('message', async (channel, message) => {
     }
 
     // ── Queue updated ─────────────────────────────────────────────────
-    if (channel === 'laravel-database-queue:updated') {
+    if (channel === `${REDIS_PREFIX}queue:updated`) {
       const { entry, restaurant_id, action } = data;
 
       // Cache queue entry (4h TTL)
@@ -165,7 +170,7 @@ redisSubscriber.on('pmessage', async (pattern, channel, message) => {
     const eventName = envelope.event || '';
 
     // ── Table session changes (participants join/leave) ──
-    const sessionMatch = channel.match(/laravel-database-table-session\.(\d+)/);
+    const sessionMatch = channel.match(new RegExp(`${REDIS_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}table-session\\.(\\d+)`));
     if (sessionMatch) {
       const sessionId = sessionMatch[1];
       io.to(`session:${sessionId}`).emit('session:state:changed', data);
@@ -174,7 +179,7 @@ redisSubscriber.on('pmessage', async (pattern, channel, message) => {
     }
 
     // ── Service / waiter requests ──
-    const srMatch = channel.match(/laravel-database-service-requests\.restaurant_(\d+)/);
+    const srMatch = channel.match(new RegExp(`${REDIS_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}service-requests\\.restaurant_(\\d+)`));
     if (srMatch) {
       const restaurantId = srMatch[1];
 
@@ -517,6 +522,7 @@ server.listen(PORT, () => {
   console.log(`[Server] Socket.io running on port ${PORT}`);
   console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
   console.log(`[Server] Redis URL: ${process.env.REDIS_URL}`);
+  console.log(`[Server] Redis channel prefix: ${REDIS_PREFIX}`);
   console.log(`[Server] Frontend URL: ${process.env.FRONTEND_URL}`);
 });
 
