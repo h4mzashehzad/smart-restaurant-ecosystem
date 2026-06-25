@@ -63,6 +63,11 @@ class ApiClient {
     password_confirmation: string;
   }) {
     const response = await this.client.post('/auth/register', data);
+    return response.data;
+  }
+
+  async verifyOtp(email: string, otp: string) {
+    const response = await this.client.post('/auth/verify-otp', { email, otp });
     if (response.data.success) {
       localStorage.setItem('auth_token', response.data.data.token);
     }

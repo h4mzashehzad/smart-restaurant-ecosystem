@@ -17,7 +17,8 @@ interface AuthContextType {
   loading: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (data: any) => Promise<void>;
+  register: (data: any) => Promise<any>;
+  verifyOtp: (email: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,12 +59,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: any) => {
     const response = await api.register(data);
-    // api.register() returns the JSON body: { success, data: { user, token } }
+    return response;
+  };
+
+  const verifyOtp = async (email: string, otp: string) => {
+    const response = await api.verifyOtp(email, otp);
     setUser(response.data.user);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, verifyOtp }}>
       {children}
     </AuthContext.Provider>
   );

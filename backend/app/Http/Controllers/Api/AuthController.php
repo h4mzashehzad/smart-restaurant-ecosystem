@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user.
+     * Register a new user (Step 1: Request OTP).
      */
     public function register(Request $request): JsonResponse
     {
@@ -32,26 +34,26 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            $user = User::create([
+            // Generate 6 digit OTP
+            $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Cache data for 15 minutes
+            Cache::put('registration_otp_' . $request->email, [
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'phone'    => $request->phone,
                 'password' => Hash::make($request->password),
-                'role'     => 'customer',
-            ]);
+                'otp'      => $otp
+            ], now()->addMinutes(15));
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            // Send OTP Email
+            Mail::to($request->email)->send(new \App\Mail\RegistrationOTP($request->name, $otp));
 
             return response()->json([
-                'success' => true,
-                'message' => 'Registration successful',
-                'data'    => [
-                    'user'       => $user,
-                    'token'      => $token,
-                    'token_type' => 'Bearer',
-                    'expires_in' => 86400,
-                ],
-            ], 201);
+                'success'    => true,
+                'message'    => 'OTP sent successfully. Please check your email.',
+                'require_otp'=> true
+            ]);
         } catch (\Exception $e) {
             Log::error('Registration Error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -61,6 +63,71 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred during registration. Please try again.',
+                'error'   => config('app.debug') ? $e->getMessage() : 'Server Error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify OTP and complete registration.
+     */
+    public function verifyOTP(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'otp'   => 'required|string|size:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            $cacheKey = 'registration_otp_' . $request->email;
+            $cachedData = Cache::get($cacheKey);
+
+            if (!$cachedData || $cachedData['otp'] !== $request->otp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid or expired OTP',
+                ], 400);
+            }
+
+            // Create User
+            $user = User::create([
+                'name'     => $cachedData['name'],
+                'email'    => $cachedData['email'],
+                'phone'    => $cachedData['phone'],
+                'password' => $cachedData['password'],
+                'role'     => 'customer',
+            ]);
+
+            Cache::forget($cacheKey);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration completed successfully',
+                'data'    => [
+                    'user'       => $user,
+                    'token'      => $token,
+                    'token_type' => 'Bearer',
+                    'expires_in' => 86400,
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('OTP Verification Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'email' => $request->email
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during verification. Please try again.',
                 'error'   => config('app.debug') ? $e->getMessage() : 'Server Error'
             ], 500);
         }

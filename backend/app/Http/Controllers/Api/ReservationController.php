@@ -204,9 +204,14 @@ class ReservationController extends Controller
             'confirmation_code' => strtoupper(Str::random(8)),
         ]);
 
-        $reservation->load('table');
+        $reservation->load(['table', 'restaurant']);
 
         event(new ReservationUpdated($reservation, 'created'));
+
+        if ($request->guest_email) {
+            \Illuminate\Support\Facades\Mail::to($request->guest_email)
+                ->send(new \App\Mail\ReservationConfirmed($reservation));
+        }
 
         return response()->json([
             'success' => true,
