@@ -18,8 +18,8 @@ class TablesTableSeeder extends Seeder
      */
     public function run(QRCodeGenerationService $qrCodeService): void
     {
-        // Get the Lahore Karahi restaurant seeded by RestaurantMenuSeeder
-        $restaurant = Restaurant::where('name', 'The Lahore Karahi')->first();
+        // Get the Darbar Restaurant seeded by RestaurantMenuSeeder
+        $restaurant = Restaurant::where('name', 'Darbar Restaurant')->first();
 
         if (!$restaurant) {
             $this->command->error('Restaurant not found. Please run RestaurantMenuSeeder first.');
