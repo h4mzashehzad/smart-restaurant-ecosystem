@@ -169,7 +169,7 @@ class ApiClient {
 
   async getRecommendations() {
     const response = await this.client.get('/menu-items/recommended');
-    return response.data.data;
+    return response.data; // Return full object {success, data, source}
   }
 
   // Order endpoints

@@ -23,10 +23,30 @@ export function MenuContainer() {
   useEffect(() => {
     async function fetchMenu() {
       try {
-        const data = await api.getMenu(1); // 1 is for Lahore Karahi
-        setCategories(data);
-        if (data && data.length > 0) {
-          setActiveCategoryId(data[0].id);
+        const [menuData, recData] = await Promise.all([
+          api.getMenu(1), // 1 is for Lahore Karahi
+          api.getRecommendations().catch(() => null)
+        ]);
+        
+        let allCategories = menuData || [];
+        
+        if (recData && recData.success && recData.data?.length > 0) {
+          const isAi = recData.source === 'ai';
+          const recCategory = {
+            id: -1,
+            name: isAi ? 'Recommended for You' : 'Popular Items',
+            description: isAi ? 'Handpicked items just for you based on your taste' : 'Our most loved and frequently ordered dishes',
+            menu_items: recData.data.map((item: any) => ({
+              ...item,
+              _is_recommendation: isAi,
+            })),
+          };
+          allCategories = [recCategory, ...allCategories];
+        }
+        
+        setCategories(allCategories);
+        if (allCategories && allCategories.length > 0) {
+          setActiveCategoryId(allCategories[0].id);
         }
       } catch (err) {
         setError('Failed to load menu. Please try again later.');

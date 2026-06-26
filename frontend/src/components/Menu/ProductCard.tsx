@@ -31,11 +31,23 @@ export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
           <h3 className="font-display font-bold text-gray-900 text-lg leading-tight group-hover:text-orange-500 transition-colors">
             {item.name}
           </h3>
-          {item.is_signature && (
-            <span className="bg-orange-100 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0 mt-0.5">
-              Signature
-            </span>
-          )}
+          <div className="flex flex-col gap-1 items-end">
+            {item._is_recommendation === true && (
+              <span className="bg-purple-100 text-purple-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0 shadow-sm border border-purple-200">
+                AI Pick ✨
+              </span>
+            )}
+            {item._is_recommendation === false && (
+              <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0 shadow-sm border border-red-200">
+                Popular 🔥
+              </span>
+            )}
+            {item.is_signature && (
+              <span className="bg-orange-100 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0">
+                Signature
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-sm font-sans text-gray-500 line-clamp-2 mb-4 leading-relaxed">
           {item.description}

@@ -110,37 +110,39 @@ class MenuController extends Controller
     }
 
     /**
-     * Get AI-powered recommended items for the authenticated user.
+     * Get AI-powered recommended items for the authenticated user, or popular items for guests.
      */
     public function recommended(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user('sanctum');
 
-        // Fetch recommendations — fall back to popular items if no AI recs exist
-        $recommendations = $user->aiRecommendations()
-            ->with('menuItem')
-            ->orderByDesc('recommendation_score')
-            ->limit(10)
-            ->get();
-
-        if ($recommendations->isEmpty()) {
-            // Fallback: return popular items
-            $items = MenuItem::where('is_available', true)
-                ->orderByDesc('popularity_score')
+        if ($user) {
+            // Fetch recommendations — fall back to popular items if no AI recs exist
+            $recommendations = $user->aiRecommendations()
+                ->with('menuItem')
+                ->orderByDesc('recommendation_score')
                 ->limit(10)
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'data'    => $items,
-                'source'  => 'popularity',
-            ]);
+            if ($recommendations->isNotEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data'    => $recommendations->map(fn($rec) => $rec->menuItem),
+                    'source'  => 'ai',
+                ]);
+            }
         }
+
+        // Fallback: return popular items
+        $items = MenuItem::where('is_available', true)
+            ->orderByDesc('popularity_score')
+            ->limit(10)
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $recommendations,
-            'source'  => 'ai',
+            'data'    => $items,
+            'source'  => 'popularity',
         ]);
     }
 }

@@ -43,7 +43,12 @@ def health_check():
     })
 
 
-# Recommendation endpoint (placeholder)
+from models.recommender import MenuRecommender
+
+# Initialize recommender
+recommender = MenuRecommender()
+
+# Recommendation endpoint
 @app.route('/api/ml/recommendations/generate', methods=['POST'])
 def generate_recommendations():
     data = request.get_json()
@@ -51,32 +56,40 @@ def generate_recommendations():
     user_id = data.get('user_id')
     context = data.get('context', {})
     max_recommendations = data.get('max_recommendations', 5)
-
-    # TODO: Implement recommendation algorithm
-    # For now, return mock data
-
-    recommendations = [
-        {
-            'menu_item_id': 87,
-            'score': 0.92,
-            'reason': 'Popular choice on Friday evenings',
-            'confidence': 0.87
-        },
-        {
-            'menu_item_id': 112,
-            'score': 0.88,
-            'reason': 'Frequently ordered together',
-            'confidence': 0.82
-        }
-    ]
-
-    return jsonify({
-        'success': True,
-        'recommendations': recommendations[:max_recommendations],
-        'model_version': 'v1.0.0',
-        'generated_at': datetime.now().isoformat()
-    })
-
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch user preferences if user_id is provided
+        user_preferences = []
+        if user_id:
+            cursor.execute("SELECT * FROM user_preferences WHERE user_id = %s", (user_id,))
+            user_preferences = cursor.fetchall()
+            
+        # Fetch active menu items
+        cursor.execute("SELECT * FROM menu_items WHERE is_available = 1")
+        menu_items = cursor.fetchall()
+        
+        recommendations = recommender.recommend(user_preferences, menu_items, max_recommendations)
+        
+        return jsonify({
+            'success': True,
+            'recommendations': recommendations,
+            'model_version': 'v1.1.0',
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 # ── Sentiment Analysis Endpoints ──────────────────────────────────────────────
 

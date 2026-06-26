@@ -40,6 +40,7 @@ Route::get('/restaurants/{restaurant}/menu',       [MenuController::class, 'inde
 Route::get('/restaurants/{restaurant}/categories', [MenuController::class, 'categories']);
 Route::get('/categories/{category}/items',         [MenuController::class, 'categoryItems']);
 Route::get('/menu-items/search',                   [MenuController::class, 'search']);
+Route::get('/menu-items/recommended',              [MenuController::class, 'recommended']);
 Route::get('/menu-items/{item}',                   [MenuController::class, 'show']);
 Route::get('/menu-items/{item}/ingredients',       [MenuController::class, 'ingredients']);
 
@@ -111,7 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // (session routes are now public above)
 
     // ── Menu (authenticated extras) ──
-    Route::get('/menu-items/recommended', [MenuController::class, 'recommended']);
+    // Route moved to public section
 
     // ── Orders (auth-required) ──
     Route::get('/orders/history',                  [OrderController::class, 'history']);
