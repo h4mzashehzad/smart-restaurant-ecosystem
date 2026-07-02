@@ -145,7 +145,6 @@ class RestaurantMenuSeeder extends Seeder
             unset($itemData['category']);
             
             $itemData['slug'] = Str::slug($itemData['name']);
-            $itemData['image_url'] = ''; // Left empty for S3 manual upload
             if (!isset($itemData['is_signature'])) $itemData['is_signature'] = false;
             $itemData['created_at'] = now();
             $itemData['updated_at'] = now();
