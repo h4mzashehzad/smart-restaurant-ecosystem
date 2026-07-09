@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/Menu/ProductCard';
 import { ItemDetailDrawer } from '@/components/Menu/ItemDetailDrawer';
 import { CartFab } from '@/components/cart/CartFab';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { PaymentDrawer } from '@/components/payment/PaymentDrawer';
 import { FeedbackDrawer } from '@/components/customer/FeedbackDrawer';
 
 export function MenuContainer() {
@@ -17,6 +18,7 @@ export function MenuContainer() {
   const [error, setError] = useState('');
   const [detailItemId, setDetailItemId] = useState<number | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const { addItem } = useCart();
 
@@ -162,6 +164,16 @@ export function MenuContainer() {
       <CartDrawer
         open={cartOpen}
         onClose={() => setCartOpen(false)}
+        onOrderPlaced={() => setPaymentOpen(true)}
+      />
+
+      {/* Payment Drawer */}
+      <PaymentDrawer
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        onPaymentComplete={() => {
+          // Optionally refresh session or show feedback here
+        }}
       />
 
       {/* Feedback Drawer — auto-opens when order is served */}

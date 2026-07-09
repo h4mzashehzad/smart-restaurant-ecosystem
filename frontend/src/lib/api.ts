@@ -314,6 +314,75 @@ class ApiClient {
     const response = await this.client.get(`/admin/restaurants/${restaurantId}/queue`);
     return response.data.data;
   }
+
+  // ── Payment endpoints ───────────────────────────────────────────────────
+
+  async checkout(data: {
+    session_id: number;
+    participant_id?: number;
+    payment_method: 'cash' | 'safepay';
+    amount: number;
+    payment_type: 'full' | 'split_equal' | 'split_itemized';
+    cart_items: {
+      menu_item_id: number;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+      customization_notes?: string;
+    }[];
+  }) {
+    const response = await this.client.post('/payments/checkout', data);
+    return response.data;
+  }
+
+  async setupSplitBill(data: {
+    session_id: number;
+    split_type: 'split_equal' | 'split_itemized';
+    participants: {
+      participant_id: number;
+      payment_method: 'cash' | 'safepay';
+      amount: number;
+      order_item_ids?: number[];
+    }[];
+  }) {
+    const response = await this.client.post('/payments/split-bill/setup', data);
+    return response.data;
+  }
+
+  async participantCheckout(data: {
+    payment_id: number;
+    payment_method: 'cash' | 'safepay';
+  }) {
+    const response = await this.client.post('/payments/split-bill/participant-checkout', data);
+    return response.data;
+  }
+
+  async getSessionBill(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/bill`);
+    return response.data;
+  }
+
+  async getPaymentStatus(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/payment-status`);
+    return response.data;
+  }
+
+  async confirmCashPayment(paymentId: number) {
+    const response = await this.client.post(`/payments/${paymentId}/confirm-cash`);
+    return response.data;
+  }
+
+  async getReceiptUrl(paymentId: number) {
+    const response = await this.client.get(`/payments/${paymentId}/receipt`);
+    return response.data;
+  }
+
+  async handleSafepayCallback(tracker: string, paymentId?: string) {
+    const response = await this.client.get('/payments/safepay/callback', {
+      params: { tracker, payment_id: paymentId }
+    });
+    return response.data;
+  }
 }
 
 export const api = new ApiClient();

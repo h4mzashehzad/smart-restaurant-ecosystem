@@ -96,7 +96,7 @@ class OrderController extends Controller
                 'subtotal'            => $subtotal,
                 'tax_amount'          => $taxAmount,
                 'total_amount'        => $totalAmount,
-                'status'              => 'pending',
+                'status'              => 'pending_payment',
                 'special_instructions' => $request->special_instructions,
                 'placed_at'           => now(),
             ]);

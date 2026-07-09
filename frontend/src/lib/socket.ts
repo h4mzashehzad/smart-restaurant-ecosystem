@@ -242,6 +242,72 @@ class SocketClient {
   offConnect(callback: () => void)   { this.socket?.off('connect', callback); }
   onDisconnect(callback: () => void) { this.socket?.on('disconnect', callback); }
   offDisconnect(callback: () => void){ this.socket?.off('disconnect', callback); }
+
+  // ── Payment Events ─────────────────────────────────────────────────────
+
+  /** Fires when one participant completes their payment (single or split). */
+  onPaymentCompleted(callback: (data: {
+    paymentId: number;
+    participantId: number | null;
+    amount: number;
+    paymentMethod: 'cash' | 'safepay';
+    splitGroupId: string | null;
+    receiptUrl: string | null;
+  }) => void) { this.socket?.on('payment:completed', callback); }
+  offPaymentCompleted(callback?: (data: any) => void) { this.socket?.off('payment:completed', callback); }
+
+  /** Fires when the host configures a split-bill for the session. */
+  onSplitBillConfigured(callback: (data: {
+    sessionId: number;
+    splitType: string;
+    splitGroupId: string;
+    participants: { participant_id: number; payment_id: number; amount: number; payment_method: string }[];
+    totalAmount: number;
+  }) => void) { this.socket?.on('split-bill:configured', callback); }
+  offSplitBillConfigured(callback?: (data: any) => void) { this.socket?.off('split-bill:configured', callback); }
+
+  /** Fires when ALL payments in a split group complete (atomic success). */
+  onAllPaymentsCompleted(callback: (data: {
+    sessionId: number;
+    orderId: number;
+    totalAmount: number;
+    splitGroupId: string;
+    receiptUrls: Record<string, string>;
+  }) => void) { this.socket?.on('all-payments:completed', callback); }
+  offAllPaymentsCompleted(callback?: (data: any) => void) { this.socket?.off('all-payments:completed', callback); }
+
+  /** Fires when a payment fails and the split group is rolled back. */
+  onPaymentFailed(callback: (data: {
+    sessionId: number;
+    splitGroupId: string;
+    failedParticipantId: number | null;
+    reason: string;
+    rollbackInitiated: boolean;
+  }) => void) { this.socket?.on('payment:failed', callback); }
+  offPaymentFailed(callback?: (data: any) => void) { this.socket?.off('payment:failed', callback); }
+
+  /** KDS only: fires when a new cash payment needs staff confirmation. */
+  onCashPaymentPending(callback: (data: {
+    paymentId: number;
+    sessionId: number;
+    participantId: number | null;
+    amount: number;
+    tableNumber: string;
+    splitGroupId: string | null;
+    paymentType: string;
+  }) => void) { this.socket?.on('cash:payment:pending', callback); }
+  offCashPaymentPending(callback?: (data: any) => void) { this.socket?.off('cash:payment:pending', callback); }
+
+  /** KDS only: fires when a cash payment has been confirmed (removed from KDS). */
+  onCashPaymentConfirmed(callback: (data: { paymentId: number }) => void) {
+    this.socket?.on('cash:payment:confirmed', callback);
+  }
+  offCashPaymentConfirmed(callback?: (data: any) => void) { this.socket?.off('cash:payment:confirmed', callback); }
+
+  /** Staff: emit to confirm a cash payment and remove from KDS. */
+  confirmCashPayment(paymentId: number, restaurantId: number) {
+    this.socket?.emit('cash:payment:confirm', { paymentId, restaurantId });
+  }
 }
 
 export const socketClient = new SocketClient();

@@ -10,6 +10,7 @@ import WaiterRequestCard, { WaiterRequest } from '@/components/kds/WaiterRequest
 import FlaggedFeedbackAlert, { type FlaggedFeedback } from '@/components/kds/FlaggedFeedbackAlert';
 import ReservationCard, { type Reservation } from '@/components/kds/ReservationCard';
 import QueueEntryCard, { type QueueEntry } from '@/components/kds/QueueEntryCard';
+import CashPaymentCard, { type PendingCashPayment } from '@/components/kds/CashPaymentCard';
 
 interface KDSOrder {
   id: number;
@@ -50,6 +51,7 @@ export default function KDSContainer() {
   const [flaggedFeedback, setFlaggedFeedback] = useState<FlaggedFeedback[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
+  const [cashPayments, setCashPayments] = useState<PendingCashPayment[]>([]);
   const mountedRef = useRef(true);
 
   // Auth guard
@@ -190,6 +192,21 @@ export default function KDSContainer() {
       }
     });
 
+    // ── Cash Payments ────────────────────────────────────────────────
+
+    socketClient.onCashPaymentPending((data) => {
+      if (!mountedRef.current) return;
+      setCashPayments((prev) => {
+        if (prev.some((p) => p.paymentId === data.paymentId)) return prev;
+        return [data, ...prev];
+      });
+    });
+
+    socketClient.onCashPaymentConfirmed((data) => {
+      if (!mountedRef.current) return;
+      setCashPayments((prev) => prev.filter((p) => p.paymentId !== data.paymentId));
+    });
+
     setConnected(socketClient.isConnected());
 
     return () => {
@@ -207,6 +224,8 @@ export default function KDSContainer() {
       socketClient.offReservationUpdated();
       socketClient.offKitchenInitialQueue();
       socketClient.offQueueUpdated();
+      socketClient.offCashPaymentPending();
+      socketClient.offCashPaymentConfirmed();
       socketClient.disconnect();
     };
   }, [authLoading, user, fetchOrders]);
@@ -243,6 +262,16 @@ export default function KDSContainer() {
     setQueueEntries((prev) => prev.map((e) =>
       e.id === entryId ? { ...e, status: status as QueueEntry['status'] } : e
     ));
+  }, []);
+
+  const handleCashPaymentConfirm = useCallback(async (paymentId: number) => {
+    try {
+      await api.confirmCashPayment(paymentId);
+      // Wait for socket to remove it or do optimistic update
+      setCashPayments((prev) => prev.filter((p) => p.paymentId !== paymentId));
+    } catch (err) {
+      console.error('Failed to confirm cash payment', err);
+    }
   }, []);
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -375,6 +404,36 @@ export default function KDSContainer() {
                   key={fb.feedback_id}
                   feedback={fb}
                   onDismiss={handleDismissFeedback}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Cash Payments Panel ───────────────────────────────────────── */}
+        {cashPayments.length > 0 && (
+          <section aria-label="Cash Payments">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+                  className="w-3.5 h-3.5 text-green-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-bold font-display text-gray-300 uppercase tracking-wider">
+                Pending Cash Payments
+              </h2>
+              <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-500/20 text-green-300 border border-green-500/30">
+                {cashPayments.length} payment{cashPayments.length > 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {cashPayments.map((p) => (
+                <CashPaymentCard
+                  key={p.paymentId}
+                  payment={p}
+                  onConfirm={handleCashPaymentConfirm}
                 />
               ))}
             </div>
