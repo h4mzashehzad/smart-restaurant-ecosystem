@@ -18,14 +18,9 @@ class Payment extends Model
         'participant_id',
         'payment_method',
         'payment_type',
-        'split_group_id',
         'amount',
         'transaction_id',
-        'safepay_tracker_token',
-        'safepay_reference_code',
         'gateway_response',
-        'receipt_url',
-        'receipt_s3_key',
         'status',
         'paid_at',
     ];
@@ -33,37 +28,10 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
-            'amount'           => 'decimal:2',
+            'amount' => 'decimal:2',
             'gateway_response' => 'json',
-            'paid_at'          => 'datetime',
+            'paid_at' => 'datetime',
         ];
-    }
-
-    // ── Scopes ──
-
-    /**
-     * Get all payments belonging to the same atomic split-bill group.
-     */
-    public function scopeSplitGroup($query, string $groupId)
-    {
-        return $query->where('split_group_id', $groupId);
-    }
-
-    // ── Helpers ──
-
-    public function isPending(): bool
-    {
-        return $this->status === 'pending';
-    }
-
-    public function isCompleted(): bool
-    {
-        return $this->status === 'completed';
-    }
-
-    public function isVoided(): bool
-    {
-        return $this->status === 'voided';
     }
 
     // ── Relationships ──

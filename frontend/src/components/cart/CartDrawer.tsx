@@ -13,10 +13,9 @@ import { OrderSuccess } from './OrderSuccess';
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
-  onOrderPlaced?: () => void;
 }
 
-export function CartDrawer({ open, onClose, onOrderPlaced }: CartDrawerProps) {
+export function CartDrawer({ open, onClose }: CartDrawerProps) {
   const { items, itemCount, subtotal, taxAmount, total, specialInstructions, setInstructions, clearCart } = useCart();
   const { session } = useSession();
   const { user } = useAuth();
@@ -74,14 +73,7 @@ export function CartDrawer({ open, onClose, onOrderPlaced }: CartDrawerProps) {
 
       const result = await api.createOrder(payload);
       const orderNum = result?.order?.order_number ?? 'ORD-' + Date.now();
-      // Instead of showing OrderSuccess here, we trigger PaymentDrawer
-      clearCart();
-      onClose();
-      if (onOrderPlaced) {
-        onOrderPlaced();
-      } else {
-        setSuccessOrder(orderNum);
-      }
+      setSuccessOrder(orderNum);
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to place order. Please try again.';
       setError(msg);

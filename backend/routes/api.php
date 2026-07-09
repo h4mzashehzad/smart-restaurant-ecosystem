@@ -64,16 +64,6 @@ Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController:
 Route::post('/webhooks/reservation-status',    [ReservationController::class,          'webhookUpdateStatus']);
 Route::post('/webhooks/queue-status',          [QueueController::class,                'webhookUpdateStatus']);
 
-// ── Payments (public — guests in a session pay without a token) ──
-Route::post('/payments/checkout',                        [PaymentController::class, 'checkout']);
-Route::post('/payments/split-bill/setup',                [PaymentController::class, 'splitBillSetup']);
-Route::post('/payments/split-bill/participant-checkout', [PaymentController::class, 'participantCheckout']);
-Route::get('/payments/safepay/callback',                 [PaymentController::class, 'handleCallback']);
-Route::post('/payments/safepay/webhook',                 [PaymentController::class, 'handleWebhook']);
-Route::get('/sessions/{session}/bill',                   [PaymentController::class, 'sessionBill']);
-Route::get('/sessions/{session}/payment-status',         [PaymentController::class, 'getPaymentStatus']);
-Route::get('/payments/{payment}/receipt',                [PaymentController::class, 'downloadReceipt']);
-
 // ── Service Requests (public — guests in a session may request assistance) ──
 Route::post('/service-requests', [ServiceRequestController::class, 'store']);
 
@@ -128,8 +118,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/history',                  [OrderController::class, 'history']);
     Route::patch('/orders/{order}/status',         [OrderController::class, 'updateStatus']);
 
-    // ── Payments (authenticated staff: cash confirmation) ──
-    Route::post('/payments/{payment}/confirm-cash', [PaymentController::class, 'confirmCashPayment']);
+    // ── Payments ──
+    Route::post('/payments/initiate',              [PaymentController::class, 'initiate']);
+    Route::post('/payments/split-bill',            [PaymentController::class, 'splitBill']);
+    Route::post('/payments/{payment}/confirm',     [PaymentController::class, 'confirm']);
+    Route::post('/payments/{payment}/refund',      [PaymentController::class, 'refund']);
+    Route::get('/sessions/{session}/bill',         [PaymentController::class, 'sessionBill']);
 
     // ── Queue (authenticated) ──
     Route::get('/queue/status',  [QueueController::class, 'status']);

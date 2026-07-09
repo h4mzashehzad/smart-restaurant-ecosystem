@@ -51,12 +51,6 @@ redisSubscriber.subscribe(`${REDIS_PREFIX}queue:updated`);
 // Pattern subscriptions (variable segment)
 redisSubscriber.psubscribe(`${REDIS_PREFIX}table-session.*`);
 redisSubscriber.psubscribe(`${REDIS_PREFIX}service-requests.*`);
-// Payment channels (broadcast to session rooms and kitchen)
-redisSubscriber.subscribe(`${REDIS_PREFIX}payment:completed`);
-redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:configured`);
-redisSubscriber.subscribe(`${REDIS_PREFIX}all-payments:completed`);
-redisSubscriber.subscribe(`${REDIS_PREFIX}payment:failed`);
-redisSubscriber.subscribe(`${REDIS_PREFIX}cash-payment:pending`);
 
 // ── Exact-match Redis messages ───────────────────────────────────────────────
 redisSubscriber.on('message', async (channel, message) => {
@@ -163,80 +157,6 @@ redisSubscriber.on('message', async (channel, message) => {
       io.to(`kitchen:restaurant_${restaurant_id}`).emit('queue:updated', { entry, action });
       console.log(`[Queue] ${action} entry ${entry.id} → kitchen:restaurant_${restaurant_id}`);
     }
-    // ── Payment: individual participant completed ──────────────────────
-    if (channel === `${REDIS_PREFIX}payment:completed`) {
-      const { session_id, payment_id, participant_id, amount, payment_method, split_group_id, receipt_url } = data;
-      io.to(`session:${session_id}`).emit('payment:completed', {
-        paymentId:      payment_id,
-        participantId:  participant_id,
-        amount,
-        paymentMethod:  payment_method,
-        splitGroupId:   split_group_id,
-        receiptUrl:     receipt_url,
-      });
-      console.log(`[Payment] payment:completed for session ${session_id}, participant ${participant_id}`);
-    }
-
-    // ── Split-bill configured by host ──────────────────────────────────
-    if (channel === `${REDIS_PREFIX}split-bill:configured`) {
-      const { session_id, split_type, split_group_id, participants, total_amount } = data;
-      io.to(`session:${session_id}`).emit('split-bill:configured', {
-        sessionId:    session_id,
-        splitType:    split_type,
-        splitGroupId: split_group_id,
-        participants,
-        totalAmount:  total_amount,
-      });
-      console.log(`[Payment] split-bill:configured for session ${session_id}, group ${split_group_id}`);
-    }
-
-    // ── All payments in split group completed ──────────────────────────
-    if (channel === `${REDIS_PREFIX}all-payments:completed`) {
-      const { session_id, order_id, total_amount, split_group_id, receipt_urls } = data;
-      io.to(`session:${session_id}`).emit('all-payments:completed', {
-        sessionId:    session_id,
-        orderId:      order_id,
-        totalAmount:  total_amount,
-        splitGroupId: split_group_id,
-        receiptUrls:  receipt_urls,
-      });
-      console.log(`[Payment] all-payments:completed for session ${session_id}, order ${order_id}`);
-    }
-
-    // ── Payment failed / split group rollback ──────────────────────────
-    if (channel === `${REDIS_PREFIX}payment:failed`) {
-      const { session_id, split_group_id, failed_participant_id, reason, rollback_initiated } = data;
-      io.to(`session:${session_id}`).emit('payment:failed', {
-        sessionId:          session_id,
-        splitGroupId:       split_group_id,
-        failedParticipantId:failed_participant_id,
-        reason,
-        rollbackInitiated:  rollback_initiated,
-      });
-      console.log(`[Payment] payment:failed for session ${session_id}, reason: ${reason}`);
-    }
-
-    // ── Cash payment pending — relay to KDS kitchen room ──────────────
-    if (channel === `${REDIS_PREFIX}cash-payment:pending`) {
-      const { payment_id, session_id, restaurant_id, participant_id, amount, table_number, split_group_id, payment_type } = data;
-
-      // Cache pending cash payment for KDS initial load
-      const cacheKey = `cash-payment:pending:${payment_id}`;
-      await redis.setex(cacheKey, 3600, JSON.stringify(data)); // 1h TTL
-      await redis.sadd(`cash-payments:pending:${restaurant_id}`, String(payment_id));
-
-      io.to(`kitchen:restaurant_${restaurant_id}`).emit('cash:payment:pending', {
-        paymentId:    payment_id,
-        sessionId:    session_id,
-        participantId:participant_id,
-        amount,
-        tableNumber:  table_number,
-        splitGroupId: split_group_id,
-        paymentType:  payment_type,
-      });
-      console.log(`[Payment] cash:payment:pending → kitchen:restaurant_${restaurant_id}, table ${table_number}, Rs ${amount}`);
-    }
-
   } catch (error) {
     console.error('[Redis] Error processing message:', error);
   }
@@ -439,30 +359,6 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('[Kitchen] Error sending queue entries:', error);
     }
-    // Send active cash payments from Redis cache
-    try {
-      const cashPaymentIds = await redis.smembers(`cash-payments:pending:${restaurantId}`);
-      const cashPayments = [];
-      const staleCashIds = [];
-
-      for (const id of cashPaymentIds) {
-        const d = await redis.get(`cash-payment:pending:${id}`);
-        if (d) {
-          cashPayments.push(JSON.parse(d));
-        } else {
-          staleCashIds.push(id);
-        }
-      }
-
-      if (staleCashIds.length > 0) {
-        await redis.srem(`cash-payments:pending:${restaurantId}`, ...staleCashIds);
-      }
-
-      socket.emit('kitchen:initial:cash-payments', cashPayments);
-      console.log(`[Kitchen] Sent ${cashPayments.length} pending cash payments to ${socket.id}`);
-    } catch (error) {
-      console.error('[Kitchen] Error sending cash payments:', error);
-    }
   });
 
   // ── Customer table joins ──────────────────────────────────────────────────
@@ -599,16 +495,6 @@ io.on('connection', (socket) => {
       console.error('[Queue] Error updating queue entry status:', error);
       socket.emit('error', { message: 'Failed to update queue entry status' });
     }
-  });
-
-  // ── Kitchen staff: confirm cash payment ─────────────────────────────────
-  socket.on('cash:payment:confirm', async ({ paymentId, restaurantId }) => {
-    console.log(`[Payment] Staff confirming cash payment ${paymentId} for restaurant ${restaurantId}`);
-    // Remove from Redis cache (Laravel API handles the actual DB update via confirmCashPayment)
-    await redis.srem(`cash-payments:pending:${restaurantId}`, String(paymentId));
-    await redis.del(`cash-payment:pending:${paymentId}`);
-    io.to(`kitchen:restaurant_${restaurantId}`).emit('cash:payment:confirmed', { paymentId });
-    console.log(`[Payment] Cash payment ${paymentId} removed from KDS`);
   });
 
   // ── Disconnect / error ───────────────────────────────────────────────────
