@@ -67,7 +67,7 @@ class TableController extends Controller
 
         $session = $table->currentSession;
 
-        if ($session && $session->status === 'active') {
+        if ($session && in_array($session->status, ['active', 'checkout_pending'], true)) {
             // --- Join existing session ---
             $existing = $session->participants()
                 ->where(function ($q) use ($userId, $deviceId) {

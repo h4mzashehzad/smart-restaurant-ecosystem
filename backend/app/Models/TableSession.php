@@ -21,6 +21,7 @@ class TableSession extends Model
         'ended_at',
         'total_amount',
         'status',
+        'payment_status',
     ];
 
     protected function casts(): array

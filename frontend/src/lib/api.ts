@@ -178,6 +178,83 @@ class ApiClient {
     return response.data.data;
   }
 
+  // ── Payments ────────────────────────────────────────────────────────────
+  async checkout(data: {
+    session_id: number;
+    table_id: number;
+    items: { menu_item_id: number; quantity: number }[];
+    special_instructions?: string | null;
+    mode: 'full' | 'split_equal' | 'split_itemized';
+    payment_method?: 'cash' | 'safepay';
+    participant_id?: number | null;
+    device_id?: string;
+  }) {
+    const response = await this.client.post('/payments/checkout', data);
+    return response.data;
+  }
+
+  async setupSplitBill(data: {
+    order_id: number;
+    session_id: number;
+    split_type: 'equal' | 'itemized';
+    participant_ids?: number[];
+  }) {
+    const response = await this.client.post('/payments/split-bill/setup', data);
+    return response.data;
+  }
+
+  async claimSplitItem(data: {
+    order_id: number;
+    session_id: number;
+    order_item_id: number;
+    unit_index: number;
+    action: 'claim' | 'unclaim';
+    participant_id?: number | null;
+    device_id?: string;
+  }) {
+    const response = await this.client.post('/payments/split-bill/claim', data);
+    return response.data;
+  }
+
+  async participantCheckout(data: { payment_id: number; payment_method: 'cash' | 'safepay' }) {
+    const response = await this.client.post('/payments/split-bill/participant-checkout', data);
+    return response.data;
+  }
+
+  async getSessionBill(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/bill`);
+    return response.data.data;
+  }
+
+  async getPaymentStatus(sessionId: number) {
+    const response = await this.client.get(`/sessions/${sessionId}/payment-status`);
+    return response.data.data;
+  }
+
+  async confirmCashPayment(paymentId: number) {
+    const response = await this.client.post(`/payments/${paymentId}/confirm-cash`);
+    return response.data;
+  }
+
+  async getPendingCashPayments(restaurantId: number) {
+    const response = await this.client.get('/payments/cash/pending', {
+      params: { restaurant_id: restaurantId },
+    });
+    return response.data.data;
+  }
+
+  async getReceiptUrl(paymentId: number) {
+    const response = await this.client.get(`/payments/${paymentId}/receipt`);
+    return response.data.data;
+  }
+
+  async verifySafepayCallback(tracker: string, cancelled = false) {
+    const response = await this.client.get('/payments/safepay/callback', {
+      params: cancelled ? { tracker, cancelled: 1 } : { tracker },
+    });
+    return response.data;
+  }
+
   async getOrder(orderId: number) {
     const response = await this.client.get(`/orders/${orderId}`);
     return response.data.data;

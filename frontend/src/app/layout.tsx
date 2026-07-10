@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionProvider } from "@/contexts/SessionContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { PaymentProvider } from "@/contexts/PaymentContext";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -42,7 +43,9 @@ export default function RootLayout({
         <AuthProvider>
           <SessionProvider>
             <CartProvider>
-              {children}
+              <PaymentProvider>
+                {children}
+              </PaymentProvider>
             </CartProvider>
           </SessionProvider>
         </AuthProvider>

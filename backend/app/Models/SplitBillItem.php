@@ -12,6 +12,7 @@ class SplitBillItem extends Model
     protected $fillable = [
         'payment_id',
         'order_item_id',
+        'unit_index',
         'participant_id',
         'amount',
     ];
@@ -20,6 +21,7 @@ class SplitBillItem extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'unit_index' => 'integer',
         ];
     }
 

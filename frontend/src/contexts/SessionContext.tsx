@@ -180,7 +180,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Guard again after await — leaveSession may have been called while waiting
       if (leavingRef.current) return;
       
-      if (updated.status !== 'active') {
+      if (updated.status !== 'active' && updated.status !== 'checkout_pending') {
         // Session was ended by someone else or automatically
         leavingRef.current = true;
         socketClient.leaveSession(session.id);

@@ -10,6 +10,7 @@ import WaiterRequestCard, { WaiterRequest } from '@/components/kds/WaiterRequest
 import FlaggedFeedbackAlert, { type FlaggedFeedback } from '@/components/kds/FlaggedFeedbackAlert';
 import ReservationCard, { type Reservation } from '@/components/kds/ReservationCard';
 import QueueEntryCard, { type QueueEntry } from '@/components/kds/QueueEntryCard';
+import CashPaymentCard, { type CashPayment } from '@/components/kds/CashPaymentCard';
 
 interface KDSOrder {
   id: number;
@@ -50,6 +51,8 @@ export default function KDSContainer() {
   const [flaggedFeedback, setFlaggedFeedback] = useState<FlaggedFeedback[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
+  const [cashPayments, setCashPayments] = useState<CashPayment[]>([]);
+  const [confirmingCashId, setConfirmingCashId] = useState<number | null>(null);
   const mountedRef = useRef(true);
 
   // Auth guard
@@ -190,6 +193,48 @@ export default function KDSContainer() {
       }
     });
 
+    // ── Cash payments ────────────────────────────────────────────────
+    socketClient.onKitchenInitialCashPayments((initial: CashPayment[]) => {
+      if (mountedRef.current) setCashPayments(initial ?? []);
+    });
+
+    socketClient.onCashPaymentPending((payment: CashPayment) => {
+      if (!mountedRef.current) return;
+      setCashPayments((prev) => (prev.some((p) => p.id === payment.id) ? prev : [payment, ...prev]));
+    });
+
+    socketClient.onCashPaymentCompleted((data: { payment_id: number }) => {
+      if (!mountedRef.current) return;
+      setCashPayments((prev) => prev.filter((p) => p.id !== data.payment_id));
+    });
+
+    // Bootstrap from API as well
+    api.getPendingCashPayments(RESTAURANT_ID)
+      .then((data) => {
+        if (!mountedRef.current) return;
+        const mapped: CashPayment[] = (data ?? []).map((p: any) => ({
+          id: p.id,
+          amount: Number(p.amount),
+          status: p.status,
+          payment_method: p.payment_method,
+          created_at: p.created_at,
+          order: p.order
+            ? {
+                id: p.order.id,
+                order_number: p.order.order_number,
+                table_number: p.order.table?.table_number,
+                table_id: p.order.table_id,
+                items_summary: (p.order.items ?? []).map((i: any) => ({
+                  name: i.menu_item?.name,
+                  quantity: i.quantity,
+                })),
+              }
+            : null,
+        }));
+        setCashPayments(mapped);
+      })
+      .catch(() => {});
+
     setConnected(socketClient.isConnected());
 
     return () => {
@@ -207,6 +252,9 @@ export default function KDSContainer() {
       socketClient.offReservationUpdated();
       socketClient.offKitchenInitialQueue();
       socketClient.offQueueUpdated();
+      socketClient.offKitchenInitialCashPayments();
+      socketClient.offCashPaymentPending();
+      socketClient.offCashPaymentCompleted();
       socketClient.disconnect();
     };
   }, [authLoading, user, fetchOrders]);
@@ -243,6 +291,18 @@ export default function KDSContainer() {
     setQueueEntries((prev) => prev.map((e) =>
       e.id === entryId ? { ...e, status: status as QueueEntry['status'] } : e
     ));
+  }, []);
+
+  const handleConfirmCash = useCallback(async (paymentId: number) => {
+    setConfirmingCashId(paymentId);
+    try {
+      await api.confirmCashPayment(paymentId);
+      setCashPayments((prev) => prev.filter((p) => p.id !== paymentId));
+    } catch (err) {
+      console.error('Failed to confirm cash payment:', err);
+    } finally {
+      setConfirmingCashId(null);
+    }
   }, []);
 
   const sortedOrders = [...orders].sort((a, b) => {
@@ -375,6 +435,38 @@ export default function KDSContainer() {
                   key={fb.feedback_id}
                   feedback={fb}
                   onDismiss={handleDismissFeedback}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Cash Payments Panel ───────────────────────────────────────── */}
+        {cashPayments.length > 0 && (
+          <section aria-label="Cash Payments">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+                  className="w-3.5 h-3.5 text-amber-400">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-bold font-display text-gray-300 uppercase tracking-wider">
+                Cash Payments
+              </h2>
+              <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                {cashPayments.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {cashPayments.map((payment) => (
+                <CashPaymentCard
+                  key={payment.id}
+                  payment={payment}
+                  onConfirm={handleConfirmCash}
+                  confirming={confirmingCashId === payment.id}
                 />
               ))}
             </div>

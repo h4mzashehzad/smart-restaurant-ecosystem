@@ -64,7 +64,7 @@ class SessionController extends Controller
      */
     public function join(Request $request, TableSession $session): JsonResponse
     {
-        if ($session->status !== 'active') {
+        if (! in_array($session->status, ['active', 'checkout_pending'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Session is no longer active',

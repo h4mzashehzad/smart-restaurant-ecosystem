@@ -235,6 +235,70 @@ class SocketClient {
     this.socket?.emit('queue:status:update', { entryId, status });
   }
 
+  // ── Payments ────────────────────────────────────────────────────────────
+  onPaymentCompleted(callback: (data: any) => void) {
+    this.socket?.on('payment:completed', callback);
+  }
+  offPaymentCompleted(callback?: (data: any) => void) {
+    this.socket?.off('payment:completed', callback);
+  }
+
+  onPaymentFailed(callback: (data: any) => void) {
+    this.socket?.on('payment:failed', callback);
+  }
+  offPaymentFailed(callback?: (data: any) => void) {
+    this.socket?.off('payment:failed', callback);
+  }
+
+  onCheckoutStarted(callback: (data: any) => void) {
+    this.socket?.on('checkout:started', callback);
+  }
+  offCheckoutStarted(callback?: (data: any) => void) {
+    this.socket?.off('checkout:started', callback);
+  }
+
+  onSplitBillConfigured(callback: (data: any) => void) {
+    this.socket?.on('split-bill:configured', callback);
+  }
+  offSplitBillConfigured(callback?: (data: any) => void) {
+    this.socket?.off('split-bill:configured', callback);
+  }
+
+  onSplitBillItemClaimed(callback: (data: any) => void) {
+    this.socket?.on('split-bill:item-claimed', callback);
+  }
+  offSplitBillItemClaimed(callback?: (data: any) => void) {
+    this.socket?.off('split-bill:item-claimed', callback);
+  }
+
+  onAllPaymentsCompleted(callback: (data: any) => void) {
+    this.socket?.on('all-payments:completed', callback);
+  }
+  offAllPaymentsCompleted(callback?: (data: any) => void) {
+    this.socket?.off('all-payments:completed', callback);
+  }
+
+  onCashPaymentPending(callback: (data: any) => void) {
+    this.socket?.on('cash-payment:pending', callback);
+  }
+  offCashPaymentPending(callback?: (data: any) => void) {
+    this.socket?.off('cash-payment:pending', callback);
+  }
+
+  onCashPaymentCompleted(callback: (data: any) => void) {
+    this.socket?.on('cash-payment:completed', callback);
+  }
+  offCashPaymentCompleted(callback?: (data: any) => void) {
+    this.socket?.off('cash-payment:completed', callback);
+  }
+
+  onKitchenInitialCashPayments(callback: (data: any[]) => void) {
+    this.socket?.on('kitchen:initial:cash-payments', callback);
+  }
+  offKitchenInitialCashPayments(callback?: (data: any[]) => void) {
+    this.socket?.off('kitchen:initial:cash-payments', callback);
+  }
+
   // ── Utilities ───────────────────────────────────────────────────────────
   isConnected(): boolean { return this.socket?.connected ?? false; }
 

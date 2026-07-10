@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { MenuContainer } from './MenuContainer';
 import { SessionBanner } from '@/components/Menu/SessionBanner';
 import { UserMenu } from '@/components/Menu/UserMenu';
@@ -35,7 +36,9 @@ export default function MenuPage() {
 
         {/* Client Boundary wrapping the interactive menu components */}
         <div className="relative z-10 flex-1 bg-gray-50/50">
-          <MenuContainer />
+          <Suspense fallback={<div className="p-8 text-center text-sm text-gray-400">Loading menu…</div>}>
+            <MenuContainer />
+          </Suspense>
         </div>
         
       </div>

@@ -48,6 +48,14 @@ redisSubscriber.subscribe(`${REDIS_PREFIX}feedback:flagged`);
 // Reservation & queue channels
 redisSubscriber.subscribe(`${REDIS_PREFIX}reservation:updated`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}queue:updated`);
+// Payment / split-bill channels
+redisSubscriber.subscribe(`${REDIS_PREFIX}payment:completed`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}payment:failed`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}checkout:started`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:configured`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:item-claimed`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}all-payments:completed`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}cash-payment:pending`);
 // Pattern subscriptions (variable segment)
 redisSubscriber.psubscribe(`${REDIS_PREFIX}table-session.*`);
 redisSubscriber.psubscribe(`${REDIS_PREFIX}service-requests.*`);
@@ -156,6 +164,73 @@ redisSubscriber.on('message', async (channel, message) => {
 
       io.to(`kitchen:restaurant_${restaurant_id}`).emit('queue:updated', { entry, action });
       console.log(`[Queue] ${action} entry ${entry.id} → kitchen:restaurant_${restaurant_id}`);
+    }
+
+    // ── Payment events ────────────────────────────────────────────────
+    if (channel === `${REDIS_PREFIX}payment:completed`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('payment:completed', data);
+      }
+      // Remove from pending cash set if present
+      if (data.payment_id && data.method === 'cash') {
+        const keys = await redis.keys('cash-payments:pending:*');
+        for (const key of keys) {
+          await redis.srem(key, String(data.payment_id));
+        }
+        await redis.del(`cash-payment:${data.payment_id}:details`);
+        // Notify kitchens to drop the card
+        io.emit('cash-payment:completed', { payment_id: data.payment_id });
+      }
+      console.log(`[Payment] completed ${data.payment_id} → session:${data.session_id}`);
+    }
+
+    if (channel === `${REDIS_PREFIX}payment:failed`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('payment:failed', data);
+      }
+      console.log(`[Payment] failed ${data.payment_id} → session:${data.session_id}`);
+    }
+
+    if (channel === `${REDIS_PREFIX}checkout:started`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('checkout:started', data);
+      }
+      console.log(`[Payment] checkout started → session:${data.session_id}`);
+    }
+
+    if (channel === `${REDIS_PREFIX}split-bill:configured`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('split-bill:configured', data);
+      }
+      console.log(`[Payment] split configured → session:${data.session_id}`);
+    }
+
+    if (channel === `${REDIS_PREFIX}split-bill:item-claimed`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('split-bill:item-claimed', data);
+      }
+    }
+
+    if (channel === `${REDIS_PREFIX}all-payments:completed`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('all-payments:completed', data);
+      }
+      console.log(`[Payment] all paid → session:${data.session_id} order:${data.order_id}`);
+    }
+
+    if (channel === `${REDIS_PREFIX}cash-payment:pending`) {
+      const payment = data.payment || data;
+      const restaurantId = payment.restaurant_id;
+      if (restaurantId) {
+        await redis.setex(
+          `cash-payment:${payment.id}:details`,
+          7200,
+          JSON.stringify(payment)
+        );
+        await redis.sadd(`cash-payments:pending:${restaurantId}`, String(payment.id));
+        io.to(`kitchen:restaurant_${restaurantId}`).emit('cash-payment:pending', payment);
+        console.log(`[Payment] cash pending ${payment.id} → kitchen:restaurant_${restaurantId}`);
+      }
     }
   } catch (error) {
     console.error('[Redis] Error processing message:', error);
@@ -358,6 +433,31 @@ io.on('connection', (socket) => {
       console.log(`[Kitchen] Sent ${queueEntries.length} queue entries to ${socket.id}`);
     } catch (error) {
       console.error('[Kitchen] Error sending queue entries:', error);
+    }
+
+    // Send pending cash payments
+    try {
+      const cashIds = await redis.smembers(`cash-payments:pending:${restaurantId}`);
+      const cashPayments = [];
+      const staleCashIds = [];
+
+      for (const id of cashIds) {
+        const d = await redis.get(`cash-payment:${id}:details`);
+        if (d) {
+          cashPayments.push(JSON.parse(d));
+        } else {
+          staleCashIds.push(id);
+        }
+      }
+
+      if (staleCashIds.length > 0) {
+        await redis.srem(`cash-payments:pending:${restaurantId}`, ...staleCashIds);
+      }
+
+      socket.emit('kitchen:initial:cash-payments', cashPayments);
+      console.log(`[Kitchen] Sent ${cashPayments.length} pending cash payments to ${socket.id}`);
+    } catch (error) {
+      console.error('[Kitchen] Error sending cash payments:', error);
     }
   });
 

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
+import { usePayment } from '@/contexts/PaymentContext';
 import { CategorySlider } from '@/components/Menu/CategorySlider';
 import { ProductCard } from '@/components/Menu/ProductCard';
 import { ItemDetailDrawer } from '@/components/Menu/ItemDetailDrawer';
@@ -17,8 +19,26 @@ export function MenuContainer() {
   const [error, setError] = useState('');
   const [detailItemId, setDetailItemId] = useState<number | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const { addItem } = useCart();
+  const payment = usePayment();
+
+  useEffect(() => {
+    if (payment.drawerOpen) {
+      setCartOpen(true);
+    }
+  }, [payment.drawerOpen]);
+
+  // Resume split tracker after Safepay redirect (or deep-link).
+  useEffect(() => {
+    if (searchParams.get('split') !== '1') return;
+    void payment.refreshBill({ openDrawer: true });
+    setCartOpen(true);
+    router.replace('/menu', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetchMenu() {
@@ -151,6 +171,24 @@ export function MenuContainer() {
 
       {/* Floating Cart Button */}
       <CartFab onClick={() => setCartOpen(true)} />
+
+      {payment.active && !payment.drawerOpen && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[45] w-full max-w-md px-4 pointer-events-none">
+          <button
+            type="button"
+            onClick={() => {
+              payment.openPaymentDrawer();
+              setCartOpen(true);
+            }}
+            className="pointer-events-auto w-full rounded-2xl border border-orange-200 bg-white/95 backdrop-blur px-4 py-3 shadow-lg shadow-orange-500/10 text-left"
+          >
+            <p className="text-xs font-sans font-semibold text-orange-700">Table split in progress</p>
+            <p className="text-[11px] font-sans text-stone-500 mt-0.5">
+              Tap to claim items or pay your share — updates live for everyone.
+            </p>
+          </button>
+        </div>
+      )}
 
       {/* Item Detail Bottom Sheet */}
       <ItemDetailDrawer

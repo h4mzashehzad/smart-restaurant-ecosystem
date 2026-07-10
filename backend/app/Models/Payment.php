@@ -18,11 +18,17 @@ class Payment extends Model
         'participant_id',
         'payment_method',
         'payment_type',
+        'split_group_id',
         'amount',
         'transaction_id',
+        'safepay_tracker_token',
+        'safepay_reference_code',
         'gateway_response',
+        'receipt_url',
+        'receipt_s3_key',
         'status',
         'paid_at',
+        'expires_at',
     ];
 
     protected function casts(): array
@@ -31,7 +37,13 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'gateway_response' => 'json',
             'paid_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    public function scopeSplitGroup($query, string $groupId)
+    {
+        return $query->where('split_group_id', $groupId);
     }
 
     // ── Relationships ──
