@@ -203,6 +203,11 @@ class ApiClient {
     return response.data;
   }
 
+  async unlockSplitBill(data: { order_id: number; session_id: number }) {
+    const response = await this.client.post('/payments/split-bill/unlock', data);
+    return response.data;
+  }
+
   async claimSplitItem(data: {
     order_id: number;
     session_id: number;

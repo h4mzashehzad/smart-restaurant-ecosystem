@@ -69,6 +69,7 @@ interface PaymentContextType {
   resetPayment: () => void;
   myParticipantId: number | null;
   participantLabel: (participantId: number | null | undefined) => string;
+  canEditClaims: boolean;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -80,7 +81,28 @@ function mapPayments(list: any[]): TrackerPayment[] {
     amount: Number(p.amount),
     status: p.status || 'pending',
     payment_method: p.method ?? p.payment_method,
+    receipt_url: p.receipt_url ?? null,
   }));
+}
+
+function pickReceiptForParticipant(
+  receipts: Array<{ payment_id?: number; participant_id?: number | null; receipt_url?: string | null }> | undefined,
+  participantId: number | null,
+  paymentId: number | null,
+  fallbackUrls?: Array<string | null | undefined>
+): string | null {
+  if (receipts?.length) {
+    const byParticipant = participantId
+      ? receipts.find((r) => r.participant_id === participantId)
+      : undefined;
+    if (byParticipant?.receipt_url) return byParticipant.receipt_url;
+
+    const byPayment = paymentId ? receipts.find((r) => r.payment_id === paymentId) : undefined;
+    if (byPayment?.receipt_url) return byPayment.receipt_url;
+  }
+
+  const first = (fallbackUrls || []).find((u) => !!u);
+  return first ?? null;
 }
 
 function deriveStep(args: {
@@ -119,7 +141,10 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const refreshingRef = useRef(false);
   const stepRef = useRef(step);
+  const myParticipantIdRef = useRef<number | null>(null);
+  const paymentIdRef = useRef<number | null>(null);
   stepRef.current = step;
+  paymentIdRef.current = paymentId;
 
   const participants = session?.participants?.filter((p) => !p.left_at) ?? [];
 
@@ -127,11 +152,11 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!session) return null;
     const byDevice = participants.find((p) => p.device_id === deviceId);
     if (byDevice?.id) return byDevice.id;
-    // Last resort: if this device has exactly one matching unpaid payment participant in session
-    // and only one local participant without a device match, avoid blocking pay buttons entirely.
     if (participants.length === 1) return participants[0].id;
     return null;
   }, [session, deviceId, participants]);
+
+  myParticipantIdRef.current = myParticipantId;
 
   const myPayment = useMemo(
     () => payments.find((p) => p.participant_id === myParticipantId) ?? null,
@@ -141,6 +166,75 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const myShare = myPayment ? Number(myPayment.amount) : null;
 
   const active = step !== 'idle' && step !== 'success';
+
+  const canEditClaims = useMemo(() => {
+    if (splitMode !== 'itemized') return false;
+    if (payments.length === 0) return false;
+    return payments.every((p) => p.status === 'pending');
+  }, [splitMode, payments]);
+
+  const resolveAndSetReceipt = useCallback(
+    async (opts?: {
+      receipts?: Array<{ payment_id?: number; participant_id?: number | null; receipt_url?: string | null }>;
+      fallbackUrls?: Array<string | null | undefined>;
+      payment?: TrackerPayment | null;
+    }) => {
+      const participantId = myParticipantIdRef.current;
+      const payId = opts?.payment?.id ?? paymentIdRef.current ?? myPayment?.id ?? null;
+
+      const fromPayload = pickReceiptForParticipant(
+        opts?.receipts,
+        participantId,
+        payId,
+        opts?.fallbackUrls
+      );
+      if (fromPayload) {
+        setReceiptUrl(fromPayload);
+        return;
+      }
+
+      if (opts?.payment?.receipt_url) {
+        setReceiptUrl(opts.payment.receipt_url);
+        return;
+      }
+
+      if (payId) {
+        try {
+          const data = await api.getReceiptUrl(payId);
+          if (data?.receipt_url) setReceiptUrl(data.receipt_url);
+        } catch {
+          // receipt may still be generating
+        }
+      }
+    },
+    [myPayment?.id]
+  );
+
+  const enterSuccess = useCallback(
+    (opts?: {
+      orderNumber?: string;
+      receipts?: Array<{ payment_id?: number; participant_id?: number | null; receipt_url?: string | null }>;
+      fallbackUrls?: Array<string | null | undefined>;
+      payment?: TrackerPayment | null;
+    }) => {
+      if (opts?.orderNumber) setOrderNumber(opts.orderNumber);
+
+      const participantId = myParticipantIdRef.current;
+      const fromReceipts = opts?.receipts?.find((r) => r.participant_id === participantId);
+      const resolvedPayId =
+        opts?.payment?.id ?? fromReceipts?.payment_id ?? paymentIdRef.current ?? null;
+      if (resolvedPayId) setPaymentId(resolvedPayId);
+
+      setStep('success');
+      setDrawerOpen(true);
+      clearCart();
+      void resolveAndSetReceipt({
+        ...opts,
+        payment: opts?.payment ?? (resolvedPayId ? { id: resolvedPayId, participant_id: participantId, amount: 0, status: 'completed' } : null),
+      });
+    },
+    [clearCart, resolveAndSetReceipt]
+  );
 
   const resetPayment = useCallback(() => {
     setStep('idle');
@@ -160,13 +254,10 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const openPaymentDrawer = useCallback(() => setDrawerOpen(true), []);
   const closePaymentDrawer = useCallback(() => {
-    if (stepRef.current === 'success') {
-      resetPayment();
-      return;
-    }
-    // Keep split state; only close the sheet so guests can reopen via FAB/banner.
+    // Keep success visible until the guest taps Done — backdrop dismiss was dropping receipts.
+    if (stepRef.current === 'success') return;
     setDrawerOpen(false);
-  }, [resetPayment]);
+  }, []);
 
   const applyBill = useCallback(
     (bill: any, opts?: { openDrawer?: boolean }) => {
@@ -178,9 +269,31 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const draft = bill.draft_order;
       if (!draft) {
-        if (bill.payment_status === 'paid' && stepRef.current !== 'idle') {
-          setStep('success');
-          if (opts?.openDrawer) setDrawerOpen(true);
+        const completed = mapPayments(
+          (bill.payments || []).filter((p: any) => p.status === 'completed' && p.split_group_id)
+        );
+        const recentlyPaid =
+          bill.payment_status === 'paid' &&
+          (stepRef.current !== 'idle' || completed.length > 0);
+
+        if (recentlyPaid && stepRef.current !== 'idle') {
+          const mine =
+            completed.find((p) => p.participant_id === myParticipantIdRef.current) ||
+            completed[0] ||
+            null;
+          if (mine) {
+            setPayments(completed);
+            setPaymentId(mine.id);
+            if (mine.amount) setOrderTotal(Number(mine.amount));
+          }
+          enterSuccess({
+            payment: mine,
+            receipts: completed.map((p) => ({
+              payment_id: p.id,
+              participant_id: p.participant_id,
+              receipt_url: p.receipt_url,
+            })),
+          });
         }
         return;
       }
@@ -190,8 +303,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       );
       const nextClaims = bill.claims || [];
       const splitType = bill.split_type as string | null;
-      const allPaid =
-        mapped.length > 0 && mapped.every((p) => p.status === 'completed');
+      const allPaid = mapped.length > 0 && mapped.every((p) => p.status === 'completed');
 
       setOrderId(draft.id);
       setOrderNumber(draft.order_number || '');
@@ -203,12 +315,28 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPayments(mapped);
       setSplitMode(splitType === 'equal' ? 'equal' : splitType === 'itemized' ? 'itemized' : null);
 
+      if (allPaid) {
+        const mine =
+          mapped.find((p) => p.participant_id === myParticipantIdRef.current) || mapped[0] || null;
+        if (mine) setPaymentId(mine.id);
+        enterSuccess({
+          orderNumber: draft.order_number || '',
+          payment: mine,
+          receipts: mapped.map((p) => ({
+            payment_id: p.id,
+            participant_id: p.participant_id,
+            receipt_url: p.receipt_url,
+          })),
+        });
+        return;
+      }
+
       const nextStep = deriveStep({
         payments: mapped,
         claims: nextClaims,
         splitType,
         sessionStatus: bill.session_status || session?.status,
-        allPaid,
+        allPaid: false,
       });
 
       if (nextStep !== 'idle') {
@@ -217,12 +345,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setDrawerOpen(true);
         }
       }
-
-      if (allPaid) {
-        clearCart();
-      }
     },
-    [clearCart, session?.status]
+    [enterSuccess, session?.status]
   );
 
   const refreshBill = useCallback(
@@ -242,7 +366,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const beginLocalCheckout = useCallback(() => {
-    // If a split is already live, jump into it instead of showing full-bill checkout.
     if (payments.length > 0 || orderId) {
       void refreshBill({ openDrawer: true });
       setDrawerOpen(true);
@@ -277,7 +400,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (data.splitType === 'equal' || data.mode === 'split_equal') {
         setSplitMode('equal');
-        setStep(data.payments?.length ? 'tracker' : 'tracker');
+        setStep('tracker');
       } else if (data.splitType === 'itemized' || data.mode === 'split_itemized') {
         setSplitMode('itemized');
         setStep(data.payments?.length ? 'tracker' : 'itemized');
@@ -299,6 +422,30 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [myParticipantId, participantNames, participants]
   );
 
+  // Ensure every guest gets their own receipt once success is shown
+  useEffect(() => {
+    if (step !== 'success' || receiptUrl) return;
+    const pay = myPayment;
+    const id = pay?.id ?? paymentId;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (pay?.receipt_url) {
+          if (!cancelled) setReceiptUrl(pay.receipt_url);
+          return;
+        }
+        const data = await api.getReceiptUrl(id);
+        if (!cancelled && data?.receipt_url) setReceiptUrl(data.receipt_url);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, receiptUrl, myPayment, paymentId]);
+
   // Initial + status-change hydrate
   useEffect(() => {
     if (!session?.id) {
@@ -306,7 +453,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
     void refreshBill({ openDrawer: false });
-    // intentionally only re-hydrate when session identity/status changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.status]);
 
@@ -349,7 +495,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     const onConfigured = (data: any) => {
       if (data.session_id !== session.id) return;
-      // Apply immediately for snappy UX, then reconcile with API.
       setOrderId(data.order_id);
       setOrderNumber(data.order_number || '');
       setOrderSubtotal(Number(data.subtotal || 0));
@@ -370,12 +515,35 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setDrawerOpen(true);
       void refreshBill({ openDrawer: true });
     };
+    const onUnlocked = (data: any) => {
+      if (data.session_id !== session.id) return;
+      setPayments([]);
+      setPaymentId(null);
+      setReceiptUrl(null);
+      if (data.claims) setClaims(data.claims);
+      if (data.claimable_units) setUnits(data.claimable_units);
+      setSplitMode('itemized');
+      setStep('itemized');
+      setDrawerOpen(true);
+      void refreshBill({ openDrawer: true });
+    };
     const onCompleted = (data: any) => {
       if (data.session_id !== session.id) return;
       setPayments((prev) =>
-        prev.map((p) => (p.id === data.payment_id ? { ...p, status: 'completed' } : p))
+        prev.map((p) =>
+          p.id === data.payment_id
+            ? { ...p, status: 'completed', receipt_url: data.receipt_url ?? p.receipt_url }
+            : p
+        )
       );
-      if (data.receipt_url) setReceiptUrl(data.receipt_url);
+      // Only adopt the receipt when this device's share completed
+      if (
+        data.receipt_url &&
+        (data.participant_id === myParticipantIdRef.current || data.payment_id === paymentIdRef.current)
+      ) {
+        setReceiptUrl(data.receipt_url);
+        setPaymentId(data.payment_id);
+      }
       void refreshBill({ openDrawer: true });
     };
     const onFailed = (data: any) => {
@@ -387,18 +555,18 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     const onAllPaid = (data: any) => {
       if (data.session_id !== session.id) return;
-      setOrderNumber(data.order_number || '');
-      setReceiptUrl(data.receipt_urls?.[0] ?? null);
       setPayments((prev) => prev.map((p) => ({ ...p, status: 'completed' })));
-      setStep('success');
-      setDrawerOpen(true);
-      clearCart();
-      void refreshBill({ openDrawer: true });
+      enterSuccess({
+        orderNumber: data.order_number || '',
+        receipts: data.receipts,
+        fallbackUrls: data.receipt_urls,
+      });
     };
 
     socketClient.onCheckoutStarted(onCheckoutStarted);
     socketClient.onSplitBillConfigured(onConfigured);
     socketClient.onSplitBillItemClaimed(onClaimed);
+    socketClient.onSplitBillUnlocked(onUnlocked);
     socketClient.onPaymentCompleted(onCompleted);
     socketClient.onPaymentFailed(onFailed);
     socketClient.onAllPaymentsCompleted(onAllPaid);
@@ -407,11 +575,12 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       socketClient.offCheckoutStarted(onCheckoutStarted);
       socketClient.offSplitBillConfigured(onConfigured);
       socketClient.offSplitBillItemClaimed(onClaimed);
+      socketClient.offSplitBillUnlocked(onUnlocked);
       socketClient.offPaymentCompleted(onCompleted);
       socketClient.offPaymentFailed(onFailed);
       socketClient.offAllPaymentsCompleted(onAllPaid);
     };
-  }, [session?.id, refreshBill, clearCart]);
+  }, [session?.id, refreshBill, enterSuccess]);
 
   const value: PaymentContextType = {
     active,
@@ -445,6 +614,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     resetPayment,
     myParticipantId,
     participantLabel,
+    canEditClaims,
   };
 
   return <PaymentContext.Provider value={value}>{children}</PaymentContext.Provider>;

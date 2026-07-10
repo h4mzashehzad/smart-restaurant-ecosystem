@@ -226,6 +226,12 @@ export function PaymentDrawer({
 
   async function lockItemizedSplit() {
     if (!session || !payment.orderId) return;
+    const allClaimed =
+      payment.units.length > 0 && payment.claims.length >= payment.units.length;
+    if (!allClaimed) {
+      setError('Everyone must claim all items before continuing');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -247,6 +253,27 @@ export function PaymentDrawer({
       await payment.refreshBill({ openDrawer: true });
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Lock split failed — claim all items first');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlockItemizedSplit() {
+    if (!session || !payment.orderId) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.unlockSplitBill({
+        order_id: payment.orderId,
+        session_id: session.id,
+      });
+      payment.setPayments([]);
+      payment.setClaims(res.data?.claims || []);
+      if (res.data?.claimable_units) payment.setUnits(res.data.claimable_units);
+      payment.setSplitMode('itemized');
+      payment.setStep('itemized');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Could not go back to edit claims');
     } finally {
       setBusy(false);
     }
@@ -344,9 +371,24 @@ export function PaymentDrawer({
             <button
               type="button"
               onClick={() => payment.setStep('split-options')}
-              className="w-full py-3.5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 text-orange-800 text-sm font-semibold shadow-sm"
+              className="w-full py-3.5 px-4 rounded-2xl border-2 border-orange-500 bg-white text-orange-700 text-sm font-semibold shadow-md shadow-orange-500/15 active:scale-[0.98] transition-all flex items-center justify-between gap-3"
             >
-              Split with {participants.length} guests at the table
+              <span className="flex items-center gap-3 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-9L21 12m0 0L16.5 16.5M21 12H7.5" />
+                  </svg>
+                </span>
+                <span className="text-left leading-snug">
+                  <span className="block">Split with {participants.length} guests</span>
+                  <span className="block text-[11px] font-medium text-orange-500/80 mt-0.5">
+                    Tap to choose equal or by items
+                  </span>
+                </span>
+              </span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" className="w-5 h-5 shrink-0 text-orange-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </button>
           )}
           <button
@@ -397,14 +439,29 @@ export function PaymentDrawer({
             onToggle={handleClaimToggle}
             busyKey={busyKey}
           />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={lockItemizedSplit}
-            className="w-full py-3.5 rounded-2xl bg-orange-500 text-white font-semibold disabled:opacity-60 shadow-lg shadow-orange-500/20"
-          >
-            {busy ? 'Locking…' : 'Confirm claims & continue'}
-          </button>
+          {(() => {
+            const allClaimed =
+              payment.units.length > 0 && payment.claims.length >= payment.units.length;
+            const remaining = Math.max(payment.units.length - payment.claims.length, 0);
+            return (
+              <>
+                {!allClaimed && payment.units.length > 0 && (
+                  <p className="text-xs font-sans text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                    {remaining} item{remaining === 1 ? '' : 's'} still unclaimed — everyone must claim
+                    before continuing.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  disabled={busy || !allClaimed}
+                  onClick={lockItemizedSplit}
+                  className="w-full py-3.5 rounded-2xl bg-orange-500 text-white font-semibold disabled:opacity-50 shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-transform"
+                >
+                  {busy ? 'Locking…' : allClaimed ? 'Confirm claims & continue' : 'Claim all items to continue'}
+                </button>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -439,6 +496,16 @@ export function PaymentDrawer({
               payingId={payingId}
             />
           )}
+          {payment.canEditClaims && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={unlockItemizedSplit}
+              className="w-full py-3 rounded-2xl border-2 border-stone-300 bg-white text-stone-700 text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-60"
+            >
+              {busy ? 'Going back…' : '← Edit claimed items'}
+            </button>
+          )}
         </div>
       )}
 
@@ -454,7 +521,7 @@ export function PaymentDrawer({
       {step === 'success' && (
         <PaymentSuccess
           orderNumber={payment.orderNumber || 'ORD'}
-          amount={displayTotal}
+          amount={payment.myShare ?? displayTotal}
           receiptUrl={payment.receiptUrl}
           onDone={handleSuccessDone}
         />

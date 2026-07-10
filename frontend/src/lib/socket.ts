@@ -271,6 +271,13 @@ class SocketClient {
     this.socket?.off('split-bill:item-claimed', callback);
   }
 
+  onSplitBillUnlocked(callback: (data: any) => void) {
+    this.socket?.on('split-bill:unlocked', callback);
+  }
+  offSplitBillUnlocked(callback?: (data: any) => void) {
+    this.socket?.off('split-bill:unlocked', callback);
+  }
+
   onAllPaymentsCompleted(callback: (data: any) => void) {
     this.socket?.on('all-payments:completed', callback);
   }

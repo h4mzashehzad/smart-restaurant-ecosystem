@@ -76,6 +76,7 @@ Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 // ── Payments (public — guests checkout; Safepay callbacks/webhooks) ──
 Route::post('/payments/checkout', [PaymentController::class, 'checkout']);
 Route::post('/payments/split-bill/setup', [PaymentController::class, 'setupSplitBill']);
+Route::post('/payments/split-bill/unlock', [PaymentController::class, 'unlockSplitBill']);
 Route::post('/payments/split-bill/claim', [PaymentController::class, 'claimItem']);
 Route::post('/payments/split-bill/participant-checkout', [PaymentController::class, 'participantCheckout']);
 Route::get('/payments/safepay/callback', [PaymentController::class, 'handleCallback']);

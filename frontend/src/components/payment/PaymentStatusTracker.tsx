@@ -6,6 +6,7 @@ export interface TrackerPayment {
   amount: number;
   status: string;
   payment_method?: string;
+  receipt_url?: string | null;
   label?: string;
 }
 

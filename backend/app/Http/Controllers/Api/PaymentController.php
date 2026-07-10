@@ -7,6 +7,7 @@ use App\Events\CheckoutStarted;
 use App\Events\SessionStateChanged;
 use App\Events\SplitBillConfigured;
 use App\Events\SplitBillItemClaimed;
+use App\Events\SplitBillUnlocked;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Order;
@@ -232,6 +233,58 @@ class PaymentController extends Controller
         }
     }
 
+    public function unlockSplitBill(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'session_id' => 'required|exists:table_sessions,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $order = Order::with('items')->findOrFail($request->order_id);
+        $session = TableSession::findOrFail($request->session_id);
+
+        if ($order->session_id !== $session->id || $order->status !== 'pending_payment') {
+            return response()->json(['success' => false, 'message' => 'Invalid order for unlock'], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($order) {
+                $this->splitBill->unlockItemizedSplit($order);
+            });
+
+            $claims = $this->currentClaimsPayload($order);
+            $units = $this->splitBill->expandClaimableUnits($order);
+
+            broadcast(new SplitBillUnlocked(
+                sessionId: $session->id,
+                orderId: $order->id,
+                claims: $claims,
+                claimableUnits: $units,
+            ));
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'claims' => $claims,
+                    'claimable_units' => $units,
+                    'order' => $order,
+                ],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unlock split bill',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function claimItem(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -254,6 +307,19 @@ class PaymentController extends Controller
 
         if (! $participant) {
             return response()->json(['success' => false, 'message' => 'Participant required'], 422);
+        }
+
+        $locked = Payment::query()
+            ->where('order_id', $order->id)
+            ->where('payment_type', 'split_itemized')
+            ->whereNotNull('split_group_id')
+            ->exists();
+
+        if ($locked) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Claims are locked. Go back to edit items first.',
+            ], 409);
         }
 
         try {

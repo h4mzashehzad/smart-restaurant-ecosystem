@@ -22,15 +22,17 @@ export function PaymentSuccess({ orderNumber, amount, receiptUrl, onDone }: Paym
           Rs {amount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}
         </p>
       )}
-      {receiptUrl && (
+      {receiptUrl ? (
         <a
           href={receiptUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 text-sm font-sans font-semibold text-orange-600 underline"
+          className="mt-4 inline-flex items-center justify-center gap-2 text-sm font-sans font-semibold text-orange-600 underline underline-offset-2"
         >
           Download Receipt
         </a>
+      ) : (
+        <p className="mt-4 text-xs font-sans text-stone-400">Preparing your receipt…</p>
       )}
       <button
         type="button"

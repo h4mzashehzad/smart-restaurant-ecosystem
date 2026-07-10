@@ -211,6 +211,36 @@ class SplitBillService
         return $payments->map->fresh();
     }
 
+    /**
+     * Unlock an itemized split so guests can re-edit claims.
+     * Only allowed while every share is still pending (no payment started).
+     */
+    public function unlockItemizedSplit(Order $order): void
+    {
+        $payments = Payment::query()
+            ->where('order_id', $order->id)
+            ->where('payment_type', 'split_itemized')
+            ->whereNotNull('split_group_id')
+            ->get();
+
+        if ($payments->isEmpty()) {
+            return;
+        }
+
+        $locked = $payments->contains(
+            fn (Payment $p) => in_array($p->status, ['completed', 'processing', 'refunded'], true)
+        );
+
+        if ($locked) {
+            throw new InvalidArgumentException('Cannot edit claims after a payment has started.');
+        }
+
+        $paymentIds = $payments->pluck('id');
+
+        SplitBillItem::whereIn('payment_id', $paymentIds)->update(['payment_id' => null]);
+        Payment::whereIn('id', $paymentIds)->delete();
+    }
+
     public function makeTxnId(): string
     {
         return 'TXN-'.now()->format('YmdHis').'-'.random_int(1000, 9999);

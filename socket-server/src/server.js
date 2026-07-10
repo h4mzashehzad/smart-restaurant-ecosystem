@@ -54,6 +54,7 @@ redisSubscriber.subscribe(`${REDIS_PREFIX}payment:failed`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}checkout:started`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:configured`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:item-claimed`);
+redisSubscriber.subscribe(`${REDIS_PREFIX}split-bill:unlocked`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}all-payments:completed`);
 redisSubscriber.subscribe(`${REDIS_PREFIX}cash-payment:pending`);
 // Pattern subscriptions (variable segment)
@@ -209,6 +210,13 @@ redisSubscriber.on('message', async (channel, message) => {
       if (data.session_id) {
         io.to(`session:${data.session_id}`).emit('split-bill:item-claimed', data);
       }
+    }
+
+    if (channel === `${REDIS_PREFIX}split-bill:unlocked`) {
+      if (data.session_id) {
+        io.to(`session:${data.session_id}`).emit('split-bill:unlocked', data);
+      }
+      console.log(`[Payment] split unlocked → session:${data.session_id}`);
     }
 
     if (channel === `${REDIS_PREFIX}all-payments:completed`) {

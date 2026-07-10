@@ -106,7 +106,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
       <div
         className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
         onClick={() => {
-          if (successOrder) return;
+          if (successOrder || payment.step === 'success') return;
           if (inPaymentFlow) {
             handleClosePayment();
             return;

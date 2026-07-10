@@ -132,12 +132,21 @@ class PaymentCompletionService
             ]);
         }
 
-        $receiptUrls = Payment::query()
+        $groupPayments = Payment::query()
             ->when(
                 $payment->split_group_id,
                 fn ($q) => $q->splitGroup($payment->split_group_id),
                 fn ($q) => $q->where('id', $payment->id)
             )
+            ->get();
+
+        $receipts = $groupPayments->map(fn (Payment $p) => [
+            'payment_id' => $p->id,
+            'participant_id' => $p->participant_id,
+            'receipt_url' => $p->receipt_url,
+        ])->values()->all();
+
+        $receiptUrls = $groupPayments
             ->pluck('receipt_url')
             ->filter()
             ->values()
@@ -149,6 +158,7 @@ class PaymentCompletionService
             totalAmount: (float) $order->total_amount,
             receiptUrls: $receiptUrls,
             orderNumber: $order->order_number,
+            receipts: $receipts,
         ));
     }
 }
