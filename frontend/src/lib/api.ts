@@ -13,6 +13,11 @@ const API_URL = getBaseUrl();
 class ApiClient {
   private client: AxiosInstance;
 
+  /** Shared axios instance (auth header + 401 handling already wired up). */
+  get http(): AxiosInstance {
+    return this.client;
+  }
+
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
@@ -42,10 +47,25 @@ class ApiClient {
         if (error.response?.status === 401) {
           const token = localStorage.getItem('auth_token');
           localStorage.removeItem('auth_token');
-          
+
           // Only redirect if we formerly had a token (expired session)
           // and we're not already heading to an auth page.
-          if (token && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register') && !window.location.pathname.startsWith('/admin') && window.location.pathname !== '/') {
+          const path = window.location.pathname;
+          const isAdminRoute = path.startsWith('/admin');
+          const isAdminLogin = path.startsWith('/admin/login');
+
+          if (!token) {
+            return Promise.reject(error);
+          }
+
+          if (isAdminRoute && !isAdminLogin) {
+            window.location.href = '/admin/login';
+          } else if (
+            !isAdminRoute &&
+            !path.startsWith('/login') &&
+            !path.startsWith('/register') &&
+            path !== '/'
+          ) {
             window.location.href = '/login';
           }
         }
@@ -281,7 +301,7 @@ class ApiClient {
   }
 
   // Admin / KDS endpoints
-  async getActiveKitchenOrders(restaurantId: number = 1) {
+  async getActiveKitchenOrders(restaurantId: number) {
     const response = await this.client.get(`/admin/kitchen/orders/active?restaurant_id=${restaurantId}`);
     return response.data.data;
   }

@@ -1,6 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdminFeedbackController;
+use App\Http\Controllers\Api\AdminMenuController;
+use App\Http\Controllers\Api\AdminOrderController;
+use App\Http\Controllers\Api\AdminPaymentController;
+use App\Http\Controllers\Api\AdminRestaurantController;
+use App\Http\Controllers\Api\AdminTableController;
+use App\Http\Controllers\Api\AdminTeamController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\LoyaltyController;
@@ -142,9 +149,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/queue/status', [QueueController::class, 'status']);
 
     // ── Service Requests (staff-only: list, acknowledge, resolve) ──
-    Route::get('/service-requests', [ServiceRequestController::class, 'index']);
-    Route::patch('/service-requests/{id}/acknowledge', [ServiceRequestController::class, 'acknowledge']);
-    Route::patch('/service-requests/{id}/resolve', [ServiceRequestController::class, 'resolve']);
+    // Scoped to the staff member's own restaurant via ResolvesRestaurant — never a client-supplied id.
+    Route::middleware('restaurant.role:admin,staff')->group(function () {
+        Route::get('/service-requests', [ServiceRequestController::class, 'index']);
+        Route::patch('/service-requests/{id}/acknowledge', [ServiceRequestController::class, 'acknowledge']);
+        Route::patch('/service-requests/{id}/resolve', [ServiceRequestController::class, 'resolve']);
+    });
 
     // ── Loyalty & Rewards ──
     Route::get('/loyalty/points', [LoyaltyController::class, 'points']);
@@ -152,8 +162,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/loyalty/rewards', [LoyaltyController::class, 'rewards']);
     Route::post('/loyalty/redeem', [LoyaltyController::class, 'redeem']);
 
-    // ── Admin / Analytics (role-based access should be enforced via middleware) ──
-    Route::prefix('admin')->group(function () {
+    // ── Admin / Analytics ──
+    // Every operator here is bound to exactly one restaurant (users.restaurant_id).
+    // `restaurant.role:admin,staff` enforces role + active + restaurant-bound; all
+    // controllers resolve the restaurant via ResolvesRestaurant, never a route/body param.
+    Route::prefix('admin')->middleware('restaurant.role:admin,staff')->group(function () {
         Route::get('/dashboard/stats', [AdminController::class, 'dashboardStats']);
         Route::get('/analytics/revenue', [AdminController::class, 'revenue']);
         Route::get('/analytics/peak-hours', [AdminController::class, 'peakHours']);
@@ -163,12 +176,63 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kitchen/orders/active', [AdminController::class, 'activeKitchenOrders']);
         Route::patch('/menu-items/{id}', [AdminController::class, 'updateMenuItem']);
 
-        // ── Reservation Management (staff) ──
-        Route::get('/restaurants/{restaurant}/reservations', [ReservationController::class, 'index']);
+        // ── Restaurant Profile (read: admin+staff, write: admin only) ──
+        Route::get('/restaurant', [AdminRestaurantController::class, 'show']);
+
+        // ── Team Management (read: admin+staff, write: admin only) ──
+        Route::get('/team', [AdminTeamController::class, 'index']);
+
+        // ── Tables (read + end-session: admin+staff, mutations: admin only) ──
+        Route::get('/tables', [AdminTableController::class, 'index']);
+        Route::get('/tables/{id}', [AdminTableController::class, 'show']);
+        Route::post('/tables/{id}/end-session', [AdminTableController::class, 'endSession']);
+
+        // ── Menu (read: admin+staff, mutations: admin only) ──
+        Route::get('/menu/categories', [AdminMenuController::class, 'categories']);
+        Route::get('/menu/items', [AdminMenuController::class, 'items']);
+        Route::patch('/menu/items/{id}/toggle-availability', [AdminMenuController::class, 'toggleAvailability']);
+
+        // ── Orders (admin+staff) ──
+        Route::get('/orders', [AdminOrderController::class, 'index']);
+        Route::get('/orders/{id}', [AdminOrderController::class, 'show']);
+        Route::patch('/orders/{id}/cancel', [AdminOrderController::class, 'cancel']);
+
+        // ── Feedback / Reviews (admin+staff) ──
+        Route::get('/feedback', [AdminFeedbackController::class, 'index']);
+        Route::patch('/feedback/{id}/respond', [AdminFeedbackController::class, 'respond']);
+        Route::patch('/feedback/{id}/dismiss-flag', [AdminFeedbackController::class, 'dismissFlag']);
+
+        // ── Payments ledger (admin+staff) — refunds are intentionally not exposed here ──
+        Route::get('/payments', [AdminPaymentController::class, 'index']);
+        Route::get('/payments/pending-cash', [AdminPaymentController::class, 'pendingCash']);
+
+        // ── Reservation Management (admin+staff) — restaurant-scoped, ignores any path/body restaurant id ──
+        Route::get('/reservations', [ReservationController::class, 'index']);
         Route::patch('/reservations/{reservation}/status', [ReservationController::class, 'updateStatus']);
 
-        // ── Queue Management (staff) ──
-        Route::get('/restaurants/{restaurant}/queue', [QueueController::class, 'index']);
+        // ── Queue Management (admin+staff) — restaurant-scoped, ignores any path/body restaurant id ──
+        Route::get('/queue', [QueueController::class, 'index']);
         Route::patch('/queue/{entry}/status', [QueueController::class, 'updateStatus']);
+
+        // ── Admin-only mutations ──
+        Route::middleware('restaurant.role:admin')->group(function () {
+            Route::patch('/restaurant', [AdminRestaurantController::class, 'update']);
+
+            Route::post('/team', [AdminTeamController::class, 'store']);
+            Route::patch('/team/{id}', [AdminTeamController::class, 'update']);
+            Route::patch('/team/{id}/deactivate', [AdminTeamController::class, 'deactivate']);
+
+            Route::post('/tables', [AdminTableController::class, 'store']);
+            Route::patch('/tables/{id}', [AdminTableController::class, 'update']);
+            Route::delete('/tables/{id}', [AdminTableController::class, 'destroy']);
+            Route::post('/tables/{id}/regenerate-qr', [AdminTableController::class, 'regenerateQrCode']);
+
+            Route::post('/menu/categories', [AdminMenuController::class, 'storeCategory']);
+            Route::patch('/menu/categories/{id}', [AdminMenuController::class, 'updateCategory']);
+            Route::delete('/menu/categories/{id}', [AdminMenuController::class, 'destroyCategory']);
+            Route::post('/menu/items', [AdminMenuController::class, 'storeItem']);
+            Route::patch('/menu/items/{id}', [AdminMenuController::class, 'updateItem']);
+            Route::delete('/menu/items/{id}', [AdminMenuController::class, 'destroyItem']);
+        });
     });
 });

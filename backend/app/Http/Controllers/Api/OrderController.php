@@ -24,21 +24,21 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'session_id'                      => 'required|exists:table_sessions,id',
-            'table_id'                        => 'required|exists:tables,id',
-            'items'                           => 'required|array|min:1|max:20',
-            'items.*.menu_item_id'            => 'required|exists:menu_items,id',
-            'items.*.quantity'                => 'required|integer|min:1|max:10',
-            'items.*.customizations'          => 'nullable|array',
+            'session_id' => 'required|exists:table_sessions,id',
+            'table_id' => 'required|exists:tables,id',
+            'items' => 'required|array|min:1|max:20',
+            'items.*.menu_item_id' => 'required|exists:menu_items,id',
+            'items.*.quantity' => 'required|integer|min:1|max:10',
+            'items.*.customizations' => 'nullable|array',
             'items.*.customizations.*.ingredient_id' => 'required_with:items.*.customizations|exists:ingredients,id',
             'items.*.customizations.*.action' => 'required_with:items.*.customizations|in:add,remove,modify',
-            'special_instructions'            => 'nullable|string|max:500',
+            'special_instructions' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -49,7 +49,7 @@ class OrderController extends Controller
             $itemsData = [];
 
             foreach ($request->items as $item) {
-                $menuItem  = MenuItem::findOrFail($item['menu_item_id']);
+                $menuItem = MenuItem::findOrFail($item['menu_item_id']);
                 $unitPrice = $menuItem->base_price;
                 $customizationAdjustment = 0;
 
@@ -68,55 +68,55 @@ class OrderController extends Controller
                 }
 
                 $finalUnitPrice = $unitPrice + $customizationAdjustment;
-                $totalPrice     = $finalUnitPrice * $item['quantity'];
-                $subtotal      += $totalPrice;
+                $totalPrice = $finalUnitPrice * $item['quantity'];
+                $subtotal += $totalPrice;
 
                 $itemsData[] = [
-                    'menu_item'      => $menuItem,
-                    'quantity'       => $item['quantity'],
-                    'unit_price'     => $finalUnitPrice,
-                    'total_price'    => $totalPrice,
+                    'menu_item' => $menuItem,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $finalUnitPrice,
+                    'total_price' => $totalPrice,
                     'customizations' => $item['customizations'] ?? [],
                 ];
             }
 
-            $taxAmount   = round($subtotal * 0.12, 2); // 12% tax
+            $taxAmount = round($subtotal * 0.12, 2); // 12% tax
             $totalAmount = $subtotal + $taxAmount;
 
             // Determine restaurant_id from the session
             $session = TableSession::findOrFail($request->session_id);
 
             $order = Order::create([
-                'restaurant_id'       => $session->restaurant_id,
-                'table_id'            => $request->table_id,
-                'session_id'          => $request->session_id,
-                'user_id'             => Auth::guard('sanctum')->id(),
-                'order_number'        => 'ORD-' . now()->format('Ymd') . '-' . rand(1000, 9999),
-                'order_type'          => 'dine_in',
-                'subtotal'            => $subtotal,
-                'tax_amount'          => $taxAmount,
-                'total_amount'        => $totalAmount,
-                'status'              => 'pending',
+                'restaurant_id' => $session->restaurant_id,
+                'table_id' => $request->table_id,
+                'session_id' => $request->session_id,
+                'user_id' => Auth::guard('sanctum')->id(),
+                'order_number' => 'ORD-'.now()->format('Ymd').'-'.rand(1000, 9999),
+                'order_type' => 'dine_in',
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'total_amount' => $totalAmount,
+                'status' => 'pending',
                 'special_instructions' => $request->special_instructions,
-                'placed_at'           => now(),
+                'placed_at' => now(),
             ]);
 
             // Create order items and customizations
             foreach ($itemsData as $data) {
                 $orderItem = OrderItem::create([
-                    'order_id'     => $order->id,
+                    'order_id' => $order->id,
                     'menu_item_id' => $data['menu_item']->id,
-                    'quantity'     => $data['quantity'],
-                    'unit_price'   => $data['unit_price'],
-                    'total_price'  => $data['total_price'],
+                    'quantity' => $data['quantity'],
+                    'unit_price' => $data['unit_price'],
+                    'total_price' => $data['total_price'],
                 ]);
 
                 foreach ($data['customizations'] as $c) {
                     OrderItemCustomization::create([
-                        'order_item_id'    => $orderItem->id,
-                        'ingredient_id'    => $c['ingredient_id'],
-                        'action'           => $c['action'],
-                        'quantity'         => $c['quantity'] ?? 1,
+                        'order_item_id' => $orderItem->id,
+                        'ingredient_id' => $c['ingredient_id'],
+                        'action' => $c['action'],
+                        'quantity' => $c['quantity'] ?? 1,
                         'price_adjustment' => 0, // already factored into unit_price
                     ]);
                 }
@@ -131,7 +131,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Order placed successfully',
-                'data'    => [
+                'data' => [
                     'order' => $order,
                 ],
             ], 201);
@@ -141,7 +141,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -153,7 +153,7 @@ class OrderController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => $order->load(['items.menuItem', 'items.customizations', 'table', 'user', 'payments']),
+            'data' => $order->load(['items.menuItem', 'items.customizations', 'table', 'user', 'payments']),
         ]);
     }
 
@@ -169,7 +169,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $orders,
+            'data' => $orders,
         ]);
     }
 
@@ -185,7 +185,7 @@ class OrderController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -194,7 +194,7 @@ class OrderController extends Controller
         // Set lifecycle timestamps
         $timestampMap = [
             'confirmed' => 'confirmed_at',
-            'ready'     => 'ready_at',
+            'ready' => 'ready_at',
             'completed' => 'completed_at',
         ];
 
@@ -212,7 +212,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order status updated',
-            'data'    => $order->fresh(),
+            'data' => $order->fresh(),
         ]);
     }
 
@@ -229,6 +229,13 @@ class OrderController extends Controller
         }
 
         $order->update(['status' => 'cancelled']);
+
+        broadcast(new OrderStatusUpdated(
+            $order->id,
+            'cancelled',
+            $order->restaurant_id,
+            $order->table_id
+        ));
 
         return response()->json([
             'success' => true,
@@ -248,7 +255,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $orders,
+            'data' => $orders,
         ]);
     }
 
@@ -259,13 +266,13 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
-            'status'   => 'required|in:confirmed,preparing,ready,served,completed,cancelled',
+            'status' => 'required|in:confirmed,preparing,ready,served,completed,cancelled',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -274,7 +281,7 @@ class OrderController extends Controller
 
         $timestampMap = [
             'confirmed' => 'confirmed_at',
-            'ready'     => 'ready_at',
+            'ready' => 'ready_at',
             'completed' => 'completed_at',
         ];
 

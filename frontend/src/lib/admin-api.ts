@@ -1,0 +1,180 @@
+import { api } from '@/lib/api';
+import type {
+  AdminMenuCategory,
+  AdminMenuItem,
+  AdminOrder,
+  AdminOrdersFilters,
+  AdminPayment,
+  AdminQueueEntry,
+  AdminReservation,
+  AdminReview,
+  AdminReviewsFilters,
+  CreateTablePayload,
+  CreateTeamMemberPayload,
+  DashboardStats,
+  PaginatedResponse,
+  PeakHourPoint,
+  PopularItem,
+  RestaurantDetails,
+  RestaurantTable,
+  RevenuePoint,
+  SentimentSummary,
+  TeamMember,
+  UpdateMenuItemPayload,
+  UpdateRestaurantPayload,
+  UpdateTablePayload,
+  UpdateTeamMemberPayload,
+  WastageReport,
+  WaiterServiceRequest,
+} from '@/types/admin';
+
+/**
+ * Admin dashboard API client.
+ *
+ * IMPORTANT: none of these methods send `restaurant_id` — every `/admin/*`
+ * endpoint on the backend derives the operator's restaurant from the
+ * authenticated user's token (see `ResolvesRestaurant` on the Laravel side).
+ * This keeps the dashboard strictly single-tenant: an operator can only
+ * ever see and mutate their own restaurant's data.
+ *
+ * This module reuses the shared axios instance configured in `api.ts`
+ * (auth header + 401 handling) via the internal client getter.
+ */
+const client = api.http;
+
+async function get<T>(url: string, params?: object): Promise<T> {
+  const response = await client.get(url, { params });
+  return response.data.data as T;
+}
+
+async function post<T>(url: string, data?: unknown): Promise<T> {
+  const response = await client.post(url, data);
+  return response.data.data as T;
+}
+
+async function patch<T>(url: string, data?: unknown): Promise<T> {
+  const response = await client.patch(url, data);
+  return response.data.data as T;
+}
+
+async function del<T>(url: string): Promise<T> {
+  const response = await client.delete(url);
+  return response.data.data as T;
+}
+
+export const adminApi = {
+  // ── Dashboard ────────────────────────────────────────────────────────
+  getDashboardStats: () => get<DashboardStats>('/admin/dashboard/stats'),
+
+  // ── Analytics (admin only) ──────────────────────────────────────────
+  getRevenue: (params?: { period?: 'daily' | 'weekly' | 'monthly'; days?: number }) =>
+    get<RevenuePoint[]>('/admin/analytics/revenue', params),
+
+  getPeakHours: (params?: { days?: number }) =>
+    get<PeakHourPoint[]>('/admin/analytics/peak-hours', params),
+
+  getPopularItems: (params?: { limit?: number }) =>
+    get<PopularItem[]>('/admin/analytics/popular-items', params),
+
+  getSentimentSummary: () => get<SentimentSummary>('/admin/analytics/sentiment-summary'),
+
+  getWastageReport: () => get<WastageReport>('/admin/analytics/wastage-report'),
+
+  // ── Restaurant (admin only) ─────────────────────────────────────────
+  getRestaurant: () => get<RestaurantDetails>('/admin/restaurant'),
+
+  updateRestaurant: (payload: UpdateRestaurantPayload) =>
+    patch<RestaurantDetails>('/admin/restaurant', payload),
+
+  // ── Team (admin only) ───────────────────────────────────────────────
+  getTeam: () => get<TeamMember[]>('/admin/team'),
+
+  createTeamMember: (payload: CreateTeamMemberPayload) =>
+    post<TeamMember>('/admin/team', payload),
+
+  updateTeamMember: (id: number, payload: UpdateTeamMemberPayload) =>
+    patch<TeamMember>(`/admin/team/${id}`, payload),
+
+  removeTeamMember: (id: number) => del<void>(`/admin/team/${id}`),
+
+  // ── Tables (admin only) ─────────────────────────────────────────────
+  getTables: () => get<RestaurantTable[]>('/admin/tables'),
+
+  createTable: (payload: CreateTablePayload) => post<RestaurantTable>('/admin/tables', payload),
+
+  updateTable: (id: number, payload: UpdateTablePayload) =>
+    patch<RestaurantTable>(`/admin/tables/${id}`, payload),
+
+  deleteTable: (id: number) => del<void>(`/admin/tables/${id}`),
+
+  // ── Menu (admin only) ───────────────────────────────────────────────
+  // Backend exposes categories (with nested items) at /admin/menu/categories.
+  getMenu: async () => {
+    const categories = await get<
+      Array<AdminMenuCategory & { menuItems?: AdminMenuItem[] }>
+    >('/admin/menu/categories');
+
+    return categories.map((category) => ({
+      ...category,
+      menu_items: category.menu_items ?? category.menuItems ?? [],
+    }));
+  },
+
+  updateMenuItem: (id: number, payload: UpdateMenuItemPayload) =>
+    patch<AdminMenuItem>(`/admin/menu/items/${id}`, payload),
+
+  // ── Orders ───────────────────────────────────────────────────────────
+  getOrders: (filters?: AdminOrdersFilters) =>
+    get<PaginatedResponse<AdminOrder>>('/admin/orders', filters),
+
+  getOrder: (id: number) => get<AdminOrder>(`/admin/orders/${id}`),
+
+  updateOrderStatus: (id: number, status: string) => api.updateOrderStatus(id, status),
+
+  // ── Waiter / Service Requests ────────────────────────────────────────
+  // Staff list lives at /service-requests (paginated). Unwrap to an array.
+  getWaiterRequests: async (params?: { status?: string; view?: 'current' | 'history' }) => {
+    const result = await get<PaginatedResponse<WaiterServiceRequest> | WaiterServiceRequest[]>(
+      '/service-requests',
+      { view: 'current', ...params }
+    );
+    return Array.isArray(result) ? result : (result?.data ?? []);
+  },
+
+  acknowledgeWaiterRequest: (id: number) =>
+    patch<WaiterServiceRequest>(`/service-requests/${id}/acknowledge`),
+
+  resolveWaiterRequest: (id: number) => patch<WaiterServiceRequest>(`/service-requests/${id}/resolve`),
+
+  // ── Reviews ──────────────────────────────────────────────────────────
+  getReviews: (filters?: AdminReviewsFilters) =>
+    get<PaginatedResponse<AdminReview>>('/admin/feedback', {
+      ...filters,
+      ...(filters?.flagged !== undefined ? { flagged: filters.flagged ? 1 : 0 } : {}),
+    }),
+
+  dismissReviewFlag: (id: number) => patch<AdminReview>(`/admin/feedback/${id}/dismiss-flag`),
+
+  // ── Reservations ─────────────────────────────────────────────────────
+  getReservations: (params?: { date?: string }) =>
+    get<AdminReservation[]>('/admin/reservations', params),
+
+  updateReservationStatus: (id: number, status: string) =>
+    patch<AdminReservation>(`/admin/reservations/${id}/status`, { status }),
+
+  // ── Queue ─────────────────────────────────────────────────────────────
+  getQueue: () => get<AdminQueueEntry[]>('/admin/queue'),
+
+  updateQueueStatus: (id: number, status: string) =>
+    patch<AdminQueueEntry>(`/admin/queue/${id}/status`, { status }),
+
+  // ── Payments ──────────────────────────────────────────────────────────
+  getPayments: (params?: { status?: string; page?: number }) =>
+    get<PaginatedResponse<AdminPayment>>('/admin/payments', params),
+
+  getPendingCashPayments: () => get<AdminPayment[]>('/admin/payments/pending-cash'),
+
+  confirmCashPayment: (paymentId: number) => api.confirmCashPayment(paymentId),
+};
+
+export type AdminApi = typeof adminApi;

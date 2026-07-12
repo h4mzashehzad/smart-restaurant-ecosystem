@@ -5,6 +5,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionProvider } from "@/contexts/SessionContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { PaymentProvider } from "@/contexts/PaymentContext";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { cn } from "@/lib/utils";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -14,7 +16,7 @@ const outfit = Outfit({
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -35,20 +37,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", outfit.variable, plusJakartaSans.variable)}>
       <body
-        className={`${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased bg-gray-50`}
+        className="font-sans antialiased bg-gray-50"
         suppressHydrationWarning
       >
-        <AuthProvider>
-          <SessionProvider>
-            <CartProvider>
-              <PaymentProvider>
-                {children}
-              </PaymentProvider>
-            </CartProvider>
-          </SessionProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <SessionProvider>
+              <CartProvider>
+                <PaymentProvider>
+                  {children}
+                </PaymentProvider>
+              </CartProvider>
+            </SessionProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

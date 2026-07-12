@@ -13,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'restaurant.role' => \App\Http\Middleware\EnsureRestaurantRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

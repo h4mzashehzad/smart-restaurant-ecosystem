@@ -9,6 +9,8 @@ class SocketClient {
   private pendingSessionId: number | null = null;
   private pendingTable: { restaurantId: number; tableId: number } | null = null;
   private pendingKitchen: number | null = null;
+  /** Refcount so KDS + Queue can share one kitchen room without nuking each other. */
+  private kitchenSubscribers = 0;
 
   connect() {
     if (this.socket) {
@@ -37,7 +39,9 @@ class SocketClient {
   private _rejoinRooms() {
     if (this.pendingSessionId !== null) this.socket?.emit('session:join', this.pendingSessionId);
     if (this.pendingTable) this.socket?.emit('table:join', this.pendingTable);
-    if (this.pendingKitchen !== null) this.socket?.emit('kitchen:join', this.pendingKitchen);
+    if (this.pendingKitchen !== null && this.kitchenSubscribers > 0) {
+      this.socket?.emit('kitchen:join', this.pendingKitchen);
+    }
   }
 
   disconnect() {
@@ -45,12 +49,22 @@ class SocketClient {
     this.pendingSessionId = null;
     this.pendingTable = null;
     this.pendingKitchen = null;
+    this.kitchenSubscribers = 0;
   }
 
   // ── Kitchen Display ─────────────────────────────────────────────────────
   joinKitchen(restaurantId: number) {
+    this.kitchenSubscribers += 1;
     this.pendingKitchen = restaurantId;
     this.socket?.emit('kitchen:join', restaurantId);
+  }
+
+  /** Leave kitchen room without tearing down the shared socket unless unused. */
+  leaveKitchen() {
+    this.kitchenSubscribers = Math.max(0, this.kitchenSubscribers - 1);
+    if (this.kitchenSubscribers === 0) {
+      this.pendingKitchen = null;
+    }
   }
 
   onOrderCreated(callback: (order: any) => void) {

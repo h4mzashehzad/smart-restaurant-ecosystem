@@ -27,7 +27,9 @@ return new class extends Migration
             $table->index(['restaurant_id', 'sentiment_label']);
             $table->index('is_flagged');
             $table->index('rating');
-            $table->fullText('review_text');
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->fullText('review_text');
+            }
         });
     }
 

@@ -179,8 +179,14 @@ redisSubscriber.on('message', async (channel, message) => {
           await redis.srem(key, String(data.payment_id));
         }
         await redis.del(`cash-payment:${data.payment_id}:details`);
-        // Notify kitchens to drop the card
-        io.emit('cash-payment:completed', { payment_id: data.payment_id });
+        // Notify only the owning restaurant kitchen (never broadcast globally)
+        if (data.restaurant_id) {
+          io.to(`kitchen:restaurant_${data.restaurant_id}`).emit('cash-payment:completed', {
+            payment_id: data.payment_id,
+          });
+        } else {
+          io.emit('cash-payment:completed', { payment_id: data.payment_id });
+        }
       }
       console.log(`[Payment] completed ${data.payment_id} → session:${data.session_id}`);
     }

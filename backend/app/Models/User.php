@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -18,6 +19,8 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'restaurant_id',
+        'is_active',
         'loyalty_tier',
         'loyalty_points',
     ];
@@ -34,10 +37,16 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'loyalty_points' => 'integer',
+            'is_active' => 'boolean',
         ];
     }
 
     // ── Relationships ──
+
+    public function restaurant(): BelongsTo
+    {
+        return $this->belongsTo(Restaurant::class);
+    }
 
     public function otpVerifications(): HasMany
     {

@@ -3,21 +3,39 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-interface User {
+export interface User {
   id: number;
   name: string;
   email: string;
   role: 'customer' | 'staff' | 'admin';
   loyalty_tier: string;
   loyalty_points: number;
+  restaurant_id: number | null;
+  is_active?: boolean;
+  restaurant?: {
+    id: number;
+    name: string;
+    slug: string;
+    is_active?: boolean;
+  } | null;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  password_confirmation: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
-  register: (data: any) => Promise<any>;
+  register: (
+    data: RegisterPayload
+  ) => Promise<{ success: boolean; require_otp?: boolean; data?: { user: User; token: string } }>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
 }
 
@@ -50,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await api.login(identifier, password);
     // api.login() returns the JSON body: { success, data: { user, token } }
     setUser(response.data.user);
+    return response.data.user as User;
   };
 
   const logout = async () => {
@@ -57,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const register = async (data: any) => {
+  const register = async (data: RegisterPayload) => {
     const response = await api.register(data);
     return response;
   };

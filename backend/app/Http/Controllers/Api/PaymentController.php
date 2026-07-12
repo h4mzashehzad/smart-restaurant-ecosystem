@@ -588,7 +588,8 @@ class PaymentController extends Controller
 
     public function pendingCashPayments(Request $request): JsonResponse
     {
-        $restaurantId = $request->query('restaurant_id') ?? $request->user()?->restaurant_id;
+        // Never trust a client-supplied restaurant_id — always use the operator's own.
+        $restaurantId = $request->user()?->restaurant_id;
 
         $payments = Payment::query()
             ->with(['order.items.menuItem', 'order.table', 'session'])

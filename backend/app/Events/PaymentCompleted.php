@@ -22,6 +22,8 @@ class PaymentCompleted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
+        $this->payment->loadMissing('order:id,restaurant_id');
+
         return [
             'payment_id' => $this->payment->id,
             'participant_id' => $this->payment->participant_id,
@@ -30,6 +32,7 @@ class PaymentCompleted implements ShouldBroadcastNow
             'session_id' => $this->payment->session_id,
             'split_group_id' => $this->payment->split_group_id,
             'order_id' => $this->payment->order_id,
+            'restaurant_id' => $this->payment->order?->restaurant_id,
             'status' => $this->payment->status,
             'receipt_url' => $this->payment->receipt_url,
         ];

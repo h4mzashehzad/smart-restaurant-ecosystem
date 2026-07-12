@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\QueueUpdated;
+use App\Http\Controllers\Concerns\ResolvesRestaurant;
 use App\Http\Controllers\Controller;
 use App\Models\QueueEntry;
-use App\Models\Restaurant;
-use App\Events\QueueUpdated;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class QueueController extends Controller
 {
+    use ResolvesRestaurant;
+
     /**
      * Join the walk-in queue (public — no auth required).
      */
@@ -19,15 +21,15 @@ class QueueController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'restaurant_id' => 'required|exists:restaurants,id',
-            'guest_name'    => 'required|string|max:100',
-            'guest_phone'   => 'required|string|max:20',
-            'party_size'    => 'required|integer|min:1|max:20',
+            'guest_name' => 'required|string|max:100',
+            'guest_phone' => 'required|string|max:20',
+            'party_size' => 'required|integer|min:1|max:20',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -42,15 +44,15 @@ class QueueController extends Controller
             ->count();
 
         $entry = QueueEntry::create([
-            'restaurant_id'       => $request->restaurant_id,
-            'user_id'             => $request->user()?->id,
-            'guest_name'          => $request->guest_name,
-            'guest_phone'         => $request->guest_phone,
-            'party_size'          => $request->party_size,
-            'queue_number'        => $lastNumber + 1,
+            'restaurant_id' => $request->restaurant_id,
+            'user_id' => $request->user()?->id,
+            'guest_name' => $request->guest_name,
+            'guest_phone' => $request->guest_phone,
+            'party_size' => $request->party_size,
+            'queue_number' => $lastNumber + 1,
             'estimated_wait_time' => ($waitingCount + 1) * 15, // ~15 min per party
-            'status'              => 'waiting',
-            'joined_at'           => now(),
+            'status' => 'waiting',
+            'joined_at' => now(),
         ]);
 
         event(new QueueUpdated($entry, 'joined'));
@@ -58,7 +60,7 @@ class QueueController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Added to queue',
-            'data'    => $entry,
+            'data' => $entry,
         ], 201);
     }
 
@@ -86,27 +88,30 @@ class QueueController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'entry'               => $entry,
-                'position'            => $position,
+            'data' => [
+                'entry' => $entry,
+                'position' => $position,
                 'estimated_wait_time' => $position * 15,
             ],
         ]);
     }
 
     /**
-     * List active queue entries for a restaurant (staff — KDS).
+     * List active queue entries for the authenticated staff member's own
+     * restaurant (KDS). Never trusts a client-supplied restaurant id.
      */
-    public function index(Restaurant $restaurant): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $entries = QueueEntry::where('restaurant_id', $restaurant->id)
+        $restaurantId = $this->restaurantId($request);
+
+        $entries = QueueEntry::where('restaurant_id', $restaurantId)
             ->whereIn('status', ['waiting', 'called'])
             ->orderBy('queue_number')
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $entries,
+            'data' => $entries,
         ]);
     }
 
@@ -122,7 +127,7 @@ class QueueController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -131,8 +136,8 @@ class QueueController extends Controller
         // Validate status transitions
         $allowed = match ($entry->status) {
             'waiting' => ['called', 'cancelled', 'no_show'],
-            'called'  => ['seated', 'cancelled', 'no_show'],
-            default   => [],
+            'called' => ['seated', 'cancelled', 'no_show'],
+            default => [],
         };
 
         if (! in_array($newStatus, $allowed)) {
@@ -143,8 +148,12 @@ class QueueController extends Controller
         }
 
         $updates = ['status' => $newStatus];
-        if ($newStatus === 'called') $updates['called_at'] = now();
-        if ($newStatus === 'seated') $updates['seated_at'] = now();
+        if ($newStatus === 'called') {
+            $updates['called_at'] = now();
+        }
+        if ($newStatus === 'seated') {
+            $updates['seated_at'] = now();
+        }
 
         $entry->update($updates);
 
@@ -153,7 +162,7 @@ class QueueController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Queue entry status updated to {$newStatus}",
-            'data'    => $entry,
+            'data' => $entry,
         ]);
     }
 
@@ -168,6 +177,7 @@ class QueueController extends Controller
         }
 
         $request->merge(['status' => $request->status]);
+
         return $this->updateStatus($request, $entry);
     }
 }

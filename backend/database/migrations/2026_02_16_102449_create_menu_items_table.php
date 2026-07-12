@@ -36,7 +36,10 @@ return new class extends Migration
             $table->index('category_id');
             $table->index(['popularity_score']);
             $table->index('is_signature');
-            $table->fullText(['name', 'description']);
+
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->fullText(['name', 'description']);
+            }
         });
     }
 

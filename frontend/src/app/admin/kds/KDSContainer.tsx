@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { socketClient } from '@/lib/socket';
@@ -29,8 +30,6 @@ interface KDSOrder {
   user?: { name: string } | null;
 }
 
-const RESTAURANT_ID = 1;
-
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 function sortRequests(requests: WaiterRequest[]): WaiterRequest[] {
@@ -54,6 +53,7 @@ export default function KDSContainer() {
   const [cashPayments, setCashPayments] = useState<CashPayment[]>([]);
   const [confirmingCashId, setConfirmingCashId] = useState<number | null>(null);
   const mountedRef = useRef(true);
+  const restaurantId = user?.restaurant_id ?? null;
 
   // Auth guard
   useEffect(() => {
@@ -65,25 +65,26 @@ export default function KDSContainer() {
 
   // Fetch initial orders from REST API
   const fetchOrders = useCallback(async () => {
+    if (!restaurantId) return;
     try {
-      const data = await api.getActiveKitchenOrders(RESTAURANT_ID);
+      const data = await api.getActiveKitchenOrders(restaurantId);
       if (mountedRef.current) setOrders(data ?? []);
     } catch (err) {
       console.error('Failed to fetch active orders:', err);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [restaurantId]);
 
   // Socket setup
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || !restaurantId) return;
 
     mountedRef.current = true;
     fetchOrders();
 
     socketClient.connect();
-    socketClient.joinKitchen(RESTAURANT_ID);
+    socketClient.joinKitchen(restaurantId);
 
     const handleConnect    = () => setConnected(true);
     const handleDisconnect = () => setConnected(false);
@@ -102,14 +103,14 @@ export default function KDSContainer() {
       }
     });
 
-    socketClient.onOrderCreated((data: any) => {
+    socketClient.onOrderCreated((data: { order?: KDSOrder & { restaurant_id?: number } } | (KDSOrder & { restaurant_id?: number })) => {
       if (!mountedRef.current) return;
-      const order = data.order ?? data;
-      if (order.restaurant_id !== RESTAURANT_ID) return;
+      const order = 'order' in data && data.order ? data.order : (data as KDSOrder & { restaurant_id?: number });
+      if (order.restaurant_id !== restaurantId) return;
       setOrders((prev) => prev.some((o) => o.id === order.id) ? prev : [order, ...prev]);
     });
 
-    socketClient.onOrderStatusChanged((data: any) => {
+    socketClient.onOrderStatusChanged((data: { order_id: number; status: string }) => {
       if (!mountedRef.current) return;
       const { order_id, status } = data;
       if (['served', 'completed', 'cancelled'].includes(status)) {
@@ -131,7 +132,12 @@ export default function KDSContainer() {
       setServiceRequests((prev) => prev.some((r) => r.id === request.id) ? prev : [request, ...prev]);
     });
 
-    socketClient.onWaiterRequestUpdated((data: any) => {
+    socketClient.onWaiterRequestUpdated((data: {
+      requestId: number;
+      status: WaiterRequest['status'];
+      acknowledgedAt?: string | null;
+      resolvedAt?: string | null;
+    }) => {
       if (!mountedRef.current) return;
       const { requestId, status, acknowledgedAt, resolvedAt } = data;
       setServiceRequests((prev) =>
@@ -209,10 +215,25 @@ export default function KDSContainer() {
     });
 
     // Bootstrap from API as well
-    api.getPendingCashPayments(RESTAURANT_ID)
-      .then((data) => {
+    interface RawCashPayment {
+      id: number;
+      amount: number | string;
+      status: CashPayment['status'];
+      payment_method: string;
+      created_at: string;
+      order?: {
+        id: number;
+        order_number: string;
+        table_id?: number;
+        table?: { table_number?: string };
+        items?: Array<{ menu_item?: { name?: string }; quantity: number }>;
+      } | null;
+    }
+
+    api.getPendingCashPayments(restaurantId)
+      .then((data: RawCashPayment[]) => {
         if (!mountedRef.current) return;
-        const mapped: CashPayment[] = (data ?? []).map((p: any) => ({
+        const mapped: CashPayment[] = (data ?? []).map((p) => ({
           id: p.id,
           amount: Number(p.amount),
           status: p.status,
@@ -224,7 +245,7 @@ export default function KDSContainer() {
                 order_number: p.order.order_number,
                 table_number: p.order.table?.table_number,
                 table_id: p.order.table_id,
-                items_summary: (p.order.items ?? []).map((i: any) => ({
+                items_summary: (p.order.items ?? []).map((i) => ({
                   name: i.menu_item?.name,
                   quantity: i.quantity,
                 })),
@@ -255,9 +276,9 @@ export default function KDSContainer() {
       socketClient.offKitchenInitialCashPayments();
       socketClient.offCashPaymentPending();
       socketClient.offCashPaymentCompleted();
-      socketClient.disconnect();
+      socketClient.leaveKitchen();
     };
-  }, [authLoading, user, fetchOrders]);
+  }, [authLoading, user, restaurantId, fetchOrders]);
 
   const handleStatusUpdate = useCallback((orderId: number, status: string) => {
     socketClient.updateOrderStatus(orderId, status);
@@ -273,9 +294,10 @@ export default function KDSContainer() {
   }, []);
 
   const handleDismissFeedback = useCallback((feedbackId: number) => {
-    socketClient.dismissFeedbackFlag(feedbackId, RESTAURANT_ID);
+    if (!restaurantId) return;
+    socketClient.dismissFeedbackFlag(feedbackId, restaurantId);
     setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
-  }, []);
+  }, [restaurantId]);
 
   const handleReservationStatus = useCallback((reservationId: number, status: string) => {
     socketClient.updateReservationStatus(reservationId, status);
@@ -336,7 +358,7 @@ export default function KDSContainer() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-gray-900 text-white shadow-lg border-b border-gray-800">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-          <div className="flex items-center gap-3">
+          <Link href="/admin" className="flex items-center gap-3">
             <div className="h-9 w-9 bg-orange-500/20 border border-orange-500/30 rounded-xl flex items-center justify-center">
               <svg className="h-5 w-5 text-orange-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round"
@@ -345,9 +367,11 @@ export default function KDSContainer() {
             </div>
             <div>
               <h1 className="text-lg font-bold font-display tracking-tight">Kitchen Display</h1>
-              <p className="text-[11px] text-gray-400 font-medium -mt-0.5">The Lahore Karahi</p>
+              <p className="text-[11px] text-gray-400 font-medium -mt-0.5">
+                {user?.restaurant?.name ?? 'Your Restaurant'}
+              </p>
             </div>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-5">
             {/* Order count */}

@@ -3,40 +3,39 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { getErrorMessage } from '@/lib/error-message';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginAttempted, setLoginAttempted] = useState(false);
 
-  // After login, user context updates — check role here
+  // Already logged in as admin/staff — skip the login form entirely.
   useEffect(() => {
-    if (!loginAttempted || !user) return;
-
-    if (user.role !== 'admin' && user.role !== 'staff') {
-      setError('Access denied. Admin or staff credentials required.');
-      setLoading(false);
-      return;
+    if (authLoading) return;
+    if (user && (user.role === 'admin' || user.role === 'staff')) {
+      router.replace('/admin');
     }
-
-    router.push('/admin/kds');
-  }, [user, loginAttempted, router]);
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setLoginAttempted(false);
 
     try {
-      await login(email, password);
-      setLoginAttempted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      const loggedInUser = await login(email, password);
+      if (loggedInUser.role !== 'admin' && loggedInUser.role !== 'staff') {
+        setError('Access denied. Admin or staff credentials required.');
+        setLoading(false);
+        return;
+      }
+      router.push('/admin');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Login failed'));
       setLoading(false);
     }
   };
@@ -81,10 +80,10 @@ export default function AdminLoginPage() {
         <div className="bg-gray-900 py-10 px-6 sm:px-10 rounded-[2rem] shadow-2xl border border-gray-800">
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold font-display text-white tracking-tight">
-              Kitchen Admin
+              Admin Sign In
             </h2>
             <p className="mt-2 text-sm text-gray-400 font-sans">
-              Sign in to the Kitchen Display System
+              Manage your restaurant&apos;s operations
             </p>
           </div>
 
@@ -143,7 +142,7 @@ export default function AdminLoginPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl text-[15px] font-bold text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-500/30 active:scale-[0.98] shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50 disabled:active:scale-100"
               >
-                {loading ? 'Authenticating...' : 'Sign in to KDS'}
+                {loading ? 'Authenticating...' : 'Sign in'}
               </button>
             </div>
           </form>

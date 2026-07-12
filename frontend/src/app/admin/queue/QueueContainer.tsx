@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { getErrorMessage } from '@/lib/error-message';
 import { socketClient } from '@/lib/socket';
 import { QueueEntry } from '@/components/kds/QueueEntryCard';
 import {
@@ -16,8 +18,6 @@ import {
   ExclamationTriangleIcon,
   MegaphoneIcon,
 } from '@heroicons/react/24/outline';
-
-const RESTAURANT_ID = 1; // Hardcoded for single-tenant MVP
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   waiting:   { label: 'Waiting',   color: 'text-indigo-600',  bg: 'bg-indigo-50 border-indigo-200' },
@@ -43,6 +43,7 @@ export default function QueueContainer() {
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([]);
   const [connected, setConnected] = useState(false);
   const mountedRef = useRef(true);
+  const restaurantId = user?.restaurant_id ?? null;
 
   // Form State
   const [guestName, setGuestName] = useState('');
@@ -61,11 +62,11 @@ export default function QueueContainer() {
 
   // Socket setup
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || !restaurantId) return;
 
     mountedRef.current = true;
     socketClient.connect();
-    socketClient.joinKitchen(RESTAURANT_ID);
+    socketClient.joinKitchen(restaurantId);
 
     const handleConnect    = () => setConnected(true);
     const handleDisconnect = () => setConnected(false);
@@ -92,10 +93,9 @@ export default function QueueContainer() {
       mountedRef.current = false;
       socketClient.offKitchenInitialQueue();
       socketClient.offQueueUpdated();
-      // Only disconnect if not used elsewhere, but safe to call
-      socketClient.disconnect();
+      socketClient.leaveKitchen();
     };
-  }, [authLoading, user]);
+  }, [authLoading, user, restaurantId]);
 
   const handleQueueStatus = useCallback((entryId: number, status: string) => {
     socketClient.updateQueueStatus(entryId, status);
@@ -107,14 +107,14 @@ export default function QueueContainer() {
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guestName.trim() || !guestPhone.trim()) return;
-    
+    if (!guestName.trim() || !guestPhone.trim() || !restaurantId) return;
+
     setSubmitting(true);
     setError('');
-    
+
     try {
       await api.joinQueue({
-        restaurant_id: RESTAURANT_ID,
+        restaurant_id: restaurantId,
         guest_name: guestName.trim(),
         guest_phone: guestPhone.trim(),
         party_size: partySize,
@@ -123,8 +123,8 @@ export default function QueueContainer() {
       setGuestName('');
       setGuestPhone('');
       setPartySize(2);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to add guest to queue.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to add guest to queue.'));
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +141,7 @@ export default function QueueContainer() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href="/admin" className="flex items-center gap-3">
             <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
               <UsersIcon className="w-5 h-5 text-indigo-600" />
             </div>
@@ -149,8 +149,8 @@ export default function QueueContainer() {
               <h1 className="text-xl font-bold font-display text-gray-900">Host Stand</h1>
               <p className="text-xs text-gray-500 font-medium">Walk-In Queue Management</p>
             </div>
-          </div>
-          
+          </Link>
+
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-2xl font-bold font-display leading-none text-indigo-600">{activeQueue.length}</p>

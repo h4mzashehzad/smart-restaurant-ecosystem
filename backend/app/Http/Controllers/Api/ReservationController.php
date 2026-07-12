@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ReservationUpdated;
+use App\Http\Controllers\Concerns\ResolvesRestaurant;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use App\Models\Restaurant;
 use App\Models\Table;
-use App\Events\ReservationUpdated;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class ReservationController extends Controller
 {
+    use ResolvesRestaurant;
+
     /**
      * Get restaurant info by slug (public — powers the reservation page).
      */
@@ -38,15 +41,15 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'id'           => $restaurant->id,
-                'name'         => $restaurant->name,
-                'slug'         => $restaurant->slug,
-                'address'      => $restaurant->address,
-                'phone'        => $restaurant->phone,
+            'data' => [
+                'id' => $restaurant->id,
+                'name' => $restaurant->name,
+                'slug' => $restaurant->slug,
+                'address' => $restaurant->address,
+                'phone' => $restaurant->phone,
                 'opening_time' => $restaurant->opening_time,
                 'closing_time' => $restaurant->closing_time,
-                'tables'       => $tables,
+                'tables' => $tables,
             ],
         ]);
     }
@@ -69,11 +72,11 @@ class ReservationController extends Controller
 
             // If date is today, skip past slots
             $isPast = ($date === now()->format('Y-m-d'))
-                && Carbon::parse($date . ' ' . $timeStr)->lt(now());
+                && Carbon::parse($date.' '.$timeStr)->lt(now());
 
             $slots[] = [
-                'time'     => $timeStr,
-                'label'    => $current->format('g:i A'),
+                'time' => $timeStr,
+                'label' => $current->format('g:i A'),
                 'disabled' => $isPast,
             ];
 
@@ -82,7 +85,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $slots,
+            'data' => $slots,
         ]);
     }
 
@@ -91,11 +94,11 @@ class ReservationController extends Controller
      */
     public function availability(Request $request, Restaurant $restaurant): JsonResponse
     {
-        $date      = $request->input('date', now()->format('Y-m-d'));
-        $time      = $request->input('time', now()->format('H:i'));
+        $date = $request->input('date', now()->format('Y-m-d'));
+        $time = $request->input('time', now()->format('H:i'));
         $partySize = (int) $request->input('party_size', 1);
 
-        $requestedTime = Carbon::parse($date . ' ' . $time);
+        $requestedTime = Carbon::parse($date.' '.$time);
 
         // Get all tables for this restaurant
         $tables = $restaurant->tables()
@@ -105,7 +108,7 @@ class ReservationController extends Controller
 
         // Get reservations for this date that overlap with the requested time window (±1 hour)
         $windowStart = $requestedTime->copy()->subHour()->format('H:i:s');
-        $windowEnd   = $requestedTime->copy()->addHour()->format('H:i:s');
+        $windowEnd = $requestedTime->copy()->addHour()->format('H:i:s');
 
         $reservedTableIds = Reservation::where('restaurant_id', $restaurant->id)
             ->forDate($date)
@@ -116,21 +119,21 @@ class ReservationController extends Controller
             ->toArray();
 
         $result = $tables->map(function ($table) use ($reservedTableIds, $partySize) {
-            $isReserved  = in_array($table->id, $reservedTableIds);
-            $tooSmall    = $table->capacity < $partySize;
+            $isReserved = in_array($table->id, $reservedTableIds);
+            $tooSmall = $table->capacity < $partySize;
 
             return [
-                'id'           => $table->id,
+                'id' => $table->id,
                 'table_number' => $table->table_number,
-                'capacity'     => $table->capacity,
-                'is_available' => !$isReserved && !$tooSmall,
-                'reason'       => $isReserved ? 'reserved' : ($tooSmall ? 'too_small' : null),
+                'capacity' => $table->capacity,
+                'is_available' => ! $isReserved && ! $tooSmall,
+                'reason' => $isReserved ? 'reserved' : ($tooSmall ? 'too_small' : null),
             ];
         });
 
         return response()->json([
             'success' => true,
-            'data'    => $result,
+            'data' => $result,
         ]);
     }
 
@@ -140,13 +143,13 @@ class ReservationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'restaurant_id'    => 'required|exists:restaurants,id',
-            'table_id'         => 'required|exists:tables,id',
-            'guest_name'       => 'required|string|max:100',
-            'guest_phone'      => 'required|string|max:20',
-            'guest_email'      => 'nullable|email|max:150',
-            'party_size'       => 'required|integer|min:1|max:20',
-            'reservation_date' => 'required|date|after_or_equal:today|before_or_equal:' . now()->addDays(30)->format('Y-m-d'),
+            'restaurant_id' => 'required|exists:restaurants,id',
+            'table_id' => 'required|exists:tables,id',
+            'guest_name' => 'required|string|max:100',
+            'guest_phone' => 'required|string|max:20',
+            'guest_email' => 'nullable|email|max:150',
+            'party_size' => 'required|integer|min:1|max:20',
+            'reservation_date' => 'required|date|after_or_equal:today|before_or_equal:'.now()->addDays(30)->format('Y-m-d'),
             'reservation_time' => 'required|date_format:H:i',
             'special_requests' => 'nullable|string|max:500',
         ]);
@@ -154,7 +157,7 @@ class ReservationController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -171,9 +174,9 @@ class ReservationController extends Controller
         }
 
         // Check the table is not already reserved for this time window
-        $requestedTime = Carbon::parse($request->reservation_date . ' ' . $request->reservation_time);
-        $windowStart   = $requestedTime->copy()->subHour()->format('H:i:s');
-        $windowEnd     = $requestedTime->copy()->addHour()->format('H:i:s');
+        $requestedTime = Carbon::parse($request->reservation_date.' '.$request->reservation_time);
+        $windowStart = $requestedTime->copy()->subHour()->format('H:i:s');
+        $windowEnd = $requestedTime->copy()->addHour()->format('H:i:s');
 
         $conflict = Reservation::where('restaurant_id', $request->restaurant_id)
             ->where('table_id', $request->table_id)
@@ -190,17 +193,17 @@ class ReservationController extends Controller
         }
 
         $reservation = Reservation::create([
-            'restaurant_id'     => $request->restaurant_id,
-            'user_id'           => $request->user()?->id,
-            'guest_name'        => $request->guest_name,
-            'guest_phone'       => $request->guest_phone,
-            'guest_email'       => $request->guest_email,
-            'party_size'        => $request->party_size,
-            'reservation_date'  => $request->reservation_date,
-            'reservation_time'  => $request->reservation_time,
-            'table_id'          => $request->table_id,
-            'status'            => 'pending',
-            'special_requests'  => $request->special_requests,
+            'restaurant_id' => $request->restaurant_id,
+            'user_id' => $request->user()?->id,
+            'guest_name' => $request->guest_name,
+            'guest_phone' => $request->guest_phone,
+            'guest_email' => $request->guest_email,
+            'party_size' => $request->party_size,
+            'reservation_date' => $request->reservation_date,
+            'reservation_time' => $request->reservation_time,
+            'table_id' => $request->table_id,
+            'status' => 'pending',
+            'special_requests' => $request->special_requests,
             'confirmation_code' => strtoupper(Str::random(8)),
         ]);
 
@@ -216,7 +219,7 @@ class ReservationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reservation created',
-            'data'    => $reservation,
+            'data' => $reservation,
         ], 201);
     }
 
@@ -238,7 +241,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $reservation,
+            'data' => $reservation,
         ]);
     }
 
@@ -255,7 +258,7 @@ class ReservationController extends Controller
         }
 
         $reservation->update([
-            'status'       => 'cancelled',
+            'status' => 'cancelled',
             'cancelled_at' => now(),
         ]);
 
@@ -270,21 +273,23 @@ class ReservationController extends Controller
     }
 
     /**
-     * List reservations for a restaurant (staff — KDS).
+     * List reservations for the authenticated staff member's own restaurant (KDS).
+     * Never trusts a client-supplied restaurant id.
      */
-    public function index(Request $request, Restaurant $restaurant): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $restaurantId = $this->restaurantId($request);
         $date = $request->input('date', now()->format('Y-m-d'));
 
         $reservations = Reservation::with(['table', 'user'])
-            ->where('restaurant_id', $restaurant->id)
+            ->where('restaurant_id', $restaurantId)
             ->forDate($date)
             ->orderBy('reservation_time')
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $reservations,
+            'data' => $reservations,
         ]);
     }
 
@@ -300,7 +305,7 @@ class ReservationController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -308,10 +313,10 @@ class ReservationController extends Controller
 
         // Validate status transitions
         $allowed = match ($reservation->status) {
-            'pending'   => ['confirmed', 'cancelled'],
+            'pending' => ['confirmed', 'cancelled'],
             'confirmed' => ['seated', 'cancelled', 'no_show'],
-            'seated'    => ['completed', 'no_show'],
-            default     => [],
+            'seated' => ['completed', 'no_show'],
+            default => [],
         };
 
         if (! in_array($newStatus, $allowed)) {
@@ -322,8 +327,12 @@ class ReservationController extends Controller
         }
 
         $updates = ['status' => $newStatus];
-        if ($newStatus === 'confirmed')  $updates['confirmed_at'] = now();
-        if ($newStatus === 'cancelled')  $updates['cancelled_at'] = now();
+        if ($newStatus === 'confirmed') {
+            $updates['confirmed_at'] = now();
+        }
+        if ($newStatus === 'cancelled') {
+            $updates['cancelled_at'] = now();
+        }
 
         $reservation->update($updates);
         $reservation->load('table');
@@ -333,7 +342,7 @@ class ReservationController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Reservation status updated to {$newStatus}",
-            'data'    => $reservation,
+            'data' => $reservation,
         ]);
     }
 
@@ -348,6 +357,7 @@ class ReservationController extends Controller
         }
 
         $request->merge(['status' => $request->status]);
+
         return $this->updateStatus($request, $reservation);
     }
 }
