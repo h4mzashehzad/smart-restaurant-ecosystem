@@ -1690,8 +1690,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminTableController.php": {
-    "mtime": 1783922534.2290928,
-    "ast_hash": "226622bb70caaabe5f93d372168aaac0",
+    "mtime": 1783929535.6291146,
+    "ast_hash": "76824f11e54c75d51e637749a1d5dce9",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminTeamController.php": {

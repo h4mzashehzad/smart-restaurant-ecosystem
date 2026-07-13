@@ -11,8 +11,12 @@ use App\Models\Table;
 use App\Services\QRCodeGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminTableController extends Controller
 {
@@ -29,8 +33,9 @@ class AdminTableController extends Controller
 
         $tables = Table::where('restaurant_id', $restaurantId)
             ->with('currentSession')
-            ->orderBy('table_number')
-            ->get();
+            ->get()
+            ->sortBy(fn (Table $table) => $table->table_number, SORT_NATURAL)
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -58,7 +63,12 @@ class AdminTableController extends Controller
             $table->qr_code_url = $this->qrCodeGenerator->generateAndStoreQrCode($restaurant, $table);
             $table->save();
         } catch (\Throwable $e) {
-            // Table is still usable; QR image can be regenerated later.
+            return response()->json([
+                'success' => true,
+                'message' => 'Table created, but QR code image could not be generated. Use Regenerate QR to retry.',
+                'warning' => $e->getMessage(),
+                'data' => $table->fresh(),
+            ], 201);
         }
 
         return response()->json([
@@ -172,6 +182,60 @@ class AdminTableController extends Controller
             'success' => true,
             'message' => 'QR code regenerated',
             'data' => $table->fresh(),
+        ]);
+    }
+
+    /**
+     * Download a table's QR code image via the API (avoids browser CORS on S3).
+     */
+    public function downloadQrCode(Request $request, int $id): Response|JsonResponse|StreamedResponse
+    {
+        $restaurantId = $this->restaurantId($request);
+        $table = Table::where('restaurant_id', $restaurantId)->findOrFail($id);
+        $restaurant = Restaurant::findOrFail($restaurantId);
+
+        if (! $table->qr_code_url) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No QR code image is available for this table. Regenerate the QR code first.',
+            ], 404);
+        }
+
+        $fileName = 'table-'.$table->table_number.'-qr.svg';
+        $s3Path = $this->qrCodeGenerator->storagePath($restaurant, $table);
+        $contents = null;
+
+        try {
+            if (Storage::disk('s3')->exists($s3Path)) {
+                $contents = Storage::disk('s3')->get($s3Path);
+            }
+        } catch (\Throwable) {
+            $contents = null;
+        }
+
+        if ($contents === null || $contents === '') {
+            try {
+                $response = Http::timeout(15)->get($table->qr_code_url);
+                if (! $response->successful()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Could not retrieve the QR code image.',
+                    ], 502);
+                }
+                $contents = $response->body();
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not retrieve the QR code image.',
+                    'error' => $e->getMessage(),
+                ], 502);
+            }
+        }
+
+        return response($contents, 200, [
+            'Content-Type' => 'image/svg+xml',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
         ]);
     }
 

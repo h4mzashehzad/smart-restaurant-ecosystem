@@ -185,6 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Tables (read + end-session: admin+staff, mutations: admin only) ──
         Route::get('/tables', [AdminTableController::class, 'index']);
         Route::get('/tables/{id}', [AdminTableController::class, 'show']);
+        Route::get('/tables/{id}/qr-download', [AdminTableController::class, 'downloadQrCode']);
         Route::post('/tables/{id}/end-session', [AdminTableController::class, 'endSession']);
 
         // ── Menu (read: admin+staff, mutations: admin only) ──

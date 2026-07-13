@@ -131,8 +131,6 @@
   "129": "SplitBillItemClaimed",
   "130": "CashPaymentPending",
   "131": "PaymentCompleted",
-  "133": "ReservationUpdated",
-  "136": "EnsureRestaurantRole.php",
   "141": "AllPaymentsCompleted",
   "142": "SplitBillUnlocked",
   "145": "QueueUpdated",

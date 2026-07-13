@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { api } from '@/lib/api';
 import type {
   AdminIngredient,
@@ -114,6 +115,47 @@ export const adminApi = {
     patch<RestaurantTable>(`/admin/tables/${id}`, payload),
 
   deleteTable: (id: number) => del<void>(`/admin/tables/${id}`),
+
+  regenerateTableQr: (id: number) =>
+    post<RestaurantTable>(`/admin/tables/${id}/regenerate-qr`),
+
+  downloadTableQr: async (id: number, tableNumber: string) => {
+    try {
+      const response = await client.get(`/admin/tables/${id}/qr-download`, {
+        responseType: 'blob',
+      });
+
+      const contentType = String(response.headers['content-type'] ?? '');
+      if (contentType.includes('application/json')) {
+        const text = await (response.data as Blob).text();
+        const parsed = JSON.parse(text) as { message?: string };
+        throw new Error(parsed.message || 'Could not download the QR code image.');
+      }
+
+      const blob = response.data as Blob;
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `table-${tableNumber}-qr.svg`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text) as { message?: string };
+          if (parsed.message) throw new Error(parsed.message);
+        } catch (inner) {
+          if (inner instanceof Error && inner.message !== 'Could not download the QR code image.') {
+            throw inner;
+          }
+        }
+      }
+      throw error;
+    }
+  },
 
   // ── Menu (admin only) ───────────────────────────────────────────────
   // Backend exposes categories (with nested items) at /admin/menu/categories.

@@ -151,7 +151,9 @@ export interface RestaurantTable {
   table_number: string;
   capacity: number;
   status: TableStatus;
-  qr_code?: string;
+  qr_code?: string | null;
+  qr_code_url?: string | null;
+  current_session_id?: number | null;
 }
 
 export interface CreateTablePayload {

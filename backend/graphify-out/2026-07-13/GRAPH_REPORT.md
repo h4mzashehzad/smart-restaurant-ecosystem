@@ -1,12 +1,12 @@
 # Graph Report - backend  (2026-07-13)
 
 ## Corpus Check
-- 349 files · ~227,649 words
+- 349 files · ~227,643 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1015 nodes · 1873 edges · 139 communities (124 shown, 15 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 73 edges (avg confidence: 0.8)
+- 1015 nodes · 1877 edges · 137 communities (122 shown, 15 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 75 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -55,8 +55,6 @@
 - SplitBillItemClaimed
 - CashPaymentPending
 - PaymentCompleted
-- ReservationUpdated
-- EnsureRestaurantRole.php
 - AllPaymentsCompleted
 - SplitBillUnlocked
 - QueueUpdated
@@ -89,19 +87,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (139 total, 15 thin omitted)
+## Communities (137 total, 15 thin omitted)
 
 ### Community 0 - "SerializesModels"
 Cohesion: 0.22
-Nodes (3): CheckoutStarted, ServiceRequestUpdated, InteractsWithSockets
+Nodes (3): PaymentFailed, ServiceRequestUpdated, Dispatchable
 
 ### Community 1 - "Order"
-Cohesion: 0.06
-Nodes (16): OrderController, JsonResponse, Request, Order, BelongsTo, HasMany, OrderItem, BelongsTo (+8 more)
+Cohesion: 0.05
+Nodes (22): AdminController, JsonResponse, Request, AdminOrderController, JsonResponse, Request, OrderController, JsonResponse (+14 more)
 
 ### Community 2 - "Payment"
-Cohesion: 0.07
-Nodes (14): PaymentController, JsonResponse, Request, JsonResponse, Request, SessionController, Payment, BelongsTo (+6 more)
+Cohesion: 0.08
+Nodes (11): PaymentController, JsonResponse, Request, Payment, BelongsTo, HasMany, BelongsTo, HasMany (+3 more)
 
 ### Community 3 - "AGENTS.md"
 Cohesion: 0.04
@@ -113,27 +111,27 @@ Nodes (5): JsonResponse, Request, ReservationController, BelongsTo, Reservation
 
 ### Community 5 - "Feedback"
 Cohesion: 0.09
-Nodes (15): AdminController, JsonResponse, Request, FeedbackController, JsonResponse, Request, Feedback, BelongsTo (+7 more)
+Nodes (15): AdminFeedbackController, JsonResponse, Request, FeedbackController, JsonResponse, Request, Feedback, BelongsTo (+7 more)
 
 ### Community 6 - "User"
 Cohesion: 0.06
-Nodes (18): AdminTeamController, JsonResponse, Request, AuthController, JsonResponse, Request, StoreTableRequest, StoreTeamMemberRequest (+10 more)
+Nodes (19): AdminTeamController, JsonResponse, Request, EnsureRestaurantRole, Request, StoreTableRequest, StoreTeamMemberRequest, UpdateRestaurantRequest (+11 more)
 
 ### Community 7 - "Model"
 Cohesion: 0.06
-Nodes (22): LoyaltyController, JsonResponse, Request, AnalyticsEvent, BelongsTo, DemandForecast, BelongsTo, Ingredient (+14 more)
+Nodes (21): GenerateRecommendations, LoyaltyController, JsonResponse, Request, AiRecommendation, BelongsTo, AnalyticsEvent, BelongsTo (+13 more)
 
 ### Community 9 - "MenuItem"
-Cohesion: 0.08
-Nodes (16): AdminMenuController, JsonResponse, Request, MenuController, JsonResponse, Request, Category, BelongsTo (+8 more)
+Cohesion: 0.07
+Nodes (20): AdminMenuController, JsonResponse, Request, MenuController, JsonResponse, Request, Category, BelongsTo (+12 more)
 
 ### Community 10 - "Restaurant"
 Cohesion: 0.07
 Nodes (15): AdminTableController, JsonResponse, Request, HasMany, Restaurant, BelongsTo, HasMany, Table (+7 more)
 
 ### Community 11 - "Controller"
-Cohesion: 0.07
-Nodes (25): AdminFeedbackController, JsonResponse, Request, AdminOrderController, JsonResponse, Request, AdminPaymentController, JsonResponse (+17 more)
+Cohesion: 0.06
+Nodes (25): AdminPaymentController, JsonResponse, Request, AdminRestaurantController, JsonResponse, Request, AuthController, JsonResponse (+17 more)
 
 ### Community 12 - "RegistrationOTP"
 Cohesion: 0.14
@@ -197,19 +195,11 @@ Nodes (3): extra, laravel, dont-discover
 
 ### Community 124 - "SerializesModels"
 Cohesion: 0.22
-Nodes (3): PaymentFailed, ServiceRequestCreated, ShouldBroadcastNow
+Nodes (3): ReservationUpdated, ServiceRequestCreated, ShouldBroadcastNow
 
 ### Community 128 - "SplitBillConfigured"
 Cohesion: 0.24
-Nodes (3): SessionParticipantLeft, SplitBillConfigured, Dispatchable
-
-### Community 129 - "SplitBillItemClaimed"
-Cohesion: 0.27
-Nodes (4): GenerateRecommendations, AiRecommendation, BelongsTo, Command
-
-### Community 136 - "EnsureRestaurantRole.php"
-Cohesion: 0.53
-Nodes (4): EnsureRestaurantRole, Request, Closure, Response
+Nodes (3): SessionParticipantLeft, SplitBillConfigured, InteractsWithSockets
 
 ### Community 141 - "AllPaymentsCompleted"
 Cohesion: 0.24
@@ -223,12 +213,12 @@ Nodes (3): AllPaymentsCompleted, SessionParticipantJoined, SerializesModels
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Controller` connect `Controller` to `Order`, `Payment`, `Restaurant`, `Feedback`, `User`, `Model`, `MenuItem`, `Restaurant`, `QueueEntry`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `Order` connect `Order` to `Payment`, `Feedback`, `Model`, `TableSession`, `Controller`, `RegistrationOTP`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `Feedback` connect `Feedback` to `CashPaymentPending`, `Controller`, `Model`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Why does `Controller` connect `Controller` to `Order`, `Payment`, `Restaurant`, `Feedback`, `User`, `Model`, `MenuItem`, `Restaurant`, `QueueEntry`, `Dispatchable`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `Order` connect `Order` to `Payment`, `Model`, `TableSession`, `MenuItem`, `RegistrationOTP`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+- **Why does `Feedback` connect `Feedback` to `Order`, `CashPaymentPending`, `MenuItem`, `Model`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `Order` (e.g. with `.activeKitchenOrders()` and `.dashboardStats()`) actually correct?**
   _`Order` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 5 inferred relationships involving `Payment` (e.g. with `.index()` and `.pendingCash()`) actually correct?**
@@ -236,4 +226,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `php`, `$schema`, `name` to the rest of the system?**
   _130 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Order` be split into smaller, more focused modules?**
-  _Cohesion score 0.06240084611316764 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05290490100616683 - nodes in this community are weakly interconnected._

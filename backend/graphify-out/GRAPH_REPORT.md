@@ -1,7 +1,7 @@
 # Graph Report - backend  (2026-07-13)
 
 ## Corpus Check
-- 349 files · ~227,643 words
+- 349 files · ~227,668 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `30c9a934`
+- Built from commit: `e9af54d8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -195,11 +195,11 @@ Nodes (3): extra, laravel, dont-discover
 
 ### Community 124 - "SerializesModels"
 Cohesion: 0.22
-Nodes (3): ReservationUpdated, ServiceRequestCreated, ShouldBroadcastNow
+Nodes (3): ReservationUpdated, SplitBillConfigured, ShouldBroadcastNow
 
 ### Community 128 - "SplitBillConfigured"
 Cohesion: 0.24
-Nodes (3): SessionParticipantLeft, SplitBillConfigured, InteractsWithSockets
+Nodes (3): ServiceRequestCreated, SessionParticipantLeft, InteractsWithSockets
 
 ### Community 141 - "AllPaymentsCompleted"
 Cohesion: 0.24
