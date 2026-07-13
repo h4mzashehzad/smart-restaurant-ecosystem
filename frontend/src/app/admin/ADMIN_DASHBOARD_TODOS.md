@@ -49,14 +49,6 @@ Mark items `[x]` as you complete them.
 - [ ] Long-term archive retrieval UI
 - [ ] Authenticated kitchen socket joins + signed webhooks
 
-### Waiter requests
-- [ ] SLA timers / analytics
-- [ ] Automatic staff assignment
-- [ ] Escalation rules
-- [ ] FCM / PWA push for waiter requests
-- [ ] Canned responses
-- [ ] Staff performance reporting
-
 ### Reviews
 - [ ] Public response publishing
 - [ ] Configurable NLP alert thresholds UI
@@ -171,16 +163,6 @@ Mark items `[x]` as you complete them.
 2. Validate token on `kitchen:join` in socket-server.
 3. Sign webhooks with HMAC shared secret; verify in Laravel webhook controllers.
 4. Rotate secret via env; reject unsigned requests.
-
-### 7. Waiter SLA + FCM push
-
-**Outcome:** Mobile alerts and SLA breach visibility.
-
-**Steps:**
-1. Store FCM device tokens for staff.
-2. On `ServiceRequestCreated`, dispatch push job.
-3. Track `acknowledged_at` / `resolved_at`; compute SLA in admin Waiter Requests analytics tab.
-4. Escalation: re-notify if pending > N minutes.
 
 ### 8. Review moderation & public replies
 
