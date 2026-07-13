@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import type {
+  AdminIngredient,
   AdminMenuCategory,
   AdminMenuItem,
   AdminOrder,
@@ -9,9 +10,14 @@ import type {
   AdminReservation,
   AdminReview,
   AdminReviewsFilters,
+  CreateCategoryPayload,
+  CreateIngredientPayload,
+  CreateMenuItemPayload,
   CreateTablePayload,
   CreateTeamMemberPayload,
   DashboardStats,
+  DeleteCategoryResult,
+  DeleteMenuItemResult,
   PaginatedResponse,
   PeakHourPoint,
   PopularItem,
@@ -20,6 +26,8 @@ import type {
   RevenuePoint,
   SentimentSummary,
   TeamMember,
+  UpdateCategoryPayload,
+  UpdateIngredientPayload,
   UpdateMenuItemPayload,
   UpdateRestaurantPayload,
   UpdateTablePayload,
@@ -120,8 +128,61 @@ export const adminApi = {
     }));
   },
 
+  getIngredients: () => get<AdminIngredient[]>('/admin/ingredients'),
+
+  createIngredient: (payload: CreateIngredientPayload) =>
+    post<AdminIngredient>('/admin/ingredients', payload),
+
+  updateIngredient: (id: number, payload: UpdateIngredientPayload) =>
+    patch<AdminIngredient>(`/admin/ingredients/${id}`, payload),
+
+  getCategories: async () => {
+    const categories = await get<
+      Array<AdminMenuCategory & { menuItems?: AdminMenuItem[] }>
+    >('/admin/menu/categories');
+
+    return categories.map((category) => ({
+      ...category,
+      menu_items: category.menu_items ?? category.menuItems ?? [],
+    }));
+  },
+
+  createCategory: (payload: CreateCategoryPayload) =>
+    post<AdminMenuCategory>('/admin/menu/categories', payload),
+
+  updateCategory: (id: number, payload: UpdateCategoryPayload) =>
+    patch<AdminMenuCategory>(`/admin/menu/categories/${id}`, payload),
+
+  deleteCategory: async (id: number): Promise<DeleteCategoryResult> => {
+    const response = await client.delete(`/admin/menu/categories/${id}`);
+    return {
+      message: (response.data.message as string) ?? 'Category deleted',
+      data: response.data.data as AdminMenuCategory | undefined,
+    };
+  },
+
+  createMenuItem: (payload: CreateMenuItemPayload) =>
+    post<AdminMenuItem>('/admin/menu/items', payload),
+
   updateMenuItem: (id: number, payload: UpdateMenuItemPayload) =>
     patch<AdminMenuItem>(`/admin/menu/items/${id}`, payload),
+
+  uploadMenuItemImage: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await client.post(`/admin/menu/items/${id}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data as AdminMenuItem;
+  },
+
+  deleteMenuItem: async (id: number): Promise<DeleteMenuItemResult> => {
+    const response = await client.delete(`/admin/menu/items/${id}`);
+    return {
+      message: (response.data.message as string) ?? 'Menu item deleted',
+      data: response.data.data as AdminMenuItem | undefined,
+    };
+  },
 
   // ── Orders ───────────────────────────────────────────────────────────
   getOrders: (filters?: AdminOrdersFilters) =>

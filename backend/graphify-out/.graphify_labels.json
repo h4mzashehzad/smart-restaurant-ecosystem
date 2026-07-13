@@ -9,6 +9,7 @@
   "7": "Model",
   "8": "TableSession",
   "9": "MenuItem",
+  "10": "Restaurant",
   "11": "Controller",
   "12": "RegistrationOTP",
   "13": "Pest Testing 4",
@@ -130,5 +131,9 @@
   "129": "SplitBillItemClaimed",
   "130": "CashPaymentPending",
   "131": "PaymentCompleted",
-  "133": "ReservationUpdated"
+  "141": "AllPaymentsCompleted",
+  "142": "SplitBillUnlocked",
+  "145": "QueueUpdated",
+  "146": "ResolvesRestaurant.php",
+  "148": "2026_07_12_153037_add_restaurant_scope_to_users_table.php"
 }

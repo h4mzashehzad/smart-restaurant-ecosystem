@@ -190,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Menu (read: admin+staff, mutations: admin only) ──
         Route::get('/menu/categories', [AdminMenuController::class, 'categories']);
         Route::get('/menu/items', [AdminMenuController::class, 'items']);
+        Route::get('/ingredients', [AdminMenuController::class, 'ingredients']);
         Route::patch('/menu/items/{id}/toggle-availability', [AdminMenuController::class, 'toggleAvailability']);
 
         // ── Orders (admin+staff) ──
@@ -232,7 +233,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/menu/categories/{id}', [AdminMenuController::class, 'destroyCategory']);
             Route::post('/menu/items', [AdminMenuController::class, 'storeItem']);
             Route::patch('/menu/items/{id}', [AdminMenuController::class, 'updateItem']);
+            Route::post('/menu/items/{id}/image', [AdminMenuController::class, 'uploadImage']);
             Route::delete('/menu/items/{id}', [AdminMenuController::class, 'destroyItem']);
+
+            Route::post('/ingredients', [AdminMenuController::class, 'storeIngredient']);
+            Route::patch('/ingredients/{id}', [AdminMenuController::class, 'updateIngredient']);
         });
     });
 });

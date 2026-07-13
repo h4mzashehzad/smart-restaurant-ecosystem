@@ -9,6 +9,8 @@ import {
   BellRing,
   CreditCard,
   UtensilsCrossed,
+  Layers,
+  Carrot,
   Table2,
   Star,
   Building2,
@@ -57,6 +59,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: 'Restaurant',
     items: [
       { label: 'Menu', href: '/admin/menu', icon: UtensilsCrossed, adminOnly: true },
+      { label: 'Categories', href: '/admin/categories', icon: Layers, adminOnly: true },
+      { label: 'Ingredients', href: '/admin/ingredients', icon: Carrot, adminOnly: true },
       { label: 'Tables', href: '/admin/tables', icon: Table2, adminOnly: true },
       { label: 'Reviews', href: '/admin/reviews', icon: Star },
     ],

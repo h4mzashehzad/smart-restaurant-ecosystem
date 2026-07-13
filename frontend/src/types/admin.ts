@@ -167,43 +167,151 @@ export interface UpdateTablePayload {
 
 // ── Menu ──────────────────────────────────────────────────────────────────
 
+export type SpiceLevel = 'none' | 'mild' | 'medium' | 'hot' | 'extra_hot';
+
+export interface AdminMenuItemIngredientPivot {
+  quantity: number;
+  is_optional: boolean;
+  is_removable: boolean;
+}
+
+export interface AdminMenuItemIngredient {
+  id: number;
+  name: string;
+  unit?: string;
+  is_allergen?: boolean;
+  allergen_type?: string | null;
+  pivot: AdminMenuItemIngredientPivot;
+}
+
 export interface AdminMenuItem {
   id: number;
   category_id: number;
   name: string;
+  slug?: string;
   description?: string | null;
   base_price: number;
   preparation_time?: number | null;
+  spice_level?: SpiceLevel | null;
+  cuisine_type?: string | null;
+  calories?: number | null;
   is_available: boolean;
   is_vegetarian?: boolean;
   is_vegan?: boolean;
   is_gluten_free?: boolean;
   is_signature?: boolean;
-  spice_level?: 'none' | 'mild' | 'medium' | 'hot' | 'extra_hot';
   image_url?: string | null;
+  average_rating?: number | null;
+  total_orders?: number;
+  updated_at?: string;
+  ingredients?: AdminMenuItemIngredient[];
 }
 
 export interface AdminMenuCategory {
   id: number;
   name: string;
+  slug?: string;
+  description?: string | null;
   display_order: number;
   is_active: boolean;
   menu_items: AdminMenuItem[];
 }
 
+export interface CreateCategoryPayload {
+  name: string;
+  description?: string | null;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateCategoryPayload {
+  name?: string;
+  description?: string | null;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface DeleteCategoryResult {
+  message: string;
+  data?: AdminMenuCategory;
+}
+
+export interface AdminIngredient {
+  id: number;
+  name: string;
+  unit: string;
+  cost_per_unit: number;
+  stock_quantity: number;
+  minimum_threshold: number;
+  is_allergen: boolean;
+  allergen_type?: string | null;
+}
+
+export interface CreateIngredientPayload {
+  name: string;
+  unit?: string;
+  cost_per_unit?: number;
+  stock_quantity?: number;
+  minimum_threshold?: number;
+  is_allergen?: boolean;
+  allergen_type?: string | null;
+}
+
+export interface UpdateIngredientPayload {
+  name?: string;
+  unit?: string;
+  cost_per_unit?: number;
+  stock_quantity?: number;
+  minimum_threshold?: number;
+  is_allergen?: boolean;
+  allergen_type?: string | null;
+}
+
+export interface MenuItemIngredientPayload {
+  ingredient_id: number;
+  quantity: number;
+  is_optional?: boolean;
+  is_removable?: boolean;
+}
+
+export interface CreateMenuItemPayload {
+  category_id: number;
+  name: string;
+  description?: string | null;
+  base_price: number;
+  preparation_time?: number | null;
+  spice_level?: SpiceLevel | null;
+  cuisine_type?: string | null;
+  calories?: number | null;
+  is_vegetarian?: boolean;
+  is_vegan?: boolean;
+  is_gluten_free?: boolean;
+  is_available?: boolean;
+  is_signature?: boolean;
+  ingredients?: MenuItemIngredientPayload[];
+}
+
 export interface UpdateMenuItemPayload {
   name?: string;
-  description?: string;
+  description?: string | null;
   base_price?: number;
-  preparation_time?: number;
+  preparation_time?: number | null;
   is_available?: boolean;
   is_vegetarian?: boolean;
   is_vegan?: boolean;
   is_gluten_free?: boolean;
   is_signature?: boolean;
-  spice_level?: 'none' | 'mild' | 'medium' | 'hot' | 'extra_hot';
+  spice_level?: SpiceLevel | null;
+  cuisine_type?: string | null;
+  calories?: number | null;
   image_url?: string | null;
   category_id?: number;
+  ingredients?: MenuItemIngredientPayload[];
+}
+
+export interface DeleteMenuItemResult {
+  message: string;
+  data?: AdminMenuItem;
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────
