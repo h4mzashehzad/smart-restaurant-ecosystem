@@ -170,6 +170,7 @@ class SplitBillService
 
         $subtotal = (float) $order->subtotal;
         $tax = (float) $order->tax_amount;
+        $discount = (float) $order->discount_amount;
         $groupId = (string) Str::uuid();
         $expiresAt = now()->addMinutes(config('safepay.split_timeout_minutes', 10));
         $payments = collect();
@@ -177,7 +178,8 @@ class SplitBillService
         foreach ($claims->groupBy('participant_id') as $participantId => $participantClaims) {
             $itemsTotal = round($participantClaims->sum('amount'), 2);
             $taxShare = $subtotal > 0 ? round($tax * ($itemsTotal / $subtotal), 2) : 0;
-            $amount = round($itemsTotal + $taxShare, 2);
+            $discountShare = $subtotal > 0 ? round($discount * ($itemsTotal / $subtotal), 2) : 0;
+            $amount = round($itemsTotal + $taxShare - $discountShare, 2);
 
             $participant = SessionParticipant::findOrFail($participantId);
 
@@ -201,7 +203,7 @@ class SplitBillService
             $payments->push($payment);
         }
 
-        // Fix rounding drift on tax shares so sum matches order total.
+        // Fix rounding drift on tax/discount shares so sum matches order total.
         $diff = round((float) $order->total_amount - $payments->sum('amount'), 2);
         if (abs($diff) >= 0.01) {
             $last = $payments->last();

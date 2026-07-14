@@ -35,6 +35,10 @@ import type {
   UpdateTeamMemberPayload,
   WastageReport,
   WaiterServiceRequest,
+  LoyaltySummary,
+  AdminLoyaltyCustomer,
+  AdminLoyaltyCustomerDetail,
+  AdminLoyaltyCustomersFilters,
 } from '@/types/admin';
 
 /**
@@ -278,6 +282,15 @@ export const adminApi = {
   getPendingCashPayments: () => get<AdminPayment[]>('/admin/payments/pending-cash'),
 
   confirmCashPayment: (paymentId: number) => api.confirmCashPayment(paymentId),
+
+  // ── Loyalty Program ───────────────────────────────────────────────────
+  getLoyaltySummary: () => get<LoyaltySummary>('/admin/loyalty/summary'),
+
+  getLoyaltyCustomers: (filters?: AdminLoyaltyCustomersFilters) =>
+    get<PaginatedResponse<AdminLoyaltyCustomer>>('/admin/loyalty/customers', filters),
+
+  getLoyaltyCustomer: (id: number, params?: { page?: number; per_page?: number }) =>
+    get<AdminLoyaltyCustomerDetail>(`/admin/loyalty/customers/${id}`, params),
 };
 
 export type AdminApi = typeof adminApi;

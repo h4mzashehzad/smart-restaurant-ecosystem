@@ -424,6 +424,20 @@ class ApiClient {
     const response = await this.client.get(`/admin/restaurants/${restaurantId}/queue`);
     return response.data.data;
   }
+
+  // ── Loyalty endpoints ──────────────────────────────────────────────────
+
+  async getLoyaltySnapshot() {
+    const response = await this.client.get('/loyalty/points');
+    return response.data.data;
+  }
+
+  async getLoyaltyTransactions(page = 1) {
+    const response = await this.client.get('/loyalty/transactions', {
+      params: { page },
+    });
+    return response.data.data;
+  }
 }
 
 export const api = new ApiClient();

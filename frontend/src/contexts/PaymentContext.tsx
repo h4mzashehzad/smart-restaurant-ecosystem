@@ -37,6 +37,7 @@ interface PaymentContextType {
   orderNumber: string;
   orderSubtotal: number;
   orderTax: number;
+  orderDiscount: number;
   orderTotal: number;
   myShare: number | null;
   myPayment: TrackerPayment | null;
@@ -62,6 +63,7 @@ interface PaymentContextType {
     orderNumber: string;
     subtotal?: number;
     tax?: number;
+    discount?: number;
     total?: number;
     units?: ClaimableUnit[];
     claims?: ClaimRecord[];
@@ -114,12 +116,28 @@ function deriveStep(args: {
   splitType: string | null;
   sessionStatus?: string;
   allPaid?: boolean;
+  pendingFullPayment?: boolean;
+  participantCount?: number;
 }): PaymentStep {
   if (args.allPaid) return 'success';
+
+  // Full-bill cash/Safepay in flight — never treat this as an itemized split.
+  if (args.pendingFullPayment) return 'waiting-cash';
+
   if (args.payments.length > 0) return 'tracker';
+
+  // Explicit itemized split only: claims already made, or split_type locked to itemized.
   if (args.claims.length > 0 || args.splitType === 'itemized') return 'itemized';
+
   if (args.sessionStatus === 'checkout_pending' && args.splitType === 'equal') return 'tracker';
-  if (args.sessionStatus === 'checkout_pending') return 'itemized';
+
+  // Bare checkout_pending with no claims/payments only means "split claiming" when
+  // multiple guests are present (someone started split_itemized). A sole diner who
+  // just created a full-pay draft must not land on the claim UI.
+  if (args.sessionStatus === 'checkout_pending' && (args.participantCount ?? 0) >= 2) {
+    return 'itemized';
+  }
+
   return 'idle';
 }
 
@@ -133,6 +151,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [orderNumber, setOrderNumber] = useState('');
   const [orderSubtotal, setOrderSubtotal] = useState(0);
   const [orderTax, setOrderTax] = useState(0);
+  const [orderDiscount, setOrderDiscount] = useState(0);
   const [orderTotal, setOrderTotal] = useState(0);
   const [units, setUnits] = useState<ClaimableUnit[]>([]);
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
@@ -249,6 +268,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setOrderNumber('');
     setOrderSubtotal(0);
     setOrderTax(0);
+    setOrderDiscount(0);
     setOrderTotal(0);
     setUnits([]);
     setClaims([]);
@@ -317,11 +337,19 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const nextClaims = bill.claims || [];
       const splitType = bill.split_type as string | null;
       const allPaid = mapped.length > 0 && mapped.every((p) => p.status === 'completed');
+      const activeParticipants = (bill.participants || []).filter((p: any) => !p.left_at);
+      const pendingFullPayment = (bill.payments || []).some(
+        (p: any) =>
+          p.order_id === draft.id &&
+          !p.split_group_id &&
+          ['pending', 'processing'].includes(p.status)
+      );
 
       setOrderId(draft.id);
       setOrderNumber(draft.order_number || '');
       setOrderSubtotal(Number(draft.subtotal || 0));
       setOrderTax(Number(draft.tax_amount || 0));
+      setOrderDiscount(Number(draft.discount_amount || 0));
       setOrderTotal(Number(draft.total_amount || 0));
       setUnits(bill.claimable_units || []);
       setClaims(nextClaims);
@@ -344,12 +372,33 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
+      // Adopt pending full-bill payment id so cash-waiting / receipt polling stay linked.
+      if (pendingFullPayment) {
+        const fullPay = (bill.payments || []).find(
+          (p: any) =>
+            p.order_id === draft.id &&
+            !p.split_group_id &&
+            ['pending', 'processing'].includes(p.status)
+        );
+        if (fullPay) setPaymentId(Number(fullPay.payment_id ?? fullPay.id));
+      }
+
+      // Never clobber an in-progress full-pay waiting screen with a derived idle step.
+      if (stepRef.current === 'waiting-cash' && pendingFullPayment) {
+        return;
+      }
+      if (stepRef.current === 'success') {
+        return;
+      }
+
       const nextStep = deriveStep({
         payments: mapped,
         claims: nextClaims,
         splitType,
         sessionStatus: bill.session_status || session?.status,
         allPaid: false,
+        pendingFullPayment,
+        participantCount: activeParticipants.length,
       });
 
       if (nextStep !== 'idle') {
@@ -433,6 +482,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       orderNumber: string;
       subtotal?: number;
       tax?: number;
+      discount?: number;
       total?: number;
       units?: ClaimableUnit[];
       claims?: ClaimRecord[];
@@ -444,6 +494,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setOrderNumber(data.orderNumber);
       if (data.subtotal != null) setOrderSubtotal(data.subtotal);
       if (data.tax != null) setOrderTax(data.tax);
+      if (data.discount != null) setOrderDiscount(data.discount);
       if (data.total != null) setOrderTotal(data.total);
       if (data.units) setUnits(data.units);
       if (data.claims) setClaims(data.claims);
@@ -556,6 +607,34 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const onCheckoutStarted = (data: any) => {
       if (data.session_id !== session.id) return;
+
+      // Full-bill checkout broadcasts are not emitted; only split drafts are.
+      // Route joiners to the correct UI based on the starter's chosen mode.
+      const mode = data.mode as string | undefined;
+      if (mode === 'split_itemized') {
+        setOrderId(data.order_id);
+        setOrderNumber(data.order_number || '');
+        setOrderSubtotal(Number(data.subtotal || 0));
+        setOrderTax(Number(data.tax_amount || 0));
+        setOrderDiscount(Number(data.discount_amount || 0));
+        setOrderTotal(Number(data.total_amount || 0));
+        if (data.claimable_units) setUnits(data.claimable_units);
+        setSplitMode('itemized');
+        setStep('itemized');
+        setDrawerOpen(true);
+      } else if (mode === 'split_equal') {
+        setOrderId(data.order_id);
+        setOrderNumber(data.order_number || '');
+        setOrderSubtotal(Number(data.subtotal || 0));
+        setOrderTax(Number(data.tax_amount || 0));
+        setOrderDiscount(Number(data.discount_amount || 0));
+        setOrderTotal(Number(data.total_amount || 0));
+        setSplitMode('equal');
+        // Equal split payments arrive on SplitBillConfigured shortly after.
+        setStep('tracker');
+        setDrawerOpen(true);
+      }
+
       openAndRefresh();
     };
     const onConfigured = (data: any) => {
@@ -564,6 +643,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setOrderNumber(data.order_number || '');
       setOrderSubtotal(Number(data.subtotal || 0));
       setOrderTax(Number(data.tax_amount || 0));
+      setOrderDiscount(Number(data.discount_amount || 0));
       setOrderTotal(Number(data.total_amount || 0));
       setSplitMode(data.split_type === 'equal' ? 'equal' : 'itemized');
       setPayments(mapPayments(data.participants || []));
@@ -657,6 +737,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     orderNumber,
     orderSubtotal,
     orderTax,
+    orderDiscount,
     orderTotal,
     myShare,
     myPayment,

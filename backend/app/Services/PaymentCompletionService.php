@@ -15,6 +15,7 @@ class PaymentCompletionService
 {
     public function __construct(
         protected ReceiptService $receiptService,
+        protected LoyaltyService $loyalty,
     ) {}
 
     public function markCompleted(Payment $payment, array $gatewayResponse = []): Payment
@@ -121,6 +122,7 @@ class PaymentCompletionService
             ]);
             $order = $order->fresh(['items.menuItem', 'items.customizations', 'table', 'user', 'restaurant']);
             broadcast(new OrderCreated($order));
+            $this->loyalty->awardPoints($order);
         }
 
         $session = TableSession::find($payment->session_id);

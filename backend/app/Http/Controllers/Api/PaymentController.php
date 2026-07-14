@@ -18,6 +18,7 @@ use App\Models\SessionParticipant;
 use App\Models\SplitBillItem;
 use App\Models\TableSession;
 use App\Services\IngredientCustomizationPricer;
+use App\Services\LoyaltyService;
 use App\Services\PaymentCompletionService;
 use App\Services\ReceiptService;
 use App\Services\SafepayService;
@@ -37,6 +38,7 @@ class PaymentController extends Controller
         protected PaymentCompletionService $completion,
         protected ReceiptService $receipts,
         protected IngredientCustomizationPricer $pricer,
+        protected LoyaltyService $loyalty,
     ) {}
 
     /**
@@ -121,6 +123,7 @@ class PaymentController extends Controller
                     totalAmount: (float) $order->total_amount,
                     claimableUnits: $units,
                     initiatorParticipantId: $participant?->id,
+                    discountAmount: (float) $order->discount_amount,
                 ));
 
                 return response()->json([
@@ -223,6 +226,7 @@ class PaymentController extends Controller
                 subtotal: (float) $order->subtotal,
                 taxAmount: (float) $order->tax_amount,
                 totalAmount: (float) $order->total_amount,
+                discountAmount: (float) $order->discount_amount,
             ));
 
             return response()->json([
@@ -714,18 +718,26 @@ class PaymentController extends Controller
             ];
         }
 
-        $taxAmount = round($subtotal * 0.12, 2);
-        $totalAmount = $subtotal + $taxAmount;
+        $discountAmount = 0.0;
+        $user = Auth::guard('sanctum')->user();
+        if ($user) {
+            $discountAmount = $this->loyalty->discountFor($user, (float) $subtotal)['amount'];
+        }
+
+        $taxable = max(0, $subtotal - $discountAmount);
+        $taxAmount = round($taxable * 0.12, 2);
+        $totalAmount = round($taxable + $taxAmount, 2);
 
         $order = Order::create([
             'restaurant_id' => $session->restaurant_id,
             'table_id' => $request->table_id,
             'session_id' => $session->id,
-            'user_id' => Auth::guard('sanctum')->id(),
+            'user_id' => $user?->id,
             'order_number' => 'ORD-'.now()->format('Ymd').'-'.random_int(1000, 9999),
             'order_type' => 'dine_in',
             'subtotal' => $subtotal,
             'tax_amount' => $taxAmount,
+            'discount_amount' => $discountAmount,
             'total_amount' => $totalAmount,
             'status' => 'pending_payment',
             'special_instructions' => $request->special_instructions,

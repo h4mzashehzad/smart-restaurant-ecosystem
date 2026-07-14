@@ -15,6 +15,7 @@ import {
   Star,
   Building2,
   UsersRound,
+  Gift,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -53,6 +54,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { label: 'Queue', href: '/admin/queue', icon: Users },
       { label: 'Waiter Requests', href: '/admin/waiter-requests', icon: BellRing },
       { label: 'Payments', href: '/admin/payments', icon: CreditCard },
+      { label: 'Loyalty Program', href: '/admin/loyalty', icon: Gift },
     ],
   },
   {

@@ -30,7 +30,13 @@ return new class extends Migration
             return;
         }
 
-        // SQLite: skip MySQL-only MODIFY; unique index is enough for schema parity in tests.
+        // SQLite: recreate-friendly nullable payment_id + unique index for schema parity in tests.
+        if (Schema::hasColumn('split_bill_items', 'payment_id')) {
+            Schema::table('split_bill_items', function (Blueprint $table) {
+                $table->unsignedBigInteger('payment_id')->nullable()->change();
+            });
+        }
+
         $indexExists = collect(DB::select("PRAGMA index_list('split_bill_items')"))
             ->contains(fn ($row) => ($row->name ?? null) === 'split_bill_items_order_item_unit_unique');
 

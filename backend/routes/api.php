@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminFeedbackController;
+use App\Http\Controllers\Api\AdminLoyaltyController;
 use App\Http\Controllers\Api\AdminMenuController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminPaymentController;
@@ -207,6 +208,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Payments ledger (admin+staff) — refunds are intentionally not exposed here ──
         Route::get('/payments', [AdminPaymentController::class, 'index']);
         Route::get('/payments/pending-cash', [AdminPaymentController::class, 'pendingCash']);
+
+        // ── Loyalty Program (admin+staff) ──
+        Route::get('/loyalty/summary', [AdminLoyaltyController::class, 'summary']);
+        Route::get('/loyalty/customers', [AdminLoyaltyController::class, 'index']);
+        Route::get('/loyalty/customers/{id}', [AdminLoyaltyController::class, 'show']);
 
         // ── Reservation Management (admin+staff) — restaurant-scoped, ignores any path/body restaurant id ──
         Route::get('/reservations', [ReservationController::class, 'index']);

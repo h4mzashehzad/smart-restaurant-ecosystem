@@ -22,6 +22,7 @@ class SplitBillConfigured implements ShouldBroadcastNow
         public float $subtotal = 0,
         public float $taxAmount = 0,
         public float $totalAmount = 0,
+        public float $discountAmount = 0,
     ) {}
 
     public function broadcastOn(): array
@@ -40,6 +41,7 @@ class SplitBillConfigured implements ShouldBroadcastNow
             'order_number' => $this->orderNumber,
             'subtotal' => $this->subtotal,
             'tax_amount' => $this->taxAmount,
+            'discount_amount' => $this->discountAmount,
             'total_amount' => $this->totalAmount,
         ];
     }

@@ -5,26 +5,25 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LoyaltyReward;
 use App\Models\LoyaltyTransaction;
-use App\Models\User;
+use App\Services\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class LoyaltyController extends Controller
 {
+    public function __construct(
+        protected LoyaltyService $loyalty,
+    ) {}
+
     /**
-     * Get current loyalty points and tier.
+     * Get current loyalty points, tier, and progress toward the next tier.
      */
     public function points(Request $request): JsonResponse
     {
-        $user = $request->user();
-
         return response()->json([
             'success' => true,
-            'data'    => [
-                'loyalty_points' => $user->loyalty_points,
-                'loyalty_tier'   => $user->loyalty_tier,
-            ],
+            'data' => $this->loyalty->snapshotFor($request->user()),
         ]);
     }
 
@@ -40,7 +39,7 @@ class LoyaltyController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $transactions,
+            'data' => $transactions,
         ]);
     }
 
@@ -59,7 +58,7 @@ class LoyaltyController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $rewards,
+            'data' => $rewards,
         ]);
     }
 
@@ -75,11 +74,11 @@ class LoyaltyController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        $user   = $request->user();
+        $user = $request->user();
         $reward = LoyaltyReward::findOrFail($request->reward_id);
 
         if ($user->loyalty_points < $reward->minimum_points) {
@@ -91,20 +90,22 @@ class LoyaltyController extends Controller
 
         // Deduct points
         $user->decrement('loyalty_points', $reward->minimum_points);
+        $user->loyalty_tier = $this->loyalty->tierForPoints((int) $user->fresh()->loyalty_points);
+        $user->save();
 
         $transaction = LoyaltyTransaction::create([
-            'user_id'          => $user->id,
+            'user_id' => $user->id,
             'transaction_type' => 'redeemed',
-            'points'           => -$reward->minimum_points,
-            'balance_after'    => $user->fresh()->loyalty_points,
-            'description'      => "Redeemed: {$reward->description}",
+            'points' => -$reward->minimum_points,
+            'balance_after' => $user->fresh()->loyalty_points,
+            'description' => "Redeemed: {$reward->description}",
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Reward redeemed successfully',
-            'data'    => [
-                'transaction'      => $transaction,
+            'data' => [
+                'transaction' => $transaction,
                 'remaining_points' => $user->fresh()->loyalty_points,
             ],
         ]);

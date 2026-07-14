@@ -22,6 +22,7 @@ class CheckoutStarted implements ShouldBroadcastNow
         public float $totalAmount,
         public array $claimableUnits,
         public ?int $initiatorParticipantId,
+        public float $discountAmount = 0,
     ) {}
 
     public function broadcastOn(): array
@@ -38,6 +39,7 @@ class CheckoutStarted implements ShouldBroadcastNow
             'mode' => $this->mode,
             'subtotal' => $this->subtotal,
             'tax_amount' => $this->taxAmount,
+            'discount_amount' => $this->discountAmount,
             'total_amount' => $this->totalAmount,
             'claimable_units' => $this->claimableUnits,
             'initiator_participant_id' => $this->initiatorParticipantId,

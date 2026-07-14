@@ -11,6 +11,7 @@ use App\Models\OrderItem;
 use App\Models\OrderItemCustomization;
 use App\Models\TableSession;
 use App\Services\IngredientCustomizationPricer;
+use App\Services\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -213,7 +214,7 @@ class OrderController extends Controller
     /**
      * Cancel an order.
      */
-    public function cancel(Order $order): JsonResponse
+    public function cancel(Order $order, LoyaltyService $loyalty): JsonResponse
     {
         if (in_array($order->status, ['completed', 'cancelled'])) {
             return response()->json([
@@ -222,6 +223,7 @@ class OrderController extends Controller
             ], 409);
         }
 
+        $loyalty->reversePoints($order);
         $order->update(['status' => 'cancelled']);
 
         broadcast(new OrderStatusUpdated(

@@ -6,6 +6,7 @@ use App\Events\OrderStatusUpdated;
 use App\Http\Controllers\Concerns\ResolvesRestaurant;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -72,7 +73,7 @@ class AdminOrderController extends Controller
     /**
      * Cancel an order with an optional reason, if its current status allows it.
      */
-    public function cancel(Request $request, int $id): JsonResponse
+    public function cancel(Request $request, int $id, LoyaltyService $loyalty): JsonResponse
     {
         $restaurantId = $this->restaurantId($request);
         $order = Order::where('restaurant_id', $restaurantId)->findOrFail($id);
@@ -99,6 +100,7 @@ class AdminOrderController extends Controller
             $updates['special_instructions'] = trim(($order->special_instructions ? $order->special_instructions.' ' : '').$note);
         }
 
+        $loyalty->reversePoints($order);
         $order->update($updates);
 
         broadcast(new OrderStatusUpdated(

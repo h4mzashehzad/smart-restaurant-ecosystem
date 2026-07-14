@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useSession } from '@/contexts/SessionContext';
 import { usePayment } from '@/contexts/PaymentContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { estimateLoyaltyDiscount } from '@/lib/loyalty';
 import { BillSummary } from './BillSummary';
 import { SplitBillOptions, type SplitMode } from './SplitBillOptions';
 import { ItemizedSplit, type ClaimableUnit } from './ItemizedSplit';
@@ -41,6 +43,7 @@ export function PaymentDrawer({
 }: PaymentDrawerProps) {
   const { session, deviceId } = useSession();
   const payment = usePayment();
+  const { user } = useAuth();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -48,10 +51,29 @@ export function PaymentDrawer({
 
   const participants = session?.participants?.filter((p) => !p.left_at) ?? [];
   const multiUser = participants.length >= 2;
-  const step = payment.step === 'idle' ? 'method' : payment.step;
+  const rawStep = payment.step === 'idle' ? 'method' : payment.step;
+  // Sole diners must never see the claim list — that UI is only for multi-guest
+  // itemized splits (or resuming one that already has claims/payments).
+  const step =
+    rawStep === 'itemized' &&
+    !multiUser &&
+    payment.claims.length === 0 &&
+    payment.payments.length === 0
+      ? 'method'
+      : rawStep;
 
+  const estimatedDiscount =
+    payment.orderId == null && user
+      ? estimateLoyaltyDiscount(user.loyalty_tier, subtotal)
+      : { amount: 0, percent: 0 };
   const displaySubtotal = payment.orderSubtotal || subtotal;
   const displayTax = payment.orderTax || taxAmount;
+  const displayDiscount =
+    payment.orderId != null ? payment.orderDiscount || 0 : estimatedDiscount.amount;
+  const displayDiscountPercent =
+    payment.orderId != null
+      ? undefined
+      : estimatedDiscount.percent || undefined;
   const displayTotal = payment.orderTotal || total;
 
   // If a live split already exists, never strand the guest on full-bill checkout.
@@ -92,6 +114,7 @@ export function PaymentDrawer({
         orderNumber: res.data?.order?.order_number ?? '',
         subtotal: Number(res.data?.order?.subtotal ?? displaySubtotal),
         tax: Number(res.data?.order?.tax_amount ?? displayTax),
+        discount: Number(res.data?.order?.discount_amount ?? 0),
         total: Number(res.data?.order?.total_amount ?? displayTotal),
       });
 
@@ -138,6 +161,7 @@ export function PaymentDrawer({
           orderNumber: draft.order_number,
           subtotal: Number(draft.subtotal || 0),
           tax: Number(draft.tax_amount || 0),
+          discount: Number(draft.discount_amount || 0),
           total: Number(draft.total_amount || 0),
           units: bill.claimable_units || [],
           claims: bill.claims || [],
@@ -176,6 +200,7 @@ export function PaymentDrawer({
         orderNumber: order.order_number,
         subtotal: Number(order.subtotal ?? displaySubtotal),
         tax: Number(order.tax_amount ?? displayTax),
+        discount: Number(order.discount_amount ?? 0),
         total: Number(order.total_amount ?? displayTotal),
         units: res.data?.claimable_units || [],
         claims: res.data?.claims || [],
@@ -360,7 +385,13 @@ export function PaymentDrawer({
       </div>
 
       {step !== 'success' && step !== 'tracker' && step !== 'waiting-cash' && (
-        <BillSummary subtotal={displaySubtotal} taxAmount={displayTax} total={displayTotal} />
+        <BillSummary
+          subtotal={displaySubtotal}
+          taxAmount={displayTax}
+          discount={displayDiscount}
+          discountPercent={displayDiscountPercent}
+          total={displayTotal}
+        />
       )}
 
       {error && (

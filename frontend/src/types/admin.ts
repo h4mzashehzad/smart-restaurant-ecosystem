@@ -440,6 +440,57 @@ export interface AdminPayment {
   } | null;
 }
 
+// ── Loyalty ───────────────────────────────────────────────────────────────
+
+export type LoyaltyTier = 'bronze' | 'silver' | 'gold';
+
+export interface LoyaltySummary {
+  total_customers: number;
+  bronze_count: number;
+  silver_count: number;
+  gold_count: number;
+  total_points_issued: number;
+}
+
+export interface AdminLoyaltyCustomer {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  loyalty_tier: LoyaltyTier;
+  loyalty_points: number;
+  restaurant_order_count?: number;
+  restaurant_total_spend?: number | string | null;
+  last_order_at?: string | null;
+}
+
+export interface AdminLoyaltyTransaction {
+  id: number;
+  transaction_type: 'earned' | 'redeemed' | 'expired' | 'adjusted';
+  points: number;
+  balance_after: number;
+  description: string | null;
+  created_at: string;
+  order?: {
+    id: number;
+    order_number: string;
+    total_amount?: number;
+    placed_at?: string;
+  } | null;
+}
+
+export interface AdminLoyaltyCustomerDetail {
+  customer: AdminLoyaltyCustomer;
+  transactions: PaginatedResponse<AdminLoyaltyTransaction>;
+}
+
+export interface AdminLoyaltyCustomersFilters {
+  search?: string;
+  tier?: LoyaltyTier | '';
+  page?: number;
+  per_page?: number;
+}
+
 // ── Generic pagination envelope (Laravel paginate()) ─────────────────────
 
 export interface PaginatedResponse<T> {

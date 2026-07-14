@@ -10,6 +10,7 @@ import { usePayment } from '@/contexts/PaymentContext';
 import { CartItem } from './CartItem';
 import { OrderSuccess } from './OrderSuccess';
 import { PaymentDrawer } from '@/components/payment/PaymentDrawer';
+import { estimateLoyaltyDiscount, estimateLoyaltyTotals } from '@/lib/loyalty';
 
 interface CartDrawerProps {
   open: boolean;
@@ -100,6 +101,13 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
   if (!showShell) return null;
 
   const inPaymentFlow = paymentOpen || payment.drawerOpen;
+  const loyaltyEstimate = user
+    ? estimateLoyaltyDiscount(user.loyalty_tier, subtotal)
+    : { amount: 0, percent: 0 };
+  const loyaltyTotals =
+    loyaltyEstimate.amount > 0
+      ? estimateLoyaltyTotals(subtotal, loyaltyEstimate.amount)
+      : { taxAmount, total };
 
   return (
     <Portal>
@@ -142,8 +150,8 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                 }))}
                 specialInstructions={specialInstructions}
                 subtotal={subtotal}
-                taxAmount={taxAmount}
-                total={total}
+                taxAmount={loyaltyTotals.taxAmount}
+                total={loyaltyTotals.total}
                 onPaid={handlePaid}
               />
             </div>
@@ -272,14 +280,33 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                           <span>Subtotal</span>
                           <span>Rs {subtotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
                         </div>
+                        {loyaltyEstimate.amount > 0 && (
+                          <div className="flex justify-between text-sm font-sans text-emerald-600">
+                            <span>Loyalty discount (−{loyaltyEstimate.percent}%)</span>
+                            <span>
+                              − Rs{' '}
+                              {loyaltyEstimate.amount.toLocaleString('en-PK', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm font-sans text-gray-500">
                           <span>Tax (12%)</span>
-                          <span>Rs {taxAmount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
+                          <span>
+                            Rs{' '}
+                            {loyaltyTotals.taxAmount.toLocaleString('en-PK', {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
                         </div>
                         <div className="flex justify-between font-display font-bold text-gray-900 text-base pt-1.5 border-t border-gray-100">
                           <span>Total</span>
                           <span className="text-orange-500">
-                            Rs {total.toLocaleString('en-PK', { minimumFractionDigits: 2 })}
+                            Rs{' '}
+                            {loyaltyTotals.total.toLocaleString('en-PK', {
+                              minimumFractionDigits: 2,
+                            })}
                           </span>
                         </div>
                       </div>
@@ -302,7 +329,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                   >
                     {payment.active
                       ? 'Continue split checkout'
-                      : `Checkout · Rs ${total.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`}
+                      : `Checkout · Rs ${loyaltyTotals.total.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`}
                   </button>
                 </div>
               )}
