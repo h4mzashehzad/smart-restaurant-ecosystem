@@ -10,6 +10,7 @@ interface CartItemProps {
 
 export function CartItem({ item }: CartItemProps) {
   const { updateQty, removeItem } = useCart();
+  const customizations = item.customizations ?? [];
 
   return (
     <div className="flex items-center gap-3 py-3.5 border-b border-gray-100 last:border-none">
@@ -35,6 +36,17 @@ export function CartItem({ item }: CartItemProps) {
       {/* Name + price */}
       <div className="flex-1 min-w-0">
         <p className="font-display font-bold text-gray-900 text-sm leading-tight truncate">{item.name}</p>
+        {customizations.length > 0 && (
+          <p className="text-[11px] text-gray-400 font-sans mt-0.5 line-clamp-2">
+            {customizations
+              .map((c) => {
+                const delta = c.quantity - c.default_quantity;
+                const prefix = delta > 0 ? `+${delta}` : String(delta);
+                return `${prefix} ${c.name}`;
+              })
+              .join(' · ')}
+          </p>
+        )}
         <p className="text-xs text-gray-500 font-sans mt-0.5">
           Rs {item.unitPrice.toLocaleString('en-PK')} each
         </p>
@@ -47,7 +59,11 @@ export function CartItem({ item }: CartItemProps) {
       <div className="flex flex-col items-end gap-1.5 shrink-0">
         <div className="flex items-center gap-1.5 bg-gray-50 rounded-2xl p-1 border border-gray-100">
           <button
-            onClick={() => item.quantity === 1 ? removeItem(item.id) : updateQty(item.id, item.quantity - 1)}
+            onClick={() =>
+              item.quantity === 1
+                ? removeItem(item.lineKey)
+                : updateQty(item.lineKey, item.quantity - 1)
+            }
             className="w-7 h-7 rounded-xl flex items-center justify-center text-gray-500 hover:bg-white hover:text-orange-500 transition-all active:scale-90"
             aria-label="Decrease quantity"
           >
@@ -63,7 +79,7 @@ export function CartItem({ item }: CartItemProps) {
           </button>
           <span className="w-6 text-center font-display font-bold text-gray-900 text-sm">{item.quantity}</span>
           <button
-            onClick={() => updateQty(item.id, item.quantity + 1)}
+            onClick={() => updateQty(item.lineKey, item.quantity + 1)}
             disabled={item.quantity >= 10}
             className="w-7 h-7 rounded-xl flex items-center justify-center text-orange-500 hover:bg-orange-50 transition-all active:scale-90 disabled:opacity-40"
             aria-label="Increase quantity"

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('tax_amount', 10, 2)->default(0.00);
             $table->decimal('discount_amount', 10, 2)->default(0.00);
             $table->decimal('total_amount', 10, 2);
-            $table->enum('status', ['pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending_payment', 'pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled'])->default('pending');
             $table->text('special_instructions')->nullable();
             $table->timestamp('placed_at')->useCurrent();
             $table->timestamp('confirmed_at')->nullable();

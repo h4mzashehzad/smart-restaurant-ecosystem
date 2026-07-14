@@ -20,13 +20,13 @@ class MenuController extends Controller
             ->where('is_active', true)
             ->orderBy('display_order')
             ->with(['menuItems' => function ($q) {
-                $q->where('is_available', true)->orderBy('name');
+                $q->where('is_available', true)->orderBy('name')->with('ingredients');
             }])
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $menu,
+            'data' => $menu,
         ]);
     }
 
@@ -42,7 +42,7 @@ class MenuController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $categories,
+            'data' => $categories,
         ]);
     }
 
@@ -53,12 +53,13 @@ class MenuController extends Controller
     {
         $items = $category->menuItems()
             ->where('is_available', true)
+            ->with('ingredients')
             ->orderBy('name')
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $items,
+            'data' => $items,
         ]);
     }
 
@@ -71,7 +72,7 @@ class MenuController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $item,
+            'data' => $item,
         ]);
     }
 
@@ -82,7 +83,7 @@ class MenuController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => $item->ingredients,
+            'data' => $item->ingredients,
         ]);
     }
 
@@ -96,16 +97,16 @@ class MenuController extends Controller
         $items = MenuItem::where('is_available', true)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('description', 'like', "%{$query}%")
-                  ->orWhere('cuisine_type', 'like', "%{$query}%");
+                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhere('cuisine_type', 'like', "%{$query}%");
             })
-            ->with('category')
+            ->with(['category', 'ingredients'])
             ->limit(20)
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $items,
+            'data' => $items,
         ]);
     }
 
@@ -119,7 +120,7 @@ class MenuController extends Controller
         if ($user) {
             // Fetch recommendations — fall back to popular items if no AI recs exist
             $recommendations = $user->aiRecommendations()
-                ->with('menuItem')
+                ->with('menuItem.ingredients')
                 ->orderByDesc('recommendation_score')
                 ->limit(10)
                 ->get();
@@ -127,22 +128,23 @@ class MenuController extends Controller
             if ($recommendations->isNotEmpty()) {
                 return response()->json([
                     'success' => true,
-                    'data'    => $recommendations->map(fn($rec) => $rec->menuItem),
-                    'source'  => 'ai',
+                    'data' => $recommendations->map(fn ($rec) => $rec->menuItem),
+                    'source' => 'ai',
                 ]);
             }
         }
 
         // Fallback: return popular items
         $items = MenuItem::where('is_available', true)
+            ->with('ingredients')
             ->orderByDesc('popularity_score')
             ->limit(10)
             ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $items,
-            'source'  => 'popularity',
+            'data' => $items,
+            'source' => 'popularity',
         ]);
     }
 }

@@ -110,18 +110,18 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/MenuController.php": {
-    "mtime": 1782457892.0120103,
-    "ast_hash": "cda24ee87947e6d565ab38b5ba2cff51",
+    "mtime": 1784012329.4804983,
+    "ast_hash": "27cdce78c551813ee844097ddf27f269",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/OrderController.php": {
-    "mtime": 1783922534.2320938,
-    "ast_hash": "a482d6025400830160b5e5146583364e",
+    "mtime": 1784011769.1153016,
+    "ast_hash": "016121d338871cb1a01beed7bfa20c84",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/PaymentController.php": {
-    "mtime": 1783922534.2330928,
-    "ast_hash": "fb5cfa003f68c6e36cba9d19ff4cdf0c",
+    "mtime": 1784013555.6959374,
+    "ast_hash": "6b511fa5b08b8e0f13df4804bad2d762",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/QueueController.php": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "app/Models/Ingredient.php": {
-    "mtime": 1771240394.290991,
-    "ast_hash": "0f999dc8f822cb1ee32937fa73fedb81",
+    "mtime": 1784012329.8752809,
+    "ast_hash": "9a54377f78762c3bed176d956a1a2536",
     "semantic_hash": ""
   },
   "app/Models/LoyaltyReward.php": {
@@ -220,13 +220,13 @@
     "semantic_hash": ""
   },
   "app/Models/MenuItem.php": {
-    "mtime": 1771240390.4439073,
-    "ast_hash": "12b55aee39942bb770d690db9f4062db",
+    "mtime": 1784012329.8963792,
+    "ast_hash": "2f5a9f377d0e6567a1b3961c988a55cf",
     "semantic_hash": ""
   },
   "app/Models/MenuItemIngredient.php": {
-    "mtime": 1771240400.6883776,
-    "ast_hash": "738fe26cb85e0dbbc50c99384086b96d",
+    "mtime": 1784012329.9062219,
+    "ast_hash": "275d73ba400294cfdfcaddc593d044e1",
     "semantic_hash": ""
   },
   "app/Models/Order.php": {
@@ -315,8 +315,8 @@
     "semantic_hash": ""
   },
   "app/Services/QRCodeGenerationService.php": {
-    "mtime": 1774852569.8210573,
-    "ast_hash": "b80f63d157b5e564683433b30162b4c2",
+    "mtime": 1783930060.2127862,
+    "ast_hash": "3b74a1b40f39280373112bfe656fac24",
     "semantic_hash": ""
   },
   "app/Services/ReceiptService.php": {
@@ -400,7 +400,7 @@
     "semantic_hash": ""
   },
   "config/filesystems.php": {
-    "mtime": 1783927814.3425367,
+    "mtime": 1784010063.4724524,
     "ast_hash": "bde1aa1027f0448f17348dbd93f3d7ea",
     "semantic_hash": ""
   },
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_02_16_102732_create_orders_table.php": {
-    "mtime": 1771237677.8598447,
-    "ast_hash": "89d68bd34ce051f044a218d312b680ef",
+    "mtime": 1784012242.2821457,
+    "ast_hash": "87669c0ba2f4c0613ed0dd7e5a63e41b",
     "semantic_hash": ""
   },
   "database/migrations/2026_02_16_102841_create_order_items_table.php": {
@@ -530,8 +530,8 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_02_16_103012_create_payments_table.php": {
-    "mtime": 1771237835.1083033,
-    "ast_hash": "78cd7a6fac4bac6bc9ba766157a9b718",
+    "mtime": 1784012296.5814536,
+    "ast_hash": "d1929f9bb6f0c348e91750e2d7495b0d",
     "semantic_hash": ""
   },
   "database/migrations/2026_02_16_103121_create_split_bill_items_table.php": {
@@ -615,18 +615,18 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062702_add_pending_payment_to_orders_status.php": {
-    "mtime": 1783664838.6223233,
-    "ast_hash": "cf5b0e5af2eb784eb84514f6241e822a",
+    "mtime": 1784012225.6426406,
+    "ast_hash": "31407d2924ffed96187f715401bab17b",
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062703_add_safepay_and_receipt_fields_to_payments_table.php": {
-    "mtime": 1783664915.0704153,
-    "ast_hash": "9b1cbc4936921311f13b90e453692aa8",
+    "mtime": 1784012280.3522108,
+    "ast_hash": "e4ec4dd6d61368884720a65816424a83",
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062703_add_unit_index_to_split_bill_items_table.php": {
-    "mtime": 1783664916.1396139,
-    "ast_hash": "bd61861db3c7eb614ca8dd0b5a63696e",
+    "mtime": 1784012296.1093216,
+    "ast_hash": "36d824cb280febfbef8ddca0e985502e",
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062704_add_payment_status_to_table_sessions_table.php": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "database/seeders/DatabaseSeeder.php": {
-    "mtime": 1775546072.5420234,
-    "ast_hash": "d87f5a4873b6fb400e50fdb9913a3b3d",
+    "mtime": 1784012330.112488,
+    "ast_hash": "1194ecc56afb1595a104ff8e63cbb6f2",
     "semantic_hash": ""
   },
   "database/seeders/RestaurantMenuSeeder.php": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "routes/api.php": {
-    "mtime": 1783928445.1510966,
-    "ast_hash": "b3a9506e8ec11424137f1c5668232e6c",
+    "mtime": 1783930040.7470534,
+    "ast_hash": "dc4a4fe4bd311f86a3ae58adeddb21f9",
     "semantic_hash": ""
   },
   "routes/channels.php": {
@@ -1670,8 +1670,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminMenuController.php": {
-    "mtime": 1783928442.7389743,
-    "ast_hash": "86086da67c8a51e412739be4467d2948",
+    "mtime": 1784011823.1381083,
+    "ast_hash": "7a96f6ae930426b63a3feac86e80c2ee",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminOrderController.php": {
@@ -1690,8 +1690,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminTableController.php": {
-    "mtime": 1783929535.6291146,
-    "ast_hash": "76824f11e54c75d51e637749a1d5dce9",
+    "mtime": 1783930037.7851617,
+    "ast_hash": "2c78544e18bc53bbd00b4a4f4c29e642",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminTeamController.php": {
@@ -1730,7 +1730,7 @@
     "semantic_hash": ""
   },
   "app/Services/MenuItemImageService.php": {
-    "mtime": 1783927814.283007,
+    "mtime": 1784010063.4724524,
     "ast_hash": "9e1be075b864cc3bb38b2f63c54f38a7",
     "semantic_hash": ""
   },
@@ -1752,6 +1752,31 @@
   "storage/framework/testing/disks/s3/restaurants/spice-route/menu/dal-makhani.png": {
     "mtime": 1783927743.206079,
     "ast_hash": "e17832834b5367324fb6824594cb3519",
+    "semantic_hash": ""
+  },
+  "app/Services/IngredientCustomizationPricer.php": {
+    "mtime": 1784011715.5478597,
+    "ast_hash": "f97ca2f45059e55fd48407f3ef7c4154",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_07_14_064733_add_adjustable_fields_to_menu_item_ingredients_table.php": {
+    "mtime": 1784011682.8062208,
+    "ast_hash": "b38f7d67f2dae90a3a262cb03e22e405",
+    "semantic_hash": ""
+  },
+  "database/seeders/CustomizableIngredientsSeeder.php": {
+    "mtime": 1784011845.75818,
+    "ast_hash": "8f5da86366aa1575c81f4a9b9d80c38d",
+    "semantic_hash": ""
+  },
+  "tests/Feature/IngredientCustomizationCheckoutTest.php": {
+    "mtime": 1784012321.955252,
+    "ast_hash": "287548f077e1fe3a8edde8fe4c993afb",
+    "semantic_hash": ""
+  },
+  "tests/Feature/IngredientCustomizationPricerTest.php": {
+    "mtime": 1784012127.554438,
+    "ast_hash": "1f716057e2f3188c6eb22c8e99429df0",
     "semantic_hash": ""
   }
 }

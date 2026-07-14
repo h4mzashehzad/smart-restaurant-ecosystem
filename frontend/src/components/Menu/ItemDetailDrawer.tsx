@@ -1,19 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { Portal } from '@/components/Portal';
+import type { CartItemCustomization } from '@/types/cart';
+import { buildCartLineKey } from '@/types/cart';
+import {
+  IngredientPicker,
+  computeCustomizationExtra,
+  type AdjustableIngredient,
+} from '@/components/Menu/IngredientPicker';
 
 interface Ingredient {
   id: number;
   name: string;
+  unit?: string | null;
   is_allergen: boolean;
   allergen_type: string | null;
   pivot: {
+    quantity?: number;
     is_optional: boolean;
     is_removable: boolean;
+    is_adjustable?: boolean;
+    min_quantity?: number;
+    max_quantity?: number | null;
+    extra_unit_price?: number;
     additional_price: number;
   };
 }
@@ -52,11 +65,19 @@ const SPICE_LABELS: Record<string, { label: string; color: string }> = {
 function ItemContent({
   item,
   onClose,
+  adjustableIngredients,
+  quantities,
+  onQuantityChange,
 }: {
   item: MenuItemDetail;
   onClose: () => void;
+  adjustableIngredients: AdjustableIngredient[];
+  quantities: Record<number, number>;
+  onQuantityChange: (ingredientId: number, quantity: number) => void;
 }) {
   const spice = item.spice_level ? SPICE_LABELS[item.spice_level] : null;
+  const displayIngredients = item.ingredients.filter((ing) => !ing.pivot?.is_adjustable);
+
   return (
     <div className="pb-4">
       {/* Hero Image — flush to top, close button overlaid */}
@@ -174,11 +195,17 @@ function ItemContent({
           )}
         </div>
 
-        {item.ingredients && item.ingredients.length > 0 && (
+        <IngredientPicker
+          ingredients={adjustableIngredients}
+          quantities={quantities}
+          onChange={onQuantityChange}
+        />
+
+        {displayIngredients.length > 0 && (
           <div className="mb-5">
             <h3 className="text-sm font-sans font-semibold text-gray-500 uppercase tracking-wider mb-3">Ingredients</h3>
             <div className="flex flex-wrap gap-2">
-              {item.ingredients.map((ing) => (
+              {displayIngredients.map((ing) => (
                 <span
                   key={ing.id}
                   className={`text-xs font-sans px-2.5 py-1 rounded-full border ${ing.is_allergen ? 'text-red-600 bg-red-50 border-red-100' : 'text-gray-600 bg-gray-50 border-gray-100'}`}
@@ -191,7 +218,7 @@ function ItemContent({
                 </span>
               ))}
             </div>
-            {item.ingredients.some((i) => i.is_allergen) && (
+            {displayIngredients.some((i) => i.is_allergen) && (
               <p className="text-[11px] text-red-400 font-sans mt-2 flex items-center gap-1">
                 <span>⚠</span> Contains allergens
               </p>
@@ -209,17 +236,55 @@ export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
   const [loading, setLoading] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
 
-  const cartQty = items.find((i) => i.id === itemId)?.quantity ?? 0;
+  const cartQty = items
+    .filter((i) => i.id === itemId)
+    .reduce((sum, i) => sum + i.quantity, 0);
+
+  const adjustableIngredients = useMemo<AdjustableIngredient[]>(() => {
+    if (!item?.ingredients) return [];
+    return item.ingredients
+      .filter((ing) => Boolean(ing.pivot?.is_adjustable))
+      .map((ing) => ({
+        id: ing.id,
+        name: ing.name,
+        unit: ing.unit,
+        is_allergen: ing.is_allergen,
+        allergen_type: ing.allergen_type,
+        pivot: {
+          quantity: Number(ing.pivot.quantity ?? 0),
+          is_adjustable: true,
+          min_quantity: Number(ing.pivot.min_quantity ?? 0),
+          max_quantity: ing.pivot.max_quantity != null ? Number(ing.pivot.max_quantity) : null,
+          extra_unit_price: Number(ing.pivot.extra_unit_price ?? 0),
+        },
+      }));
+  }, [item]);
+
+  const customizationExtra = useMemo(
+    () => computeCustomizationExtra(adjustableIngredients, quantities),
+    [adjustableIngredients, quantities]
+  );
+
+  const unitPrice = (item ? Number(item.base_price) : 0) + customizationExtra;
 
   const fetchItem = useCallback(async (id: number) => {
     setLoading(true);
     setItem(null);
     setQty(1);
     setAdded(false);
+    setQuantities({});
     try {
       const data = await api.getMenuItem(id);
       setItem(data);
+      const initial: Record<number, number> = {};
+      for (const ing of data.ingredients ?? []) {
+        if (ing.pivot?.is_adjustable) {
+          initial[ing.id] = Number(ing.pivot.quantity ?? 0);
+        }
+      }
+      setQuantities(initial);
     } catch {
       // silently fail — drawer will show error state
     } finally {
@@ -246,17 +311,47 @@ export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
     };
   }, [itemId]);
 
+  function handleQuantityChange(ingredientId: number, quantity: number) {
+    setQuantities((prev) => ({ ...prev, [ingredientId]: quantity }));
+  }
+
+  function buildCustomizations(): CartItemCustomization[] {
+    return adjustableIngredients
+      .map((ing) => {
+        const defaultQty = Number(ing.pivot.quantity ?? 0);
+        const chosen = quantities[ing.id] ?? defaultQty;
+        const extraUnits = Math.max(0, chosen - defaultQty);
+        const priceAdjustment = extraUnits * Number(ing.pivot.extra_unit_price ?? 0);
+
+        return {
+          ingredient_id: ing.id,
+          name: ing.name,
+          quantity: chosen,
+          default_quantity: defaultQty,
+          unit: ing.unit ?? undefined,
+          extra_unit_price: Number(ing.pivot.extra_unit_price ?? 0),
+          price_adjustment: priceAdjustment,
+        };
+      })
+      .filter((c) => c.quantity !== c.default_quantity);
+  }
+
   function handleAddToCart() {
     if (!item) return;
+    const customizations = buildCustomizations();
+    const lineKey = buildCartLineKey(item.id, customizations);
+
     for (let i = 0; i < qty; i++) {
       addItem({
         id: item.id,
         name: item.name,
         description: item.description,
-        base_price: item.base_price,
+        base_price: Number(item.base_price),
         image_url: item.image_url,
         is_signature: item.is_signature,
-        unitPrice: item.base_price,
+        unitPrice,
+        customizations,
+        lineKey,
       });
     }
     setAdded(true);
@@ -311,7 +406,13 @@ export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
             )}
 
             {!loading && item && (
-              <ItemContent item={item} onClose={onClose} />
+              <ItemContent
+                item={item}
+                onClose={onClose}
+                adjustableIngredients={adjustableIngredients}
+                quantities={quantities}
+                onQuantityChange={handleQuantityChange}
+              />
             )}
           </div>
 
@@ -322,8 +423,13 @@ export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
                 <div className="flex-1">
                   <p className="text-xs font-sans text-gray-400 uppercase tracking-wider">Price</p>
                   <p className="text-2xl font-display font-bold text-gray-900">
-                    Rs {(item.base_price * qty).toLocaleString('en-PK')}
+                    Rs {(unitPrice * qty).toLocaleString('en-PK')}
                   </p>
+                  {customizationExtra > 0 && (
+                    <p className="text-[11px] font-sans text-orange-500 mt-0.5">
+                      Includes +Rs {customizationExtra.toLocaleString('en-PK')} extras
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 bg-gray-50 rounded-2xl p-1 border border-gray-100">

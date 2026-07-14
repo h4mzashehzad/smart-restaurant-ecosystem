@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { CartItem } from '@/types/cart';
+import type { CartItem, CartItemCustomization } from '@/types/cart';
+import { buildCartLineKey } from '@/types/cart';
 import { useSession } from '@/contexts/SessionContext';
 import { socketClient } from '@/lib/socket';
 
@@ -14,20 +15,30 @@ interface CartContextType {
   taxAmount: number;
   total: number;
   specialInstructions: string;
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: number) => void;
-  updateQty: (id: number, qty: number) => void;
+  addItem: (item: Omit<CartItem, 'quantity' | 'lineKey'> & { lineKey?: string }) => void;
+  removeItem: (lineKey: string) => void;
+  updateQty: (lineKey: string, qty: number) => void;
   clearCart: () => void;
   setInstructions: (s: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+function normalizeCartItem(item: CartItem & { lineKey?: string }): CartItem {
+  const customizations = item.customizations ?? [];
+  return {
+    ...item,
+    customizations,
+    lineKey: item.lineKey || buildCartLineKey(item.id, customizations),
+  };
+}
+
 function loadPersisted(): CartItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? (JSON.parse(raw) as CartItem[]) : [];
+    return parsed.map(normalizeCartItem);
   } catch {
     return [];
   }
@@ -38,19 +49,20 @@ function persist(items: CartItem[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-/** Merge remote items into local cart (union by id, sum quantities for shared items) */
+/** Merge remote items into local cart (union by lineKey, take max qty for shared lines) */
 function mergeItems(local: CartItem[], remote: CartItem[]): CartItem[] {
-  const map = new Map<number, CartItem>();
+  const map = new Map<string, CartItem>();
   for (const item of local) {
-    map.set(item.id, { ...item });
+    const normalized = normalizeCartItem(item);
+    map.set(normalized.lineKey, { ...normalized });
   }
   for (const item of remote) {
-    const existing = map.get(item.id);
+    const normalized = normalizeCartItem(item);
+    const existing = map.get(normalized.lineKey);
     if (existing) {
-      // Take the higher quantity (remote wins if it's higher, avoids losing adds)
-      existing.quantity = Math.max(existing.quantity, item.quantity);
+      existing.quantity = Math.max(existing.quantity, normalized.quantity);
     } else {
-      map.set(item.id, { ...item });
+      map.set(normalized.lineKey, { ...normalized });
     }
   }
   return Array.from(map.values());
@@ -114,7 +126,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // First sync — merge remote into local
         initialSyncDone.current = true;
         setItems((prev) => {
-          const merged = mergeItems(prev, data.items);
+          const merged = mergeItems(prev, data.items.map(normalizeCartItem));
           persist(merged);
           // Update synced ref to the merged result (what we'll actually render)
           lastSyncedJson.current = JSON.stringify(merged);
@@ -122,8 +134,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else {
         // Subsequent syncs — replace with remote
-        persist(data.items);
-        setItems(data.items);
+        const normalized = data.items.map(normalizeCartItem);
+        persist(normalized);
+        setItems(normalized);
       }
     };
 
@@ -155,34 +168,44 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [session?.id]);
 
-  const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {
+  const addItem = useCallback((item: Omit<CartItem, 'quantity' | 'lineKey'> & { lineKey?: string }) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const customizations: CartItemCustomization[] = item.customizations ?? [];
+      const lineKey = item.lineKey || buildCartLineKey(item.id, customizations);
+      const existing = prev.find((i) => i.lineKey === lineKey);
       let next: CartItem[];
       if (existing) {
         next = prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.lineKey === lineKey ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
-        next = [...prev, { ...item, quantity: 1 }];
+        next = [
+          ...prev,
+          {
+            ...item,
+            customizations,
+            lineKey,
+            quantity: 1,
+          },
+        ];
       }
       persist(next);
       return next;
     });
   }, []);
 
-  const removeItem = useCallback((id: number) => {
+  const removeItem = useCallback((lineKey: string) => {
     setItems((prev) => {
-      const next = prev.filter((i) => i.id !== id);
+      const next = prev.filter((i) => i.lineKey !== lineKey);
       persist(next);
       return next;
     });
   }, []);
 
-  const updateQty = useCallback((id: number, qty: number) => {
+  const updateQty = useCallback((lineKey: string, qty: number) => {
     if (qty < 1) return;
     setItems((prev) => {
-      const next = prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i));
+      const next = prev.map((i) => (i.lineKey === lineKey ? { ...i, quantity: qty } : i));
       persist(next);
       return next;
     });

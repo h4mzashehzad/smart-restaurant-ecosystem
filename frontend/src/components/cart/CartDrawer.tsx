@@ -131,7 +131,15 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
               <PaymentDrawer
                 open={inPaymentFlow}
                 onClose={handleClosePayment}
-                cartItems={items.map((i) => ({ id: i.id, quantity: i.quantity }))}
+                cartItems={items.map((i) => ({
+                  id: i.id,
+                  quantity: i.quantity,
+                  customizations: (i.customizations ?? []).map((c) => ({
+                    ingredient_id: c.ingredient_id,
+                    action: 'modify' as const,
+                    quantity: c.quantity,
+                  })),
+                }))}
                 specialInstructions={specialInstructions}
                 subtotal={subtotal}
                 taxAmount={taxAmount}
@@ -236,7 +244,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </p>
                   </div>
                 ) : (
-                  items.map((item) => <CartItem key={item.id} item={item} />)
+                  items.map((item) => <CartItem key={item.lineKey} item={item} />)
                 )}
               </div>
 

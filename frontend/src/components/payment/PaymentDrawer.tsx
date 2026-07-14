@@ -13,7 +13,15 @@ import { PaymentSuccess } from './PaymentSuccess';
 interface PaymentDrawerProps {
   open: boolean;
   onClose: () => void;
-  cartItems: { id: number; quantity: number }[];
+  cartItems: {
+    id: number;
+    quantity: number;
+    customizations?: {
+      ingredient_id: number;
+      action: 'add' | 'remove' | 'modify';
+      quantity?: number;
+    }[];
+  }[];
   specialInstructions: string;
   subtotal: number;
   taxAmount: number;
@@ -65,7 +73,11 @@ export function PaymentDrawer({
       const res = await api.checkout({
         session_id: session.id,
         table_id: session.table_id,
-        items: cartItems.map((i) => ({ menu_item_id: i.id, quantity: i.quantity })),
+        items: cartItems.map((i) => ({
+          menu_item_id: i.id,
+          quantity: i.quantity,
+          customizations: i.customizations ?? [],
+        })),
         special_instructions: specialInstructions || null,
         mode: 'full',
         payment_method: selected,
@@ -139,7 +151,11 @@ export function PaymentDrawer({
       const res = await api.checkout({
         session_id: session.id,
         table_id: session.table_id,
-        items: cartItems.map((i) => ({ menu_item_id: i.id, quantity: i.quantity })),
+        items: cartItems.map((i) => ({
+          menu_item_id: i.id,
+          quantity: i.quantity,
+          customizations: i.customizations ?? [],
+        })),
         special_instructions: specialInstructions || null,
         mode: mode === 'equal' ? 'split_equal' : 'split_itemized',
         participant_id: payment.myParticipantId,

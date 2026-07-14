@@ -202,7 +202,15 @@ class ApiClient {
   async checkout(data: {
     session_id: number;
     table_id: number;
-    items: { menu_item_id: number; quantity: number }[];
+    items: {
+      menu_item_id: number;
+      quantity: number;
+      customizations?: {
+        ingredient_id: number;
+        action: 'add' | 'remove' | 'modify';
+        quantity?: number;
+      }[];
+    }[];
     special_instructions?: string | null;
     mode: 'full' | 'split_equal' | 'split_itemized';
     payment_method?: 'cash' | 'safepay';

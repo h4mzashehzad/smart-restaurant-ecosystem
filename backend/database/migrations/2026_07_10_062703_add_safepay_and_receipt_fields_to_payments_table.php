@@ -31,13 +31,28 @@ return new class extends Migration
             }
         });
 
+        $driver = Schema::getConnection()->getDriverName();
+
         if (Schema::hasColumn('payments', 'safepay_tracker_token')) {
-            $indexes = collect(DB::select("SHOW INDEX FROM payments WHERE Key_name = 'payments_safepay_tracker_token_index'"));
-            if ($indexes->isEmpty()) {
+            $indexExists = false;
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $indexes = collect(DB::select("SHOW INDEX FROM payments WHERE Key_name = 'payments_safepay_tracker_token_index'"));
+                $indexExists = $indexes->isNotEmpty();
+            } else {
+                $indexExists = collect(DB::select("PRAGMA index_list('payments')"))
+                    ->contains(fn ($row) => ($row->name ?? null) === 'payments_safepay_tracker_token_index');
+            }
+
+            if (! $indexExists) {
                 Schema::table('payments', function (Blueprint $table) {
                     $table->index('safepay_tracker_token');
                 });
             }
+        }
+
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return;
         }
 
         DB::statement("ALTER TABLE payments MODIFY COLUMN payment_method ENUM('cash', 'safepay', 'card', 'jazzcash', 'easypaisa', 'bank_transfer') NOT NULL");
@@ -48,10 +63,14 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("UPDATE payments SET payment_method = 'card' WHERE payment_method = 'safepay'");
-        DB::statement("ALTER TABLE payments MODIFY COLUMN payment_method ENUM('cash', 'card', 'jazzcash', 'easypaisa', 'bank_transfer') NOT NULL");
-        DB::statement("UPDATE payments SET status = 'failed' WHERE status IN ('voided', 'expired')");
-        DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'processing', 'completed', 'failed', 'refunded') NOT NULL DEFAULT 'pending'");
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            DB::statement("UPDATE payments SET payment_method = 'card' WHERE payment_method = 'safepay'");
+            DB::statement("ALTER TABLE payments MODIFY COLUMN payment_method ENUM('cash', 'card', 'jazzcash', 'easypaisa', 'bank_transfer') NOT NULL");
+            DB::statement("UPDATE payments SET status = 'failed' WHERE status IN ('voided', 'expired')");
+            DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'processing', 'completed', 'failed', 'refunded') NOT NULL DEFAULT 'pending'");
+        }
 
         Schema::table('payments', function (Blueprint $table) {
             $drop = [];

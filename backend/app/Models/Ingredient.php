@@ -44,7 +44,16 @@ class Ingredient extends Model
     {
         return $this->belongsToMany(MenuItem::class, 'menu_item_ingredients')
             ->using(MenuItemIngredient::class)
-            ->withPivot('quantity', 'is_optional', 'is_removable', 'additional_price');
+            ->withPivot(
+                'quantity',
+                'is_optional',
+                'is_removable',
+                'is_adjustable',
+                'min_quantity',
+                'max_quantity',
+                'extra_unit_price',
+                'additional_price'
+            );
     }
 
     public function menuItemIngredients(): HasMany

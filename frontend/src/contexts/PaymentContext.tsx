@@ -16,6 +16,7 @@ import { useCart } from '@/contexts/CartContext';
 import type { ClaimableUnit, ClaimRecord } from '@/components/payment/ItemizedSplit';
 import type { TrackerPayment } from '@/components/payment/PaymentStatusTracker';
 import type { SplitMode } from '@/components/payment/SplitBillOptions';
+import { clearJustPaidPayload, readJustPaidPayload } from '@/lib/just-paid';
 
 export type PaymentStep =
   | 'idle'
@@ -53,7 +54,9 @@ interface PaymentContextType {
   openPaymentDrawer: () => void;
   closePaymentDrawer: () => void;
   beginLocalCheckout: () => void;
-  refreshBill: (opts?: { openDrawer?: boolean }) => Promise<void>;
+  refreshBill: (opts?: { openDrawer?: boolean; forceSuccessIfPaid?: boolean }) => Promise<void>;
+  /** Call after Safepay redirect to /menu?paid=1 or ?split=1. */
+  resumeAfterSafepayReturn: (mode: 'paid' | 'split') => void;
   applyCheckoutResult: (data: {
     orderId: number;
     orderNumber: string;
@@ -188,6 +191,19 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         payId,
         opts?.fallbackUrls
       );
+      // Prefer a fresh/presigned URL from the API when we have a payment id.
+      if (payId) {
+        try {
+          const data = await api.getReceiptUrl(payId);
+          if (data?.receipt_url) {
+            setReceiptUrl(data.receipt_url);
+            return;
+          }
+        } catch {
+          // receipt may still be generating — fall through to cached URL
+        }
+      }
+
       if (fromPayload) {
         setReceiptUrl(fromPayload);
         return;
@@ -195,16 +211,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (opts?.payment?.receipt_url) {
         setReceiptUrl(opts.payment.receipt_url);
-        return;
-      }
-
-      if (payId) {
-        try {
-          const data = await api.getReceiptUrl(payId);
-          if (data?.receipt_url) setReceiptUrl(data.receipt_url);
-        } catch {
-          // receipt may still be generating
-        }
       }
     },
     [myPayment?.id]
@@ -260,7 +266,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const applyBill = useCallback(
-    (bill: any, opts?: { openDrawer?: boolean }) => {
+    (bill: any, opts?: { openDrawer?: boolean; forceSuccessIfPaid?: boolean }) => {
       const names: Record<number, string> = {};
       (bill.participants || []).forEach((p: any) => {
         names[p.id] = p.user?.name || `Guest ${p.id}`;
@@ -269,17 +275,24 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const draft = bill.draft_order;
       if (!draft) {
+        // Include full-bill payments (split_group_id is null) as well as split shares.
         const completed = mapPayments(
-          (bill.payments || []).filter((p: any) => p.status === 'completed' && p.split_group_id)
+          (bill.payments || []).filter((p: any) => p.status === 'completed')
         );
-        const recentlyPaid =
+        const shouldShowSuccess =
           bill.payment_status === 'paid' &&
-          (stepRef.current !== 'idle' || completed.length > 0);
+          completed.length > 0 &&
+          (opts?.forceSuccessIfPaid ||
+            stepRef.current === 'success' ||
+            stepRef.current === 'tracker' ||
+            stepRef.current === 'waiting-cash' ||
+            stepRef.current === 'method');
 
-        if (recentlyPaid && stepRef.current !== 'idle') {
+        if (shouldShowSuccess) {
           const mine =
             completed.find((p) => p.participant_id === myParticipantIdRef.current) ||
-            completed[0] ||
+            completed.find((p) => p.id === paymentIdRef.current) ||
+            completed[completed.length - 1] ||
             null;
           if (mine) {
             setPayments(completed);
@@ -350,7 +363,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const refreshBill = useCallback(
-    async (opts?: { openDrawer?: boolean }) => {
+    async (opts?: { openDrawer?: boolean; forceSuccessIfPaid?: boolean }) => {
       if (!session?.id || refreshingRef.current) return;
       refreshingRef.current = true;
       try {
@@ -363,6 +376,44 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     },
     [session?.id, applyBill]
+  );
+
+  /** After Safepay redirect, restore success UI + receipt from one-shot sessionStorage. */
+  const consumeJustPaid = useCallback(() => {
+    const payload = readJustPaidPayload();
+    if (!payload || !session?.id) return false;
+    if (payload.sessionId !== session.id) return false;
+
+    clearJustPaidPayload();
+    setPaymentId(payload.paymentId);
+    if (payload.orderNumber) setOrderNumber(payload.orderNumber);
+    if (payload.amount != null) setOrderTotal(payload.amount);
+    enterSuccess({
+      orderNumber: payload.orderNumber,
+      payment: {
+        id: payload.paymentId,
+        participant_id: myParticipantIdRef.current,
+        amount: payload.amount ?? 0,
+        status: 'completed',
+        receipt_url: payload.receiptUrl,
+      },
+      fallbackUrls: payload.receiptUrl ? [payload.receiptUrl] : undefined,
+    });
+    return true;
+  }, [session?.id, enterSuccess]);
+
+  const resumeAfterSafepayReturn = useCallback(
+    (mode: 'paid' | 'split') => {
+      if (mode === 'paid') {
+        if (consumeJustPaid()) return;
+        void refreshBill({ openDrawer: true, forceSuccessIfPaid: true });
+        return;
+      }
+      // Split share: still prefer just-paid handoff if present (receipt for this share).
+      if (consumeJustPaid()) return;
+      void refreshBill({ openDrawer: true });
+    },
+    [consumeJustPaid, refreshBill]
   );
 
   const beginLocalCheckout = useCallback(() => {
@@ -422,36 +473,50 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [myParticipantId, participantNames, participants]
   );
 
-  // Ensure every guest gets their own receipt once success is shown
+  // Poll for receipt while success is showing (generation / S3 can lag briefly).
   useEffect(() => {
     if (step !== 'success' || receiptUrl) return;
-    const pay = myPayment;
-    const id = pay?.id ?? paymentId;
+    const id = paymentId ?? myPayment?.id;
     if (!id) return;
+
     let cancelled = false;
-    (async () => {
+    let attempts = 0;
+    const maxAttempts = 12;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
       try {
-        if (pay?.receipt_url) {
-          if (!cancelled) setReceiptUrl(pay.receipt_url);
+        if (myPayment?.receipt_url) {
+          setReceiptUrl(myPayment.receipt_url);
           return;
         }
         const data = await api.getReceiptUrl(id);
-        if (!cancelled && data?.receipt_url) setReceiptUrl(data.receipt_url);
+        if (!cancelled && data?.receipt_url) {
+          setReceiptUrl(data.receipt_url);
+          return;
+        }
       } catch {
-        // ignore
+        // keep retrying
       }
-    })();
+      if (!cancelled && attempts < maxAttempts) {
+        window.setTimeout(tick, 1500);
+      }
+    };
+
+    void tick();
     return () => {
       cancelled = true;
     };
   }, [step, receiptUrl, myPayment, paymentId]);
 
-  // Initial + status-change hydrate
+  // Initial + status-change hydrate (prefer one-shot Safepay handoff when present)
   useEffect(() => {
     if (!session?.id) {
       resetPayment();
       return;
     }
+    if (consumeJustPaid()) return;
     void refreshBill({ openDrawer: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.status]);
@@ -610,6 +675,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     closePaymentDrawer,
     beginLocalCheckout,
     refreshBill,
+    resumeAfterSafepayReturn,
     applyCheckoutResult,
     resetPayment,
     myParticipantId,

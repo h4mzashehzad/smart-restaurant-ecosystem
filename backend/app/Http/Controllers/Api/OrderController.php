@@ -10,18 +10,20 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemCustomization;
 use App\Models\TableSession;
+use App\Services\IngredientCustomizationPricer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
     /**
      * Create a new order.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, IngredientCustomizationPricer $pricer): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'session_id' => 'required|exists:table_sessions,id',
@@ -32,6 +34,7 @@ class OrderController extends Controller
             'items.*.customizations' => 'nullable|array',
             'items.*.customizations.*.ingredient_id' => 'required_with:items.*.customizations|exists:ingredients,id',
             'items.*.customizations.*.action' => 'required_with:items.*.customizations|in:add,remove,modify',
+            'items.*.customizations.*.quantity' => 'nullable|numeric|min:0',
             'special_instructions' => 'nullable|string|max:500',
         ]);
 
@@ -50,24 +53,8 @@ class OrderController extends Controller
 
             foreach ($request->items as $item) {
                 $menuItem = MenuItem::findOrFail($item['menu_item_id']);
-                $unitPrice = $menuItem->base_price;
-                $customizationAdjustment = 0;
-
-                // Calculate customization price adjustments
-                if (! empty($item['customizations'])) {
-                    foreach ($item['customizations'] as $c) {
-                        $ingredient = \App\Models\Ingredient::find($c['ingredient_id']);
-                        if ($c['action'] === 'add' && $ingredient) {
-                            // Look up additional price from the pivot
-                            $pivot = $menuItem->menuItemIngredients()
-                                ->where('ingredient_id', $c['ingredient_id'])
-                                ->first();
-                            $customizationAdjustment += $pivot?->additional_price ?? 0;
-                        }
-                    }
-                }
-
-                $finalUnitPrice = $unitPrice + $customizationAdjustment;
+                $priced = $pricer->price($menuItem, $item['customizations'] ?? []);
+                $finalUnitPrice = (float) $menuItem->base_price + $priced['unit_price_adjustment'];
                 $totalPrice = $finalUnitPrice * $item['quantity'];
                 $subtotal += $totalPrice;
 
@@ -76,7 +63,7 @@ class OrderController extends Controller
                     'quantity' => $item['quantity'],
                     'unit_price' => $finalUnitPrice,
                     'total_price' => $totalPrice,
-                    'customizations' => $item['customizations'] ?? [],
+                    'customizations' => $priced['normalized_rows'],
                 ];
             }
 
@@ -116,8 +103,8 @@ class OrderController extends Controller
                         'order_item_id' => $orderItem->id,
                         'ingredient_id' => $c['ingredient_id'],
                         'action' => $c['action'],
-                        'quantity' => $c['quantity'] ?? 1,
-                        'price_adjustment' => 0, // already factored into unit_price
+                        'quantity' => $c['quantity'],
+                        'price_adjustment' => $c['price_adjustment'],
                     ]);
                 }
             }
@@ -135,6 +122,13 @@ class OrderController extends Controller
                     'order' => $order,
                 ],
             ], 201);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
 

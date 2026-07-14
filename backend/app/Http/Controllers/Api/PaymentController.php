@@ -17,6 +17,7 @@ use App\Models\Payment;
 use App\Models\SessionParticipant;
 use App\Models\SplitBillItem;
 use App\Models\TableSession;
+use App\Services\IngredientCustomizationPricer;
 use App\Services\PaymentCompletionService;
 use App\Services\ReceiptService;
 use App\Services\SafepayService;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
@@ -34,6 +36,7 @@ class PaymentController extends Controller
         protected SplitBillService $splitBill,
         protected PaymentCompletionService $completion,
         protected ReceiptService $receipts,
+        protected IngredientCustomizationPricer $pricer,
     ) {}
 
     /**
@@ -47,6 +50,10 @@ class PaymentController extends Controller
             'items' => 'required|array|min:1|max:20',
             'items.*.menu_item_id' => 'required|exists:menu_items,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
+            'items.*.customizations' => 'nullable|array',
+            'items.*.customizations.*.ingredient_id' => 'required_with:items.*.customizations|exists:ingredients,id',
+            'items.*.customizations.*.action' => 'required_with:items.*.customizations|in:add,remove,modify',
+            'items.*.customizations.*.quantity' => 'nullable|numeric|min:0',
             'special_instructions' => 'nullable|string|max:500',
             'mode' => 'required|in:full,split_equal,split_itemized',
             'payment_method' => 'required_if:mode,full|in:cash,safepay',
@@ -146,6 +153,11 @@ class PaymentController extends Controller
             $payload['data']['order'] = $order;
 
             return response()->json($payload, $response->status());
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -425,8 +437,10 @@ class PaymentController extends Controller
                     'success' => true,
                     'message' => 'Payment completed',
                     'data' => [
-                        'payment' => $payment,
+                        'payment' => $payment->loadMissing('order:id,order_number'),
                         'all_paid' => $this->completion->isGroupFullyPaid($payment),
+                        'order_number' => $payment->order?->order_number,
+                        'receipt_url' => $payment->receipt_url,
                     ],
                 ]);
             }
@@ -686,7 +700,8 @@ class PaymentController extends Controller
 
         foreach ($request->items as $item) {
             $menuItem = MenuItem::findOrFail($item['menu_item_id']);
-            $unitPrice = (float) $menuItem->base_price;
+            $priced = $this->pricer->price($menuItem, $item['customizations'] ?? []);
+            $unitPrice = (float) $menuItem->base_price + $priced['unit_price_adjustment'];
             $totalPrice = $unitPrice * $item['quantity'];
             $subtotal += $totalPrice;
 
@@ -695,7 +710,7 @@ class PaymentController extends Controller
                 'quantity' => $item['quantity'],
                 'unit_price' => $unitPrice,
                 'total_price' => $totalPrice,
-                'customizations' => $item['customizations'] ?? [],
+                'customizations' => $priced['normalized_rows'],
             ];
         }
 
@@ -731,8 +746,8 @@ class PaymentController extends Controller
                     'order_item_id' => $orderItem->id,
                     'ingredient_id' => $c['ingredient_id'],
                     'action' => $c['action'],
-                    'quantity' => $c['quantity'] ?? 1,
-                    'price_adjustment' => 0,
+                    'quantity' => $c['quantity'],
+                    'price_adjustment' => $c['price_adjustment'],
                 ]);
             }
         }

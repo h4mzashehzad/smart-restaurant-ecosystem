@@ -15,10 +15,26 @@ return new class extends Migration
             });
         }
 
-        DB::statement('ALTER TABLE split_bill_items MODIFY payment_id BIGINT UNSIGNED NULL');
+        $driver = Schema::getConnection()->getDriverName();
 
-        $indexes = collect(DB::select("SHOW INDEX FROM split_bill_items WHERE Key_name = 'split_bill_items_order_item_unit_unique'"));
-        if ($indexes->isEmpty()) {
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            DB::statement('ALTER TABLE split_bill_items MODIFY payment_id BIGINT UNSIGNED NULL');
+
+            $indexes = collect(DB::select("SHOW INDEX FROM split_bill_items WHERE Key_name = 'split_bill_items_order_item_unit_unique'"));
+            if ($indexes->isEmpty()) {
+                Schema::table('split_bill_items', function (Blueprint $table) {
+                    $table->unique(['order_item_id', 'unit_index'], 'split_bill_items_order_item_unit_unique');
+                });
+            }
+
+            return;
+        }
+
+        // SQLite: skip MySQL-only MODIFY; unique index is enough for schema parity in tests.
+        $indexExists = collect(DB::select("PRAGMA index_list('split_bill_items')"))
+            ->contains(fn ($row) => ($row->name ?? null) === 'split_bill_items_order_item_unit_unique');
+
+        if (! $indexExists) {
             Schema::table('split_bill_items', function (Blueprint $table) {
                 $table->unique(['order_item_id', 'unit_index'], 'split_bill_items_order_item_unit_unique');
             });
@@ -27,16 +43,29 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('split_bill_items', function (Blueprint $table) {
-            $indexes = collect(DB::select("SHOW INDEX FROM split_bill_items WHERE Key_name = 'split_bill_items_order_item_unit_unique'"));
-            if ($indexes->isNotEmpty()) {
-                $table->dropUnique('split_bill_items_order_item_unit_unique');
+        $driver = Schema::getConnection()->getDriverName();
+
+        Schema::table('split_bill_items', function (Blueprint $table) use ($driver) {
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $indexes = collect(DB::select("SHOW INDEX FROM split_bill_items WHERE Key_name = 'split_bill_items_order_item_unit_unique'"));
+                if ($indexes->isNotEmpty()) {
+                    $table->dropUnique('split_bill_items_order_item_unit_unique');
+                }
+            } else {
+                try {
+                    $table->dropUnique('split_bill_items_order_item_unit_unique');
+                } catch (\Throwable) {
+                    // Index may not exist on fresh sqlite down.
+                }
             }
+
             if (Schema::hasColumn('split_bill_items', 'unit_index')) {
                 $table->dropColumn('unit_index');
             }
         });
 
-        DB::statement('ALTER TABLE split_bill_items MODIFY payment_id BIGINT UNSIGNED NOT NULL');
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            DB::statement('ALTER TABLE split_bill_items MODIFY payment_id BIGINT UNSIGNED NOT NULL');
+        }
     }
 };

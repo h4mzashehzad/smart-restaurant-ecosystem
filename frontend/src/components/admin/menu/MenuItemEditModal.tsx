@@ -50,6 +50,10 @@ interface IngredientRow {
   quantity: number;
   is_optional: boolean;
   is_removable: boolean;
+  is_adjustable: boolean;
+  min_quantity: number;
+  max_quantity: number | null;
+  extra_unit_price: number;
 }
 
 interface FormState {
@@ -106,6 +110,11 @@ function itemToForm(item: AdminMenuItem): FormState {
       quantity: Number(ing.pivot?.quantity ?? 1),
       is_optional: Boolean(ing.pivot?.is_optional),
       is_removable: ing.pivot?.is_removable !== false,
+      is_adjustable: Boolean(ing.pivot?.is_adjustable),
+      min_quantity: Number(ing.pivot?.min_quantity ?? 0),
+      max_quantity:
+        ing.pivot?.max_quantity != null ? Number(ing.pivot.max_quantity) : null,
+      extra_unit_price: Number(ing.pivot?.extra_unit_price ?? 0),
     })),
   };
 }
@@ -214,7 +223,7 @@ export function MenuItemEditModal({
       ...prev,
       ingredients: [
         ...prev.ingredients,
-        { ingredient_id: id, quantity: 1, is_optional: false, is_removable: true },
+        { ingredient_id: id, quantity: 1, is_optional: false, is_removable: true, is_adjustable: false, min_quantity: 0, max_quantity: null, extra_unit_price: 0 },
       ],
     }));
     setAddIngredientId(null);
@@ -242,11 +251,26 @@ export function MenuItemEditModal({
       quantity: Number(row.quantity),
       is_optional: row.is_optional,
       is_removable: row.is_removable,
+      is_adjustable: row.is_adjustable,
+      min_quantity: Number(row.min_quantity),
+      max_quantity: row.is_adjustable ? Number(row.max_quantity) : null,
+      extra_unit_price: Number(row.extra_unit_price || 0),
     }));
   }
 
   function handleSubmit() {
     if (!form.category_id || !form.name.trim() || form.base_price === '') return;
+
+    for (const row of form.ingredients) {
+      if (row.is_adjustable) {
+        if (row.max_quantity == null || Number.isNaN(Number(row.max_quantity))) {
+          return;
+        }
+        if (Number(row.max_quantity) < Number(row.min_quantity)) {
+          return;
+        }
+      }
+    }
 
     const payload: CreateMenuItemPayload = {
       category_id: Number(form.category_id),
@@ -269,7 +293,17 @@ export function MenuItemEditModal({
   }
 
   const canSave =
-    Boolean(form.category_id) && form.name.trim().length > 0 && form.base_price !== '' && !saving;
+    Boolean(form.category_id) &&
+    form.name.trim().length > 0 &&
+    form.base_price !== '' &&
+    !saving &&
+    form.ingredients.every(
+      (row) =>
+        !row.is_adjustable ||
+        (row.max_quantity != null &&
+          !Number.isNaN(Number(row.max_quantity)) &&
+          Number(row.max_quantity) >= Number(row.min_quantity))
+    );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -504,8 +538,8 @@ export function MenuItemEditModal({
             <div>
               <p className="text-sm font-semibold text-gray-900">Ingredients</p>
               <p className="text-xs text-gray-500">
-                Choose from your restaurant&apos;s ingredient list. Set quantity, optional, and
-                removable.
+                Choose from your restaurant&apos;s ingredient list. Mark ingredients as adjustable
+                so customers can change quantity within your limits.
               </p>
             </div>
 
@@ -520,63 +554,140 @@ export function MenuItemEditModal({
                   return (
                     <div
                       key={row.ingredient_id}
-                      className="grid gap-2 rounded-xl border border-gray-100 bg-white p-3 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center"
+                      className="space-y-2 rounded-xl border border-gray-100 bg-white p-3"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-900">
-                          {meta?.name ?? `Ingredient #${row.ingredient_id}`}
-                        </p>
-                        {meta?.unit && (
-                          <p className="text-[11px] text-gray-400">Unit: {meta.unit}</p>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {meta?.name ?? `Ingredient #${row.ingredient_id}`}
+                          </p>
+                          {meta?.unit && (
+                            <p className="text-[11px] text-gray-400">Unit: {meta.unit}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Label className="sr-only">Quantity</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="h-8 w-24"
+                            value={row.quantity}
+                            onChange={(e) =>
+                              updateIngredient(row.ingredient_id, {
+                                quantity: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                          <Checkbox
+                            checked={row.is_optional}
+                            onCheckedChange={(checked) =>
+                              updateIngredient(row.ingredient_id, {
+                                is_optional: Boolean(checked),
+                              })
+                            }
+                          />
+                          Optional
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                          <Checkbox
+                            checked={row.is_removable}
+                            onCheckedChange={(checked) =>
+                              updateIngredient(row.ingredient_id, {
+                                is_removable: Boolean(checked),
+                              })
+                            }
+                          />
+                          Removable
+                        </label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => removeIngredient(row.ingredient_id)}
+                          aria-label="Remove ingredient"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-gray-100 bg-gray-50/70 px-3 py-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+                          <Checkbox
+                            checked={row.is_adjustable}
+                            onCheckedChange={(checked) =>
+                              updateIngredient(row.ingredient_id, {
+                                is_adjustable: Boolean(checked),
+                                max_quantity: checked
+                                  ? row.max_quantity ?? Math.max(row.quantity, 1)
+                                  : null,
+                              })
+                            }
+                          />
+                          Adjustable by customer
+                        </label>
+
+                        {row.is_adjustable && (
+                          <div className="flex flex-wrap items-end gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-gray-500">Min qty</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="h-8 w-20"
+                                value={row.min_quantity}
+                                onChange={(e) =>
+                                  updateIngredient(row.ingredient_id, {
+                                    min_quantity: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-gray-500">Max qty</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="h-8 w-20"
+                                value={row.max_quantity ?? ''}
+                                onChange={(e) =>
+                                  updateIngredient(row.ingredient_id, {
+                                    max_quantity:
+                                      e.target.value === '' ? null : Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-gray-500">Extra Rs / unit</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="h-8 w-24"
+                                value={row.extra_unit_price}
+                                onChange={(e) =>
+                                  updateIngredient(row.ingredient_id, {
+                                    extra_unit_price: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Label className="sr-only">Quantity</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          className="h-8 w-24"
-                          value={row.quantity}
-                          onChange={(e) =>
-                            updateIngredient(row.ingredient_id, {
-                              quantity: Number(e.target.value),
-                            })
-                          }
-                        />
-                      </div>
-                      <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Checkbox
-                          checked={row.is_optional}
-                          onCheckedChange={(checked) =>
-                            updateIngredient(row.ingredient_id, {
-                              is_optional: Boolean(checked),
-                            })
-                          }
-                        />
-                        Optional
-                      </label>
-                      <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Checkbox
-                          checked={row.is_removable}
-                          onCheckedChange={(checked) =>
-                            updateIngredient(row.ingredient_id, {
-                              is_removable: Boolean(checked),
-                            })
-                          }
-                        />
-                        Removable
-                      </label>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => removeIngredient(row.ingredient_id)}
-                        aria-label="Remove ingredient"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {row.is_adjustable &&
+                        row.max_quantity != null &&
+                        Number(row.max_quantity) < Number(row.min_quantity) && (
+                          <p className="text-xs text-red-500">
+                            Max quantity must be greater than or equal to min quantity.
+                          </p>
+                        )}
                     </div>
                   );
                 })}

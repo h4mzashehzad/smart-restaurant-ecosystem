@@ -4,11 +4,14 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
+import { useSession } from '@/contexts/SessionContext';
+import { writeJustPaidPayload } from '@/lib/just-paid';
 
 function CallbackInner() {
   const params = useSearchParams();
   const router = useRouter();
   const { clearCart } = useCart();
+  const { session } = useSession();
   const [message, setMessage] = useState('Verifying payment…');
   const [ok, setOk] = useState<boolean | null>(null);
 
@@ -26,15 +29,36 @@ function CallbackInner() {
       try {
         const res = await api.verifySafepayCallback(tracker || '', cancelled);
         if (res.success) {
+          const payment = res.data?.payment;
+          const paymentId = Number(payment?.id || 0);
+          const receiptUrl =
+            (res.data?.receipt_url as string | null | undefined) ||
+            (payment?.receipt_url as string | null | undefined) ||
+            null;
+          const orderNumber =
+            (res.data?.order_number as string | undefined) ||
+            payment?.order?.order_number ||
+            '';
+          const sessionId = Number(payment?.session_id || session?.id || 0);
+
+          if (paymentId && sessionId) {
+            writeJustPaidPayload({
+              sessionId,
+              paymentId,
+              receiptUrl,
+              orderNumber,
+              amount: payment?.amount != null ? Number(payment.amount) : undefined,
+            });
+          }
+
           if (res.data?.all_paid) {
             clearCart();
             setOk(true);
             setMessage('Payment complete! Returning to menu…');
-            setTimeout(() => router.push('/menu'), 1600);
+            setTimeout(() => router.push('/menu?paid=1'), 1600);
           } else {
             setOk(true);
             setMessage('Your share is paid. Opening the split tracker…');
-            // Resume split UI on menu so the other guests' shares stay visible.
             setTimeout(() => router.push('/menu?split=1'), 1200);
           }
         } else {
@@ -50,7 +74,7 @@ function CallbackInner() {
     }
 
     run();
-  }, [params, router, clearCart]);
+  }, [params, router, clearCart, session?.id]);
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-gray-50 px-6">

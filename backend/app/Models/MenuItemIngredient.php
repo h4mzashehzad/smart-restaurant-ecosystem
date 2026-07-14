@@ -19,6 +19,10 @@ class MenuItemIngredient extends Pivot
         'quantity',
         'is_optional',
         'is_removable',
+        'is_adjustable',
+        'min_quantity',
+        'max_quantity',
+        'extra_unit_price',
         'additional_price',
     ];
 
@@ -28,6 +32,10 @@ class MenuItemIngredient extends Pivot
             'quantity' => 'decimal:2',
             'is_optional' => 'boolean',
             'is_removable' => 'boolean',
+            'is_adjustable' => 'boolean',
+            'min_quantity' => 'decimal:2',
+            'max_quantity' => 'decimal:2',
+            'extra_unit_price' => 'decimal:2',
             'additional_price' => 'decimal:2',
         ];
     }

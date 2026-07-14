@@ -31,10 +31,12 @@ export function MenuContainer() {
     }
   }, [payment.drawerOpen]);
 
-  // Resume split tracker after Safepay redirect (or deep-link).
+  // Resume after Safepay redirect (full pay or split share).
   useEffect(() => {
-    if (searchParams.get('split') !== '1') return;
-    void payment.refreshBill({ openDrawer: true });
+    const paid = searchParams.get('paid') === '1';
+    const split = searchParams.get('split') === '1';
+    if (!paid && !split) return;
+    payment.resumeAfterSafepayReturn(paid ? 'paid' : 'split');
     setCartOpen(true);
     router.replace('/menu', { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,6 +92,7 @@ export function MenuContainer() {
       image_url: item.image_url ?? null,
       is_signature: item.is_signature ?? false,
       unitPrice: parseFloat(item.base_price),
+      customizations: [],
     });
   };
 

@@ -433,11 +433,16 @@ class AdminMenuController extends Controller
             'ingredients.*.quantity' => 'required_with:ingredients|numeric|min:0',
             'ingredients.*.is_optional' => 'nullable|boolean',
             'ingredients.*.is_removable' => 'nullable|boolean',
+            'ingredients.*.is_adjustable' => 'nullable|boolean',
+            'ingredients.*.min_quantity' => 'nullable|numeric|min:0',
+            'ingredients.*.max_quantity' => 'nullable|numeric|min:0',
+            'ingredients.*.extra_unit_price' => 'nullable|numeric|min:0',
+            'ingredients.*.additional_price' => 'nullable|numeric|min:0',
         ];
     }
 
     /**
-     * @param  array<int, array{ingredient_id: int, quantity: float|int|string, is_optional?: bool, is_removable?: bool}>  $ingredients
+     * @param  array<int, array{ingredient_id: int, quantity: float|int|string, is_optional?: bool, is_removable?: bool, is_adjustable?: bool, min_quantity?: float|int|string, max_quantity?: float|int|string|null, extra_unit_price?: float|int|string, additional_price?: float|int|string}>  $ingredients
      */
     protected function syncIngredients(MenuItem $item, array $ingredients): void
     {
@@ -445,10 +450,33 @@ class AdminMenuController extends Controller
 
         foreach ($ingredients as $row) {
             $ingredientId = (int) $row['ingredient_id'];
+            $isAdjustable = (bool) ($row['is_adjustable'] ?? false);
+            $minQuantity = isset($row['min_quantity']) ? (float) $row['min_quantity'] : 0.0;
+            $maxQuantity = array_key_exists('max_quantity', $row) && $row['max_quantity'] !== null && $row['max_quantity'] !== ''
+                ? (float) $row['max_quantity']
+                : null;
+
+            if ($isAdjustable && $maxQuantity === null) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'ingredients' => 'Max quantity is required when an ingredient is adjustable.',
+                ]);
+            }
+
+            if ($isAdjustable && $maxQuantity !== null && $maxQuantity < $minQuantity) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'ingredients' => 'Max quantity must be greater than or equal to min quantity.',
+                ]);
+            }
+
             $syncData[$ingredientId] = [
                 'quantity' => $row['quantity'],
                 'is_optional' => (bool) ($row['is_optional'] ?? false),
                 'is_removable' => (bool) ($row['is_removable'] ?? true),
+                'is_adjustable' => $isAdjustable,
+                'min_quantity' => $minQuantity,
+                'max_quantity' => $isAdjustable ? $maxQuantity : null,
+                'extra_unit_price' => (float) ($row['extra_unit_price'] ?? 0),
+                'additional_price' => (float) ($row['additional_price'] ?? 0),
             ];
         }
 

@@ -14,12 +14,12 @@ return new class extends Migration
             $table->foreignId('session_id')->nullable()->constrained('table_sessions')->onDelete('set null');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('participant_id')->nullable()->constrained('session_participants')->onDelete('set null');
-            $table->enum('payment_method', ['cash', 'card', 'jazzcash', 'easypaisa', 'bank_transfer']);
+            $table->enum('payment_method', ['cash', 'safepay', 'card', 'jazzcash', 'easypaisa', 'bank_transfer']);
             $table->enum('payment_type', ['full', 'split_equal', 'split_itemized'])->default('full');
             $table->decimal('amount', 10, 2);
             $table->string('transaction_id', 100)->unique()->nullable();
             $table->json('gateway_response')->nullable();
-            $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'refunded'])->default('pending');
+            $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'refunded', 'voided', 'expired'])->default('pending');
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
 

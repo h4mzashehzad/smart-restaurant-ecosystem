@@ -175,6 +175,11 @@ export interface AdminMenuItemIngredientPivot {
   quantity: number;
   is_optional: boolean;
   is_removable: boolean;
+  is_adjustable?: boolean;
+  min_quantity?: number;
+  max_quantity?: number | null;
+  extra_unit_price?: number;
+  additional_price?: number;
 }
 
 export interface AdminMenuItemIngredient {
@@ -274,6 +279,11 @@ export interface MenuItemIngredientPayload {
   quantity: number;
   is_optional?: boolean;
   is_removable?: boolean;
+  is_adjustable?: boolean;
+  min_quantity?: number;
+  max_quantity?: number | null;
+  extra_unit_price?: number;
+  additional_price?: number;
 }
 
 export interface CreateMenuItemPayload {
