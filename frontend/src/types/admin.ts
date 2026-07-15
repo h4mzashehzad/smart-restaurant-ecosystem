@@ -51,6 +51,7 @@ export interface RevenuePoint {
 }
 
 export interface PeakHourPoint {
+  day_of_week: number;
   hour: number;
   order_count: number;
   revenue: number;
@@ -65,6 +66,49 @@ export interface PopularItem {
   order_count: number;
 }
 
+export interface RevenueByCategoryPoint {
+  category_id: number;
+  category_name: string;
+  total_revenue: number;
+  total_quantity: number;
+  order_count: number;
+}
+
+export interface BusiestTable {
+  table_id: number;
+  table_number: string;
+  order_count: number;
+  total_revenue: number;
+}
+
+export interface MenuCategoryPerformance {
+  category_id: number;
+  category_name: string;
+  active_item_count: number;
+  total_revenue: number;
+  total_quantity: number;
+  order_count: number;
+  avg_rating: number;
+}
+
+export interface UnderperformingItem {
+  id: number;
+  name: string;
+  base_price: number;
+  category_id: number;
+  total_quantity: number;
+  total_revenue: number;
+  avg_sentiment_score: number | null;
+  avg_item_rating: number | null;
+  review_count: number;
+  reasons: string[];
+}
+
+export interface MenuPerformance {
+  categories: MenuCategoryPerformance[];
+  underperforming_items: UnderperformingItem[];
+}
+
 export interface SentimentBreakdownEntry {
   sentiment_label: string;
   count: number;
@@ -72,9 +116,30 @@ export interface SentimentBreakdownEntry {
   avg_rating: number;
 }
 
+export interface SentimentTrendPoint {
+  date: string;
+  sentiment_label: string;
+  count: number;
+}
+
 export interface SentimentSummary {
   sentiment_breakdown: SentimentBreakdownEntry[];
   flagged_reviews: number;
+  total_reviews: number;
+  responded_reviews: number;
+  response_rate: number;
+  trend: SentimentTrendPoint[];
+}
+
+export interface ItemSentiment {
+  id: number;
+  name: string;
+  review_count: number;
+  avg_sentiment_score: number;
+  avg_item_rating: number | null;
+  negative_count: number;
+  positive_count: number;
+  neutral_count: number;
 }
 
 export interface LowStockIngredient {
@@ -88,6 +153,91 @@ export interface LowStockIngredient {
 export interface WastageReport {
   low_stock_ingredients: LowStockIngredient[];
   total_low_stock: number;
+}
+
+export type LoyaltyTier = 'bronze' | 'silver' | 'gold';
+
+export interface LoyaltyChurnCustomer {
+  id: number;
+  name: string;
+  email: string;
+  loyalty_tier: LoyaltyTier;
+  loyalty_points: number;
+  restaurant_order_count?: number;
+  last_order_at?: string | null;
+}
+
+export interface LoyaltyInsights {
+  loyalty_revenue: number;
+  guest_revenue: number;
+  loyalty_order_count: number;
+  guest_order_count: number;
+  loyalty_revenue_share: number;
+  tier_distribution: {
+    bronze: number;
+    silver: number;
+    gold: number;
+  };
+  repeat_visit_rate: number;
+  points_redeemed: number;
+  churn_risk_count: number;
+  churn_risk_customers: LoyaltyChurnCustomer[];
+}
+
+export interface FulfillmentPerformance {
+  total_orders: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  cancellation_rate: number;
+  avg_confirm_minutes: number;
+  avg_prep_minutes: number;
+  avg_serve_minutes: number;
+  avg_total_fulfillment_minutes: number;
+  flagged_feedback_on_completed: number;
+  complaint_rate: number;
+}
+
+export interface TableTurnoverRow {
+  table_id: number;
+  table_number: string;
+  session_count: number;
+  avg_duration_minutes: number;
+  total_revenue: number;
+}
+
+export interface TableTurnover {
+  avg_session_minutes: number;
+  total_sessions: number;
+  sessions_per_table_per_day: number;
+  tables: TableTurnoverRow[];
+}
+
+export interface DemandForecastHourly {
+  hour: number;
+  predicted_quantity: number;
+  confidence_score: number | null;
+  actual_quantity: number | null;
+}
+
+export interface DemandForecastItem {
+  menu_item_id: number;
+  name: string;
+  hourly_predictions: DemandForecastHourly[];
+  total_daily: number;
+  recommended_prep_quantity: number;
+  avg_confidence: number;
+}
+
+export interface DemandForecastTotalsByHour {
+  hour: number;
+  predicted_quantity: number;
+}
+
+export interface DemandForecastResponse {
+  forecast_date: string;
+  insufficient_data: boolean;
+  items: DemandForecastItem[];
+  totals_by_hour: DemandForecastTotalsByHour[];
 }
 
 // ── Restaurant ────────────────────────────────────────────────────────────
@@ -441,8 +591,6 @@ export interface AdminPayment {
 }
 
 // ── Loyalty ───────────────────────────────────────────────────────────────
-
-export type LoyaltyTier = 'bronze' | 'silver' | 'gold';
 
 export interface LoyaltySummary {
   total_customers: number;

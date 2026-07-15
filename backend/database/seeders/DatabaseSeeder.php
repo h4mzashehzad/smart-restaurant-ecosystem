@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             TablesTableSeeder::class,
             AdminUserSeeder::class,
             CustomizableIngredientsSeeder::class,
+            // Optional: php artisan db:seed --class=AnalyticsDemoSeeder
+            AnalyticsDemoSeeder::class,
         ]);
     }
 }

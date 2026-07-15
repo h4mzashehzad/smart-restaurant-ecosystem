@@ -19,14 +19,22 @@ import type {
   DashboardStats,
   DeleteCategoryResult,
   DeleteMenuItemResult,
+  DemandForecastResponse,
+  FulfillmentPerformance,
+  ItemSentiment,
+  LoyaltyInsights,
   PaginatedResponse,
   PeakHourPoint,
   PopularItem,
   RestaurantDetails,
   RestaurantTable,
+  RevenueByCategoryPoint,
   RevenuePoint,
   SentimentSummary,
   TeamMember,
+  BusiestTable,
+  MenuPerformance,
+  TableTurnover,
   UpdateCategoryPayload,
   UpdateIngredientPayload,
   UpdateMenuItemPayload,
@@ -83,16 +91,40 @@ export const adminApi = {
   getRevenue: (params?: { period?: 'daily' | 'weekly' | 'monthly'; days?: number }) =>
     get<RevenuePoint[]>('/admin/analytics/revenue', params),
 
+  getRevenueByCategory: (params?: { days?: number }) =>
+    get<RevenueByCategoryPoint[]>('/admin/analytics/revenue-by-category', params),
+
   getPeakHours: (params?: { days?: number }) =>
     get<PeakHourPoint[]>('/admin/analytics/peak-hours', params),
 
-  getPopularItems: (params?: { limit?: number }) =>
+  getBusiestTables: (params?: { days?: number; limit?: number }) =>
+    get<BusiestTable[]>('/admin/analytics/busiest-tables', params),
+
+  getPopularItems: (params?: { limit?: number; days?: number }) =>
     get<PopularItem[]>('/admin/analytics/popular-items', params),
 
-  getSentimentSummary: () => get<SentimentSummary>('/admin/analytics/sentiment-summary'),
+  getMenuPerformance: (params?: { days?: number }) =>
+    get<MenuPerformance>('/admin/analytics/menu-performance', params),
+
+  getSentimentSummary: (params?: { days?: number }) =>
+    get<SentimentSummary>('/admin/analytics/sentiment-summary', params),
+
+  getSentimentByItem: (params?: { days?: number; limit?: number }) =>
+    get<ItemSentiment[]>('/admin/analytics/sentiment-by-item', params),
 
   getWastageReport: () => get<WastageReport>('/admin/analytics/wastage-report'),
 
+  getLoyaltyInsights: (params?: { days?: number; churn_days?: number }) =>
+    get<LoyaltyInsights>('/admin/analytics/loyalty-insights', params),
+
+  getFulfillmentPerformance: (params?: { days?: number }) =>
+    get<FulfillmentPerformance>('/admin/analytics/fulfillment-performance', params),
+
+  getTableTurnover: (params?: { days?: number }) =>
+    get<TableTurnover>('/admin/analytics/table-turnover', params),
+
+  getDemandForecast: (params?: { date?: string }) =>
+    get<DemandForecastResponse>('/admin/analytics/demand-forecast', params),
   // ── Restaurant (admin only) ─────────────────────────────────────────
   getRestaurant: () => get<RestaurantDetails>('/admin/restaurant'),
 

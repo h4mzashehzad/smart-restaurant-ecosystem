@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 
 from models.sentiment_analyzer import SentimentAnalyzer
+from models.recommender import MenuRecommender
+from models.demand_forecaster import DemandForecaster
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +22,11 @@ CORS(app, origins=[os.getenv('ALLOWED_ORIGIN', 'http://localhost:8000')])
 # Initialize the sentiment analyzer (loads spaCy model once)
 analyzer = SentimentAnalyzer()
 
+# Initialize recommender
+recommender = MenuRecommender()
+
+# Initialize demand forecaster
+forecaster = DemandForecaster()
 
 # Database connection
 def get_db_connection():
@@ -42,11 +49,6 @@ def health_check():
         'service': 'ML Service'
     })
 
-
-from models.recommender import MenuRecommender
-
-# Initialize recommender
-recommender = MenuRecommender()
 
 # Recommendation endpoint
 @app.route('/api/ml/recommendations/generate', methods=['POST'])
@@ -91,8 +93,94 @@ def generate_recommendations():
             cursor.close()
             conn.close()
 
-# ── Sentiment Analysis Endpoints ──────────────────────────────────────────────
 
+# ── Demand Forecasting ───────────────────────────────────────────────────────
+
+
+@app.route('/api/ml/forecast/demand', methods=['POST'])
+def forecast_demand():
+    """
+    Generate per-item hourly demand forecasts for a restaurant/date.
+
+    Request body:
+    {
+        "restaurant_id": 1,
+        "forecast_date": "2026-07-16",
+        "menu_item_ids": [87, 112],   # optional
+        "lookback_days": 60,          # optional
+        "hours": [11, 12, ..., 22]    # optional
+    }
+    """
+    data = request.get_json() or {}
+    restaurant_id = data.get('restaurant_id')
+    forecast_date = data.get('forecast_date')
+    menu_item_ids = data.get('menu_item_ids')
+    lookback_days = int(data.get('lookback_days', 60))
+    hours = data.get('hours')
+
+    if not restaurant_id or not forecast_date:
+        return jsonify({
+            'success': False,
+            'error': 'restaurant_id and forecast_date are required',
+        }), 422
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                oi.menu_item_id,
+                mi.name,
+                o.placed_at,
+                oi.quantity
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            JOIN menu_items mi ON oi.menu_item_id = mi.id
+            WHERE o.restaurant_id = %s
+              AND o.status NOT IN ('cancelled', 'pending_payment')
+              AND o.placed_at >= DATE_SUB(%s, INTERVAL %s DAY)
+              AND o.placed_at < %s
+            """,
+            (restaurant_id, forecast_date, lookback_days, forecast_date),
+        )
+        historical_rows = cursor.fetchall()
+
+        # Convert datetime objects to ISO strings for the forecaster
+        for row in historical_rows:
+            if row.get('placed_at') is not None and hasattr(row['placed_at'], 'isoformat'):
+                row['placed_at'] = row['placed_at'].isoformat()
+
+        result = forecaster.forecast(
+            historical_rows=historical_rows,
+            forecast_date=forecast_date,
+            menu_item_ids=menu_item_ids,
+            hours=hours,
+        )
+
+        return jsonify({
+            'success': True,
+            'insufficient_data': result.get('insufficient_data', False),
+            'reason': result.get('reason'),
+            'forecasts': result.get('forecasts', []),
+            'model_version': result.get('model_version', 'v1.0.0-rf'),
+            'trained_on_samples': result.get('trained_on_samples', 0),
+            'generated_at': datetime.now().isoformat(),
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+        }), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+
+# ── Sentiment Analysis Endpoints ──────────────────────────────────────────────
 
 @app.route('/api/ml/sentiment/analyze', methods=['POST'])
 def analyze_sentiment():

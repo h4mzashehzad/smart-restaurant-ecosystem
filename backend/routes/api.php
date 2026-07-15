@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAnalyticsController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminFeedbackController;
 use App\Http\Controllers\Api\AdminLoyaltyController;
@@ -169,11 +170,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // controllers resolve the restaurant via ResolvesRestaurant, never a route/body param.
     Route::prefix('admin')->middleware('restaurant.role:admin,staff')->group(function () {
         Route::get('/dashboard/stats', [AdminController::class, 'dashboardStats']);
-        Route::get('/analytics/revenue', [AdminController::class, 'revenue']);
-        Route::get('/analytics/peak-hours', [AdminController::class, 'peakHours']);
-        Route::get('/analytics/popular-items', [AdminController::class, 'popularItems']);
-        Route::get('/analytics/sentiment-summary', [AdminController::class, 'sentimentSummary']);
-        Route::get('/analytics/wastage-report', [AdminController::class, 'wastageReport']);
+        Route::get('/analytics/revenue', [AdminAnalyticsController::class, 'revenue']);
+        Route::get('/analytics/revenue-by-category', [AdminAnalyticsController::class, 'revenueByCategory']);
+        Route::get('/analytics/peak-hours', [AdminAnalyticsController::class, 'peakHours']);
+        Route::get('/analytics/busiest-tables', [AdminAnalyticsController::class, 'busiestTables']);
+        Route::get('/analytics/popular-items', [AdminAnalyticsController::class, 'popularItems']);
+        Route::get('/analytics/menu-performance', [AdminAnalyticsController::class, 'menuPerformance']);
+        Route::get('/analytics/sentiment-summary', [AdminAnalyticsController::class, 'sentimentSummary']);
+        Route::get('/analytics/sentiment-by-item', [AdminAnalyticsController::class, 'sentimentByItem']);
+        Route::get('/analytics/wastage-report', [AdminAnalyticsController::class, 'wastageReport']);
+        Route::get('/analytics/loyalty-insights', [AdminAnalyticsController::class, 'loyaltyInsights']);
+        Route::get('/analytics/fulfillment-performance', [AdminAnalyticsController::class, 'fulfillmentPerformance']);
+        Route::get('/analytics/table-turnover', [AdminAnalyticsController::class, 'tableTurnover']);
+        Route::get('/analytics/demand-forecast', [AdminAnalyticsController::class, 'demandForecast']);
         Route::get('/kitchen/orders/active', [AdminController::class, 'activeKitchenOrders']);
         Route::patch('/menu-items/{id}', [AdminController::class, 'updateMenuItem']);
 
