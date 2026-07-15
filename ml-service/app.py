@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from models.sentiment_analyzer import SentimentAnalyzer
 from models.recommender import MenuRecommender
@@ -115,7 +115,10 @@ def forecast_demand():
     restaurant_id = data.get('restaurant_id')
     forecast_date = data.get('forecast_date')
     menu_item_ids = data.get('menu_item_ids')
-    lookback_days = int(data.get('lookback_days', 60))
+    try:
+        lookback_days = max(1, min(365, int(data.get('lookback_days', 60))))
+    except (TypeError, ValueError):
+        lookback_days = 60
     hours = data.get('hours')
 
     if not restaurant_id or not forecast_date:
@@ -124,7 +127,20 @@ def forecast_demand():
             'error': 'restaurant_id and forecast_date are required',
         }), 422
 
+    # Compute lookback start in Python — MySQL prepared statements often reject
+    # placeholders inside INTERVAL expressions (causes HTTP 500 in production).
+    try:
+        forecast_dt = datetime.strptime(str(forecast_date), '%Y-%m-%d')
+    except ValueError:
+        return jsonify({
+            'success': False,
+            'error': 'forecast_date must be Y-m-d',
+        }), 422
+
+    lookback_start = (forecast_dt - timedelta(days=lookback_days)).strftime('%Y-%m-%d')
+
     conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -141,17 +157,19 @@ def forecast_demand():
             JOIN menu_items mi ON oi.menu_item_id = mi.id
             WHERE o.restaurant_id = %s
               AND o.status NOT IN ('cancelled', 'pending_payment')
-              AND o.placed_at >= DATE_SUB(%s, INTERVAL %s DAY)
+              AND o.placed_at >= %s
               AND o.placed_at < %s
             """,
-            (restaurant_id, forecast_date, lookback_days, forecast_date),
+            (restaurant_id, lookback_start, forecast_date),
         )
         historical_rows = cursor.fetchall()
 
-        # Convert datetime objects to ISO strings for the forecaster
+        # Convert datetime / Decimal objects for the forecaster + JSON safety
         for row in historical_rows:
             if row.get('placed_at') is not None and hasattr(row['placed_at'], 'isoformat'):
                 row['placed_at'] = row['placed_at'].isoformat()
+            if row.get('quantity') is not None:
+                row['quantity'] = float(row['quantity'])
 
         result = forecaster.forecast(
             historical_rows=historical_rows,
@@ -170,13 +188,19 @@ def forecast_demand():
             'generated_at': datetime.now().isoformat(),
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e),
         }), 500
     finally:
-        if conn and conn.is_connected():
-            cursor.close()
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if conn is not None and getattr(conn, 'is_connected', lambda: False)():
             conn.close()
 
 

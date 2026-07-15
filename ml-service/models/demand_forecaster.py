@@ -169,9 +169,9 @@ class DemandForecaster:
                     confidence = min(confidence, 0.45)
 
                 hourly_predictions.append({
-                    "hour": hour,
-                    "quantity": quantity,
-                    "confidence": round(confidence, 4),
+                    "hour": int(hour),
+                    "quantity": int(quantity),
+                    "confidence": float(round(confidence, 4)),
                 })
 
             total_daily = sum(p["quantity"] for p in hourly_predictions)
@@ -185,9 +185,9 @@ class DemandForecaster:
                 "menu_item_id": int(item_id),
                 "name": names.get(item_id, f"Item {item_id}"),
                 "hourly_predictions": hourly_predictions,
-                "total_daily": total_daily,
+                "total_daily": int(total_daily),
                 "recommended_prep_quantity": int(np.ceil(total_daily * 1.1)),
-                "avg_confidence": round(avg_confidence, 4),
+                "avg_confidence": float(round(avg_confidence, 4)),
             })
 
         forecasts.sort(key=lambda f: f["total_daily"], reverse=True)

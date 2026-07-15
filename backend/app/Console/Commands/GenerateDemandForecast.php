@@ -45,7 +45,11 @@ class GenerateDemandForecast extends Command
                 ]);
 
                 if (! $response->successful()) {
-                    $this->error("HTTP {$response->status()} for restaurant {$restaurant->id}");
+                    $body = $response->json();
+                    $detail = is_array($body)
+                        ? ($body['error'] ?? $response->body())
+                        : $response->body();
+                    $this->error("HTTP {$response->status()} for restaurant {$restaurant->id}: {$detail}");
                     Log::warning('Demand forecast request failed', [
                         'restaurant_id' => $restaurant->id,
                         'status' => $response->status(),
