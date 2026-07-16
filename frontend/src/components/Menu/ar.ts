@@ -31,3 +31,11 @@ export function toArMenuItem(item: {
     image_url: item.image_url ?? null,
   };
 }
+
+/**
+ * Same-origin proxy URL so the browser (and Quick Look) can load the GLB
+ * without depending on S3 bucket CORS.
+ */
+export function toProxiedArModelUrl(arModelUrl: string): string {
+  return `/ar-proxy?url=${encodeURIComponent(arModelUrl)}`;
+}
