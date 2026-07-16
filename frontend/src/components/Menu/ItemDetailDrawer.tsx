@@ -12,6 +12,7 @@ import {
   computeCustomizationExtra,
   type AdjustableIngredient,
 } from '@/components/Menu/IngredientPicker';
+import { MenuItemRating, TopRatedBadge, isTopRated } from '@/components/Menu/MenuItemRating';
 
 interface Ingredient {
   id: number;
@@ -46,6 +47,7 @@ interface MenuItemDetail {
   calories: number | null;
   preparation_time: number | null;
   average_rating: number | null;
+  review_count?: number;
   total_orders: number;
   ingredients: Ingredient[];
 }
@@ -77,6 +79,14 @@ function ItemContent({
 }) {
   const spice = item.spice_level ? SPICE_LABELS[item.spice_level] : null;
   const displayIngredients = item.ingredients.filter((ing) => !ing.pivot?.is_adjustable);
+  const topRated = isTopRated(item.average_rating, item.review_count);
+  const ratingRow = (
+    <MenuItemRating
+      averageRating={item.average_rating}
+      reviewCount={item.review_count}
+      showCount
+    />
+  );
 
   return (
     <div className="pb-4">
@@ -124,23 +134,19 @@ function ItemContent({
           <h2 className="text-2xl font-display font-bold text-gray-900 leading-tight flex-1">
             {item.name}
           </h2>
-          {item.is_signature && (
-            <span className="bg-orange-100 text-orange-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 mt-1">
-              Signature
-            </span>
-          )}
+          <div className="flex flex-col gap-1 items-end shrink-0 mt-1">
+            {item.is_signature && (
+              <span className="bg-orange-100 text-orange-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                Signature
+              </span>
+            )}
+            {topRated && <TopRatedBadge className="px-2.5" />}
+          </div>
         </div>
 
-        {(item.average_rating || item.total_orders > 0) && (
+        {(ratingRow || item.total_orders > 0) && (
           <div className="flex items-center gap-3 mb-3">
-            {item.average_rating && (
-              <div className="flex items-center gap-1">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-amber-400">
-                  <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" />
-                </svg>
-                <span className="text-sm font-sans font-semibold text-gray-700">{parseFloat(String(item.average_rating)).toFixed(1)}</span>
-              </div>
-            )}
+            {ratingRow}
             {item.total_orders > 0 && (
               <span className="text-xs font-sans text-gray-400">{item.total_orders.toLocaleString()} orders</span>
             )}

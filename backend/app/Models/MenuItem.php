@@ -33,6 +33,7 @@ class MenuItem extends Model
         'popularity_score',
         'total_orders',
         'average_rating',
+        'review_count',
     ];
 
     protected function casts(): array
@@ -49,7 +50,26 @@ class MenuItem extends Model
             'popularity_score' => 'decimal:2',
             'total_orders' => 'integer',
             'average_rating' => 'decimal:2',
+            'review_count' => 'integer',
         ];
+    }
+
+    /**
+     * Recompute average_rating and review_count from feedback_menu_items.
+     */
+    public function recalculateAverageRating(): void
+    {
+        $query = FeedbackMenuItem::query()
+            ->where('menu_item_id', $this->id)
+            ->whereNotNull('item_rating');
+
+        $count = (clone $query)->count();
+        $avg = $count > 0 ? (clone $query)->avg('item_rating') : 0;
+
+        $this->update([
+            'average_rating' => round((float) $avg, 2),
+            'review_count' => $count,
+        ]);
     }
 
     // ── Relationships ──

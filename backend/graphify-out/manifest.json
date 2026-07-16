@@ -5,7 +5,7 @@
     "semantic_hash": ""
   },
   "app/Console/Commands/GenerateRecommendations.php": {
-    "mtime": 1782457861.1045983,
+    "mtime": 1784148507.7704191,
     "ast_hash": "a37b39f36f8717c87d03dafbd146ef36",
     "semantic_hash": ""
   },
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "app/Events/SplitBillConfigured.php": {
-    "mtime": 1783670258.385862,
-    "ast_hash": "e5ecca02658afc77f3769ca514ee5e1d",
+    "mtime": 1784062201.9179108,
+    "ast_hash": "f47f740348286a19b852b9b4b4ac5b11",
     "semantic_hash": ""
   },
   "app/Events/SplitBillItemClaimed.php": {
@@ -90,8 +90,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminController.php": {
-    "mtime": 1783922534.2270925,
-    "ast_hash": "1d7ca6c569aa59b0d2f5c4bdfd108245",
+    "mtime": 1784095125.6597657,
+    "ast_hash": "4c34cde8f168023e48f99a1cdc33201d",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AuthController.php": {
@@ -100,13 +100,13 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/FeedbackController.php": {
-    "mtime": 1780389303.3208244,
-    "ast_hash": "cfea0727fbae83de6f0defafb500464f",
+    "mtime": 1784181069.3425796,
+    "ast_hash": "2ae9d41abe18bba8f0ef81caff12b3fd",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/LoyaltyController.php": {
-    "mtime": 1771241319.2193975,
-    "ast_hash": "7203b9756fe3333ca93ff433e5a9b8a2",
+    "mtime": 1784062201.9208415,
+    "ast_hash": "593696e1287218b952706cd4f04124d6",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/MenuController.php": {
@@ -115,13 +115,13 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/OrderController.php": {
-    "mtime": 1784011769.1153016,
-    "ast_hash": "016121d338871cb1a01beed7bfa20c84",
+    "mtime": 1784062201.9218166,
+    "ast_hash": "67f7bf81336ccc5d49e32336aa3349ee",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/PaymentController.php": {
-    "mtime": 1784013555.6959374,
-    "ast_hash": "6b511fa5b08b8e0f13df4804bad2d762",
+    "mtime": 1784062201.9237697,
+    "ast_hash": "60ffad81218caec5810c444910dc70f2",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/QueueController.php": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "app/Models/MenuItem.php": {
-    "mtime": 1784012329.8963792,
-    "ast_hash": "2f5a9f377d0e6567a1b3961c988a55cf",
+    "mtime": 1784181044.4558017,
+    "ast_hash": "836bad4689a0e771e8faa4b705d521c2",
     "semantic_hash": ""
   },
   "app/Models/MenuItemIngredient.php": {
@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "app/Services/PaymentCompletionService.php": {
-    "mtime": 1783713808.1830235,
-    "ast_hash": "6271bbe9acafb475a884505a61a6365d",
+    "mtime": 1784062201.925273,
+    "ast_hash": "addccf54b816f6c28ae4e48a790fab8e",
     "semantic_hash": ""
   },
   "app/Services/QRCodeGenerationService.php": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "app/Services/SplitBillService.php": {
-    "mtime": 1783713808.1840012,
-    "ast_hash": "fec9c7c32a98274d701688134537fef0",
+    "mtime": 1784062201.927234,
+    "ast_hash": "7b3ca8c79faf73aad53adc1f6df556e2",
     "semantic_hash": ""
   },
   "artisan": {
@@ -445,8 +445,8 @@
     "semantic_hash": ""
   },
   "database/factories/UserFactory.php": {
-    "mtime": 1783922534.2446077,
-    "ast_hash": "c69727543eb423fca3ceafba5e206301",
+    "mtime": 1784062201.9282105,
+    "ast_hash": "52ec4572ba03d174571515ce5c9cedf5",
     "semantic_hash": ""
   },
   "database/migrations/0001_01_01_000000_create_users_table.php": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062703_add_unit_index_to_split_bill_items_table.php": {
-    "mtime": 1784012296.1093216,
-    "ast_hash": "36d824cb280febfbef8ddca0e985502e",
+    "mtime": 1784062201.9301634,
+    "ast_hash": "4c43226089eff37378175e03f5732b50",
     "semantic_hash": ""
   },
   "database/migrations/2026_07_10_062704_add_payment_status_to_table_sessions_table.php": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "database/seeders/DatabaseSeeder.php": {
-    "mtime": 1784012330.112488,
-    "ast_hash": "1194ecc56afb1595a104ff8e63cbb6f2",
+    "mtime": 1784098156.576041,
+    "ast_hash": "988fa1ea5fa705d0467cb6e8f58896dd",
     "semantic_hash": ""
   },
   "database/seeders/RestaurantMenuSeeder.php": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "routes/api.php": {
-    "mtime": 1783930040.7470534,
-    "ast_hash": "dc4a4fe4bd311f86a3ae58adeddb21f9",
+    "mtime": 1784095129.9664555,
+    "ast_hash": "b0862facdaaaf1c00dddf15eb83c1be7",
     "semantic_hash": ""
   },
   "routes/channels.php": {
@@ -710,8 +710,8 @@
     "semantic_hash": ""
   },
   "routes/console.php": {
-    "mtime": 1768798644.0,
-    "ast_hash": "3c6ce2e6d16444282b24a9aa63885563",
+    "mtime": 1784095195.2278724,
+    "ast_hash": "0003230dcb1eaeca723eccd7398f1355",
     "semantic_hash": ""
   },
   "routes/web.php": {
@@ -1655,8 +1655,8 @@
     "semantic_hash": ""
   },
   "app/Events/CheckoutStarted.php": {
-    "mtime": 1783669304.0014758,
-    "ast_hash": "0498c80c8cb19e92f56230cd8c21830e",
+    "mtime": 1784062201.9159577,
+    "ast_hash": "6eac30c60835c6c30819e522846df6cc",
     "semantic_hash": ""
   },
   "app/Events/SplitBillUnlocked.php": {
@@ -1675,8 +1675,8 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminOrderController.php": {
-    "mtime": 1783922534.2280922,
-    "ast_hash": "c26f579ee6dabf8b2b7b1faa1fe5d45d",
+    "mtime": 1784062201.9188874,
+    "ast_hash": "51866899cf0bad5803a072e3f9563e61",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/AdminPaymentController.php": {
@@ -1777,6 +1777,56 @@
   "tests/Feature/IngredientCustomizationPricerTest.php": {
     "mtime": 1784012127.554438,
     "ast_hash": "1f716057e2f3188c6eb22c8e99429df0",
+    "semantic_hash": ""
+  },
+  "app/Console/Commands/GenerateDemandForecast.php": {
+    "mtime": 1784104183.1714218,
+    "ast_hash": "f30e5b4a8406f05242224c27af375ff9",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/Api/AdminAnalyticsController.php": {
+    "mtime": 1784095563.8642695,
+    "ast_hash": "f0df758aee986a9b7773fe69121abc05",
+    "semantic_hash": ""
+  },
+  "app/Http/Controllers/Api/AdminLoyaltyController.php": {
+    "mtime": 1784062201.9179108,
+    "ast_hash": "005b94418a0f8128e717ec6ce519e6b0",
+    "semantic_hash": ""
+  },
+  "app/Services/LoyaltyService.php": {
+    "mtime": 1784062201.9237697,
+    "ast_hash": "9a38fd4d4f7fef6c5259008504665a25",
+    "semantic_hash": ""
+  },
+  "config/loyalty.php": {
+    "mtime": 1784062201.927234,
+    "ast_hash": "5b8f75de331dfcf974f6dd8cdf8fe36e",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_07_16_055021_add_review_count_to_menu_items_table.php": {
+    "mtime": 1784181043.8741412,
+    "ast_hash": "30ce3f9f80f4c9900f4e155aa1d5bdec",
+    "semantic_hash": ""
+  },
+  "database/seeders/AnalyticsDemoSeeder.php": {
+    "mtime": 1784181048.495192,
+    "ast_hash": "347f4734fb7bf248c3b3cd9fca69cc20",
+    "semantic_hash": ""
+  },
+  "tests/Feature/AdminAnalyticsTest.php": {
+    "mtime": 1784095506.574279,
+    "ast_hash": "4d7185080672df43535d573c3fd56ad3",
+    "semantic_hash": ""
+  },
+  "tests/Feature/FeedbackAverageRatingTest.php": {
+    "mtime": 1784181060.6775522,
+    "ast_hash": "32e4b4aa0eb9787712338f469362233e",
+    "semantic_hash": ""
+  },
+  "tests/Feature/LoyaltyProgramTest.php": {
+    "mtime": 1784062201.933094,
+    "ast_hash": "112a17ee38a627e50cc949a7de6d452d",
     "semantic_hash": ""
   }
 }

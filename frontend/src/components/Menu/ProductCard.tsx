@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { MenuItemRating, TopRatedBadge, isTopRated } from '@/components/Menu/MenuItemRating';
 
 interface ProductCardProps {
   item: any;
@@ -14,6 +15,7 @@ function isCustomizable(item: any): boolean {
 
 export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
   const customizable = isCustomizable(item);
+  const topRated = isTopRated(item.average_rating, item.review_count);
 
   return (
     <div
@@ -63,6 +65,7 @@ export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
                 Signature
               </span>
             )}
+            {topRated && <TopRatedBadge />}
             {customizable && !item.image_url && (
               <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0 border border-orange-100">
                 Customize
@@ -70,6 +73,11 @@ export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
             )}
           </div>
         </div>
+        <MenuItemRating
+          averageRating={item.average_rating}
+          reviewCount={item.review_count}
+          className="mb-2"
+        />
         <p className="text-sm font-sans text-gray-500 line-clamp-2 mb-4 leading-relaxed">
           {item.description}
         </p>

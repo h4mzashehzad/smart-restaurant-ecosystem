@@ -301,6 +301,11 @@ class AnalyticsDemoSeeder extends Seeder
                 }
             }
 
+            // Keep denormalized menu item ratings in sync with seeded reviews
+            foreach ($menuItems as $menuItem) {
+                $menuItem->recalculateAverageRating();
+            }
+
             // Sync loyalty tiers from awarded points
             foreach ($users as $user) {
                 $user->refresh();

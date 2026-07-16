@@ -138,6 +138,8 @@
   "136": "EnsureRestaurantRole.php",
   "137": "DemandForecast",
   "138": "2026_07_14_064733_add_adjustable_fields_to_menu_item_ingredients_table.php",
+  "139": "ReservationUpdated",
+  "140": "2026_07_16_055021_add_review_count_to_menu_items_table.php",
   "141": "AllPaymentsCompleted",
   "142": "SplitBillUnlocked",
   "145": "QueueUpdated",
