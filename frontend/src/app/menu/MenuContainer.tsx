@@ -8,6 +8,8 @@ import { usePayment } from '@/contexts/PaymentContext';
 import { CategorySlider } from '@/components/Menu/CategorySlider';
 import { ProductCard } from '@/components/Menu/ProductCard';
 import { ItemDetailDrawer } from '@/components/Menu/ItemDetailDrawer';
+import { ARViewerOverlay } from '@/components/Menu/ARViewerOverlay';
+import { toArMenuItem, type ArMenuItem } from '@/components/Menu/ar';
 import { CartFab } from '@/components/cart/CartFab';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { FeedbackDrawer } from '@/components/customer/FeedbackDrawer';
@@ -18,6 +20,7 @@ export function MenuContainer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [detailItemId, setDetailItemId] = useState<number | null>(null);
+  const [arItem, setArItem] = useState<ArMenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -96,6 +99,11 @@ export function MenuContainer() {
     });
   };
 
+  const handleViewAr = (item: any) => {
+    const ar = toArMenuItem(item);
+    if (ar) setArItem(ar);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col gap-6 p-4 animate-pulse">
@@ -161,6 +169,7 @@ export function MenuContainer() {
                 item={item}
                 onAdd={handleAddToCart}
                 onViewDetail={(id) => setDetailItemId(id)}
+                onViewAr={handleViewAr}
               />
             ))}
             {activeCategory?.menu_items?.length === 0 && (
@@ -197,7 +206,10 @@ export function MenuContainer() {
       <ItemDetailDrawer
         itemId={detailItemId}
         onClose={() => setDetailItemId(null)}
+        onViewAr={handleViewAr}
       />
+
+      <ARViewerOverlay item={arItem} onClose={() => setArItem(null)} />
 
       {/* Cart Bottom Sheet */}
       <CartDrawer

@@ -13,6 +13,8 @@ import {
   type AdjustableIngredient,
 } from '@/components/Menu/IngredientPicker';
 import { MenuItemRating, TopRatedBadge, isTopRated } from '@/components/Menu/MenuItemRating';
+import { hasArModel } from '@/components/Menu/ar';
+import { ViewInArButton } from '@/components/Menu/ViewInArChip';
 
 interface Ingredient {
   id: number;
@@ -49,12 +51,14 @@ interface MenuItemDetail {
   average_rating: number | null;
   review_count?: number;
   total_orders: number;
+  ar_model_url?: string | null;
   ingredients: Ingredient[];
 }
 
 interface ItemDetailDrawerProps {
   itemId: number | null;
   onClose: () => void;
+  onViewAr?: (item: MenuItemDetail) => void;
 }
 
 const SPICE_LABELS: Record<string, { label: string; color: string }> = {
@@ -67,12 +71,14 @@ const SPICE_LABELS: Record<string, { label: string; color: string }> = {
 function ItemContent({
   item,
   onClose,
+  onViewAr,
   adjustableIngredients,
   quantities,
   onQuantityChange,
 }: {
   item: MenuItemDetail;
   onClose: () => void;
+  onViewAr?: (item: MenuItemDetail) => void;
   adjustableIngredients: AdjustableIngredient[];
   quantities: Record<number, number>;
   onQuantityChange: (ingredientId: number, quantity: number) => void;
@@ -151,6 +157,10 @@ function ItemContent({
               <span className="text-xs font-sans text-gray-400">{item.total_orders.toLocaleString()} orders</span>
             )}
           </div>
+        )}
+
+        {hasArModel(item) && onViewAr && (
+          <ViewInArButton onClick={() => onViewAr(item)} />
         )}
 
         {item.description && (
@@ -236,7 +246,7 @@ function ItemContent({
   );
 }
 
-export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
+export function ItemDetailDrawer({ itemId, onClose, onViewAr }: ItemDetailDrawerProps) {
   const { addItem, items } = useCart();
   const [item, setItem] = useState<MenuItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -415,6 +425,7 @@ export function ItemDetailDrawer({ itemId, onClose }: ItemDetailDrawerProps) {
               <ItemContent
                 item={item}
                 onClose={onClose}
+                onViewAr={onViewAr}
                 adjustableIngredients={adjustableIngredients}
                 quantities={quantities}
                 onQuantityChange={handleQuantityChange}

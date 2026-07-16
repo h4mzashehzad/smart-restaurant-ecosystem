@@ -1,10 +1,13 @@
 import Image from 'next/image';
+import { hasArModel } from '@/components/Menu/ar';
 import { MenuItemRating, TopRatedBadge, isTopRated } from '@/components/Menu/MenuItemRating';
+import { ViewInArChip } from '@/components/Menu/ViewInArChip';
 
 interface ProductCardProps {
   item: any;
   onAdd: (item: any) => void;
   onViewDetail: (id: number) => void;
+  onViewAr?: (item: any) => void;
 }
 
 function isCustomizable(item: any): boolean {
@@ -13,9 +16,10 @@ function isCustomizable(item: any): boolean {
   );
 }
 
-export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
+export function ProductCard({ item, onAdd, onViewDetail, onViewAr }: ProductCardProps) {
   const customizable = isCustomizable(item);
   const topRated = isTopRated(item.average_rating, item.review_count);
+  const arEnabled = hasArModel(item);
 
   return (
     <div
@@ -34,6 +38,17 @@ export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 33vw"
           />
+          <div className="absolute top-2 right-2 left-2 flex flex-wrap items-start justify-between gap-1 pointer-events-none">
+            {arEnabled && onViewAr && (
+              <ViewInArChip
+                className="pointer-events-auto ml-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewAr(item);
+                }}
+              />
+            )}
+          </div>
           {customizable && (
             <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 shadow-sm border border-orange-100">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
@@ -66,6 +81,14 @@ export function ProductCard({ item, onAdd, onViewDetail }: ProductCardProps) {
               </span>
             )}
             {topRated && <TopRatedBadge />}
+            {arEnabled && !item.image_url && onViewAr && (
+              <ViewInArChip
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewAr(item);
+                }}
+              />
+            )}
             {customizable && !item.image_url && (
               <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shrink-0 border border-orange-100">
                 Customize

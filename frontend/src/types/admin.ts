@@ -358,6 +358,7 @@ export interface AdminMenuItem {
   is_gluten_free?: boolean;
   is_signature?: boolean;
   image_url?: string | null;
+  ar_model_url?: string | null;
   average_rating?: number | null;
   total_orders?: number;
   updated_at?: string;
@@ -450,6 +451,7 @@ export interface CreateMenuItemPayload {
   is_gluten_free?: boolean;
   is_available?: boolean;
   is_signature?: boolean;
+  ar_model_url?: string | null;
   ingredients?: MenuItemIngredientPayload[];
 }
 
@@ -463,6 +465,7 @@ export interface UpdateMenuItemPayload {
   is_vegan?: boolean;
   is_gluten_free?: boolean;
   is_signature?: boolean;
+  ar_model_url?: string | null;
   spice_level?: SpiceLevel | null;
   cuisine_type?: string | null;
   calories?: number | null;

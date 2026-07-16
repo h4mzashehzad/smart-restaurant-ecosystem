@@ -70,6 +70,7 @@ interface FormState {
   is_gluten_free: boolean;
   is_signature: boolean;
   is_available: boolean;
+  ar_model_url: string;
   ingredients: IngredientRow[];
 }
 
@@ -87,6 +88,7 @@ const EMPTY_FORM: FormState = {
   is_gluten_free: false,
   is_signature: false,
   is_available: true,
+  ar_model_url: '',
   ingredients: [],
 };
 
@@ -105,6 +107,7 @@ function itemToForm(item: AdminMenuItem): FormState {
     is_gluten_free: Boolean(item.is_gluten_free),
     is_signature: Boolean(item.is_signature),
     is_available: Boolean(item.is_available),
+    ar_model_url: item.ar_model_url ?? '',
     ingredients: (item.ingredients ?? []).map((ing) => ({
       ingredient_id: ing.id,
       quantity: Number(ing.pivot?.quantity ?? 1),
@@ -286,6 +289,7 @@ export function MenuItemEditModal({
       is_gluten_free: form.is_gluten_free,
       is_signature: form.is_signature,
       is_available: form.is_available,
+      ar_model_url: form.ar_model_url.trim() || null,
       ingredients: buildIngredientsPayload(),
     };
 
@@ -406,6 +410,21 @@ export function MenuItemEditModal({
                   )}
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="menu-ar-model">AR model URL (GLB)</Label>
+              <Input
+                id="menu-ar-model"
+                type="url"
+                value={form.ar_model_url}
+                onChange={(e) => updateField('ar_model_url', e.target.value)}
+                placeholder="https://your-bucket.s3.region.amazonaws.com/models/dish.glb"
+                disabled={saving}
+              />
+              <p className="text-xs text-gray-500">
+                Public HTTPS link to a .glb or .gltf file on S3. Leave empty to hide AR on the customer menu.
+              </p>
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
