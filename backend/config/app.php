@@ -54,6 +54,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
+    'qr_frontend_url' => env('QR_FRONTEND_URL', 'http://192.168.18.88:3000'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

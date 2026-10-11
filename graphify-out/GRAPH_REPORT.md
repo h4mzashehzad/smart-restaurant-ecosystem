@@ -1,16 +1,16 @@
-# Graph Report - smart-restaurant-ecosystem  (2026-07-15)
+# Graph Report - smart-restaurant-ecosystem  (2026-10-11)
 
 ## Corpus Check
-- 564 files · ~449,720 words
+- 454 files · ~295,579 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3097 nodes · 5206 edges · 289 communities (255 shown, 34 thin omitted)
+- 3246 nodes · 5365 edges · 329 communities (282 shown, 47 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 159 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `993d5a1c`
+- Built from commit: `90052ba3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -194,48 +194,68 @@
 - react
 - @react-three/fiber
 - socket.io-client
+- zustand
 - @tailwindcss/postcss
 - README.md
-- 1403e673fd6071ced67f4f3e0bdad465.php
+- cors.php
 - 19f0cfbce26a61a6755c035aac4c4501.php
 - 1ac3d71a9bdafe6e3951c5d2251f0b3c.php
+- 1ed17d594ddf8bf2096e7622bdce6bb1.php
 - 20b4dd98a17396834e6d95489171f554.php
 - FlaggedFeedbackAlert.tsx
+- 22135eaa157b9e985ba4b65189aaeeb3.php
+- 34b43790c749b4d6b71f98e20df5989a.php
+- 37bc670e25845b34235a7d0544a196d4.php
+- 449b5bcfae1452afdd7a1b813ecc3fa0.php
+- 4605483f90af8b14e6c5fff72aaf56e2.php
 - 49a4146768254ea6348a09a1f5de33b1.php
 - ReservationCard.tsx
 - PaymentCompleted
+- 5091866e20e47c71d22a23e65749eb08.php
+- 5967bbadd4fa8a807343e685aacb2818.php
+- 5de1d1c58c2d0029fc2e1aabc7132969.php
 - page.tsx
+- 7bd2965f77133a247fba92b2a0adb7f3.php
 - page.tsx
 - 8c96da30fccd36d19ffc84f2303a4863.php
+- 960702834307187685f527355263f07a.php
+- 989e8e24d3a86df4178a88cb18012ca1.php
+- a26b629aa6bf2fc22f6a84616819ab10.php
+- b46193d7d901124ba02e726e21303065.php
+- b7ee25a35a541ab0b4ae89af0750cc65.php
+- bc7f358b58c812d88372f45602d81166.php
+- c0bf93877d7cde6c3217af069a53b4d3.php
+- c3a2c7e882530fb1d3e89b8ea5672724.php
+- c6fe5cb4a18c0a591dbebeba58f2b9a9.php
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 178 edges
 2. `SocketClient` - 84 edges
-3. `Order` - 55 edges
+3. `Order` - 56 edges
 4. `ApiClient` - 51 edges
-5. `Controller` - 45 edges
-6. `Restaurant` - 45 edges
+5. `Restaurant` - 47 edges
+6. `Controller` - 45 edges
 7. `User` - 45 edges
 8. `Payment` - 44 edges
-9. `TableSession` - 42 edges
-10. `MenuItem` - 39 edges
+9. `MenuItem` - 42 edges
+10. `TableSession` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `analyticsFixture()` --calls--> `Feedback`  [INFERRED]
   backend/tests/Feature/AdminAnalyticsTest.php → backend/app/Models/Feedback.php
 - `analyticsFixture()` --calls--> `MenuItem`  [INFERRED]
   backend/tests/Feature/AdminAnalyticsTest.php → backend/app/Models/MenuItem.php
+- `feedbackRatingFixture()` --calls--> `MenuItem`  [INFERRED]
+  backend/tests/Feature/FeedbackAverageRatingTest.php → backend/app/Models/MenuItem.php
 - `checkoutFixture()` --calls--> `MenuItem`  [INFERRED]
   backend/tests/Feature/IngredientCustomizationCheckoutTest.php → backend/app/Models/MenuItem.php
 - `makeAdjustableBurger()` --calls--> `MenuItem`  [INFERRED]
   backend/tests/Feature/IngredientCustomizationPricerTest.php → backend/app/Models/MenuItem.php
-- `loyaltyFixture()` --calls--> `MenuItem`  [INFERRED]
-  backend/tests/Feature/LoyaltyProgramTest.php → backend/app/Models/MenuItem.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (289 total, 34 thin omitted)
+## Communities (329 total, 47 thin omitted)
 
 ### Community 0 - "Component 0"
 Cohesion: 0.11
@@ -250,108 +270,108 @@ Cohesion: 0.05
 Nodes (42): BM25, detect_domain(), _load_csv(), Lowercase, split, remove punctuation, filter short words, Build BM25 index from documents, Score all documents against query, Load CSV and return list of dicts, Core search function using BM25 (+34 more)
 
 ### Community 4 - "Component 4"
-Cohesion: 0.15
-Nodes (7): Authenticatable, BelongsTo, HasMany, User, runRoleMiddleware(), HasApiTokens, Notifiable
+Cohesion: 0.13
+Nodes (18): CategoriesContainer(), toForm(), toPayload(), EMPTY_FORM, formatNumber(), IngredientForm, IngredientsContainer(), isLowStock() (+10 more)
 
 ### Community 5 - "Component 5"
-Cohesion: 0.17
-Nodes (14): CartDrawer(), CartDrawerProps, OrderSuccess(), OrderSuccessProps, BillSummary(), BillSummaryProps, PaymentDrawer(), PaymentDrawerProps (+6 more)
+Cohesion: 0.14
+Nodes (21): MenuContainer(), CartDrawer(), CartDrawerProps, CartFab(), CartFabProps, OrderSuccess(), OrderSuccessProps, ArMenuItem (+13 more)
 
 ### Community 6 - "Component 6"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (6): JsonResponse, Request, SessionController, BelongsTo, HasMany, TableSession
 
 ### Community 7 - "Component 7"
-Cohesion: 0.18
-Nodes (5): JsonResponse, Request, ReservationController, BelongsTo, Reservation
+Cohesion: 0.15
+Nodes (6): ReservationUpdated, JsonResponse, Request, ReservationController, BelongsTo, Reservation
 
 ### Community 8 - "Component 8"
-Cohesion: 0.05
-Nodes (37): KDSContainer(), KDSOrder, PRIORITY_ORDER, sortRequests(), CashPayment, CashPaymentCardProps, FlaggedFeedback, FlaggedFeedbackAlert() (+29 more)
+Cohesion: 0.06
+Nodes (29): KDSContainer(), KDSOrder, PRIORITY_ORDER, sortRequests(), metadata, QueueContainer(), STATUS_CONFIG, timeAgo() (+21 more)
 
 ### Community 9 - "Component 9"
-Cohesion: 0.15
-Nodes (13): devDependencies, babel-plugin-react-compiler, eslint, eslint-config-next, prettier, prettier-plugin-tailwindcss, tailwindcss, @tailwindcss/postcss (+5 more)
+Cohesion: 0.08
+Nodes (25): babel-plugin-react-compiler, eslint, eslint-config-next, devDependencies, babel-plugin-react-compiler, eslint, eslint-config-next, prettier (+17 more)
 
 ### Community 11 - "Component 11"
-Cohesion: 0.16
-Nodes (9): AdminFeedbackController, JsonResponse, Request, FeedbackController, JsonResponse, Feedback, BelongsTo, BelongsToMany (+1 more)
+Cohesion: 0.11
+Nodes (10): FeedbackController, JsonResponse, Request, Feedback, BelongsTo, BelongsToMany, HasMany, FeedbackMenuItem (+2 more)
 
 ### Community 12 - "Component 12"
-Cohesion: 0.07
-Nodes (22): Any, analyze_sentiment(), analyze_sentiment_batch(), forecast_demand(), generate_recommendations(), get_db_connection(), Generate per-item hourly demand forecasts for a restaurant/date.      Request bo, Analyze sentiment of a single text review. (+14 more)
+Cohesion: 0.20
+Nodes (9): analyze_sentiment(), analyze_sentiment_batch(), forecast_demand(), generate_recommendations(), get_db_connection(), Generate per-item hourly demand forecasts for a restaurant/date.      Request bo, Analyze sentiment of a single text review., Analyze multiple review texts independently (one per menu item).      Each item' (+1 more)
 
 ### Community 13 - "Component 13"
-Cohesion: 0.07
-Nodes (25): author, dependencies, cors, dotenv, express, ioredis, node-fetch, socket.io (+17 more)
+Cohesion: 0.15
+Nodes (12): author, description, keywords, license, main, name, scripts, dev (+4 more)
 
 ### Community 14 - "Component 14"
 Cohesion: 0.25
 Nodes (3): PaymentController, JsonResponse, Request
 
 ### Community 15 - "Component 15"
-Cohesion: 0.14
-Nodes (7): MenuController, JsonResponse, Request, MenuItem, BelongsTo, BelongsToMany, HasMany
+Cohesion: 0.36
+Nodes (3): MenuController, JsonResponse, Request
 
 ### Community 16 - "Component 16"
-Cohesion: 0.25
-Nodes (5): JsonResponse, Request, ServiceRequestController, BelongsTo, ServiceRequest
+Cohesion: 0.17
+Nodes (8): AdminController, JsonResponse, Request, JsonResponse, Request, ServiceRequestController, BelongsTo, ServiceRequest
 
 ### Community 17 - "Component 17"
-Cohesion: 0.11
-Nodes (14): LoginContent(), RegisterContent(), metadata, outfit, plusJakartaSans, RootLayout(), PhoneInput(), PhoneInputProps (+6 more)
+Cohesion: 0.22
+Nodes (5): GenerateDemandForecast, RegenerateTableQRCodes, DemandForecast, BelongsTo, Command
 
 ### Community 18 - "Component 18"
-Cohesion: 0.24
-Nodes (11): MenuContainer(), CartFab(), CartFabProps, CategorySlider(), CategorySliderProps, ItemDetailDrawer(), isCustomizable(), ProductCard() (+3 more)
+Cohesion: 0.14
+Nodes (21): hasArModel(), AdjustableIngredient, computeCustomizationExtra(), IngredientPicker(), IngredientPickerProps, Ingredient, ItemContent(), ItemDetailDrawer() (+13 more)
 
 ### Community 19 - "Component 19"
-Cohesion: 0.10
-Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
+Cohesion: 0.06
+Nodes (30): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+22 more)
 
 ### Community 20 - "Component 20"
 Cohesion: 0.10
-Nodes (19): compilerOptions, allowJs, declaration, declarationMap, exactOptionalPropertyTypes, isolatedModules, jsx, module (+11 more)
+Nodes (20): compilerOptions, allowJs, declaration, declarationMap, exactOptionalPropertyTypes, isolatedModules, jsx, module (+12 more)
 
 ### Community 21 - "Component 21"
 Cohesion: 0.04
 Nodes (48): APIs & Eloquent Resources, Application Structure & Architecture, Artisan, Artisan, Authentication & Authorization, Available Search Syntax, Available Search Syntax, Comments (+40 more)
 
 ### Community 22 - "Component 22"
-Cohesion: 0.12
-Nodes (15): devDependencies, axios, concurrently, laravel-echo, laravel-vite-plugin, pusher-js, tailwindcss, @tailwindcss/vite (+7 more)
+Cohesion: 0.08
+Nodes (23): devDependencies, axios, concurrently, laravel-echo, laravel-vite-plugin, pusher-js, tailwindcss, @tailwindcss/vite (+15 more)
 
 ### Community 23 - "Component 23"
-Cohesion: 0.11
-Nodes (19): metadata, ScanPage(), ScanState, TableInfo, SessionBanner(), statusConfig, UserMenu(), Priority (+11 more)
+Cohesion: 0.10
+Nodes (20): AdminDashboardLayout(), LoginContent(), RegisterContent(), metadata, CallbackInner(), ScanPage(), ScanState, TableInfo (+12 more)
 
 ### Community 24 - "Component 24"
-Cohesion: 0.13
-Nodes (7): BelongsTo, HasMany, SessionParticipant, BelongsTo, SplitBillItem, SplitBillService, Collection
+Cohesion: 0.19
+Nodes (4): BelongsTo, SplitBillItem, SplitBillService, Collection
 
 ### Community 25 - "Component 25"
-Cohesion: 0.14
-Nodes (14): DrawerState, FeedbackDrawer(), ItemReview, OrderDetail, OrderMenuItem, formatTier(), LoyaltyDashboardDrawer(), LoyaltyDashboardDrawerProps (+6 more)
+Cohesion: 0.08
+Nodes (25): DrawerState, FeedbackDrawer(), ItemReview, OrderDetail, OrderMenuItem, formatTier(), LoyaltyDashboardDrawer(), LoyaltyDashboardDrawerProps (+17 more)
 
 ### Community 26 - "Component 26"
 Cohesion: 0.18
 Nodes (10): Props, formatDate(), friendlyDate(), ReservationContainer(), Restaurant, Step, STEP_LABELS, STEPS (+2 more)
 
 ### Community 27 - "Component 27"
-Cohesion: 0.14
-Nodes (21): CartItem(), CartItemProps, AdjustableIngredient, computeCustomizationExtra(), IngredientPicker(), IngredientPickerProps, Ingredient, ItemDetailDrawerProps (+13 more)
+Cohesion: 0.25
+Nodes (13): CartItem(), CartItemProps, CartContext, CartContextType, CartProvider(), loadPersisted(), mergeItems(), normalizeCartItem() (+5 more)
 
 ### Community 28 - "Component 28"
-Cohesion: 0.25
-Nodes (4): AdminOrderController, JsonResponse, Request, LoyaltyService
+Cohesion: 0.15
+Nodes (13): cors, dotenv, express, ioredis, node-fetch, socket.io, dependencies, cors (+5 more)
 
 ### Community 29 - "Component 29"
 Cohesion: 0.18
 Nodes (11): require-dev, barryvdh/laravel-debugbar, fakerphp/faker, laravel/boost, laravel/pail, laravel/pint, laravel/sail, mockery/mockery (+3 more)
 
 ### Community 30 - "Component 30"
-Cohesion: 0.09
-Nodes (22): metadata, QueueContainer(), STATUS_CONFIG, timeAgo(), CallbackInner(), ACTIVE_STATUSES, ActiveOrder, ActiveSession (+14 more)
+Cohesion: 0.11
+Nodes (20): metadata, outfit, plusJakartaSans, RootLayout(), QueryProvider(), AuthProvider(), ACTIVE_STATUSES, ActiveOrder (+12 more)
 
 ### Community 31 - "Component 31"
 Cohesion: 0.18
@@ -362,12 +382,12 @@ Cohesion: 0.20
 Nodes (9): allowedOrigins, app, cors, express, http, io, Redis, redisSubscriber (+1 more)
 
 ### Community 33 - "Component 33"
-Cohesion: 0.22
-Nodes (8): description, keywords, license, minimum-stability, name, prefer-stable, $schema, type
+Cohesion: 0.14
+Nodes (13): autoload-dev, psr-4, description, keywords, license, minimum-stability, name, prefer-stable (+5 more)
 
 ### Community 34 - "Component 34"
-Cohesion: 0.22
-Nodes (9): scripts, dev, post-autoload-dump, post-create-project-cmd, post-root-package-install, post-update-cmd, pre-package-uninstall, setup (+1 more)
+Cohesion: 0.13
+Nodes (15): scripts, dev, post-autoload-dump, post-update-cmd, pre-package-uninstall, test, Composer\\Config::disableProcessTimeout, Illuminate\\Foundation\\ComposerScripts::postAutoloadDump (+7 more)
 
 ### Community 35 - "Component 35"
 Cohesion: 0.29
@@ -386,8 +406,8 @@ Cohesion: 0.50
 Nodes (3): channel, Pusher, socket
 
 ### Community 40 - "Component 40"
-Cohesion: 0.12
-Nodes (21): ClaimableUnit, ClaimRecord, ItemizedSplit(), ItemizedSplitProps, PaymentStatusTracker(), PaymentStatusTrackerProps, statusStyles, TrackerPayment (+13 more)
+Cohesion: 0.10
+Nodes (26): BillSummary(), BillSummaryProps, ClaimableUnit, ClaimRecord, ItemizedSplit(), ItemizedSplitProps, PaymentDrawerProps, PaymentStatusTracker() (+18 more)
 
 ### Community 41 - "Component 41"
 Cohesion: 0.67
@@ -402,8 +422,8 @@ Cohesion: 0.07
 Nodes (27): Bundle Analysis, Caching Strategy, CDN & Edge, CI/CD with GitHub Actions, Database Connection Pooling, Deployment & Production, docker-compose.yml, Docker Deployment (+19 more)
 
 ### Community 101 - "Component 101"
-Cohesion: 0.08
-Nodes (13): GenerateDemandForecast, GenerateRecommendations, AdminAnalyticsController, JsonResponse, Request, AiRecommendation, BelongsTo, DemandForecast (+5 more)
+Cohesion: 0.16
+Nodes (7): AdminAnalyticsController, JsonResponse, Request, OrderItem, BelongsTo, HasMany, analyticsFixture()
 
 ### Community 110 - "Component 110"
 Cohesion: 0.07
@@ -418,8 +438,8 @@ Cohesion: 0.10
 Nodes (20): Best Practices, Cache Options, Client-Side Data Fetching, Data Fetching & Caching, Database Queries, Error Handling, Extended fetch API, Loading States (+12 more)
 
 ### Community 116 - "dependencies"
-Cohesion: 0.07
-Nodes (28): dependencies, axios, @base-ui/react, class-variance-authority, clsx, date-fns, @headlessui/react, @heroicons/react (+20 more)
+Cohesion: 0.09
+Nodes (23): @base-ui/react, clsx, dependencies, axios, @base-ui/react, clsx, @headlessui/react, @heroicons/react (+15 more)
 
 ### Community 117 - "Next.js Best Practices"
 Cohesion: 0.10
@@ -439,11 +459,11 @@ Nodes (18): Architecture Overview, Connection Limits, Cookie-based Sticky Sessio
 
 ### Community 121 - "ShouldBroadcastNow"
 Cohesion: 0.07
-Nodes (16): AllPaymentsCompleted, CheckoutStarted, OrderCreated, OrderStatusUpdated, PaymentFailed, ServiceRequestCreated, ServiceRequestUpdated, SessionParticipantJoined (+8 more)
+Nodes (17): AllPaymentsCompleted, CheckoutStarted, FeedbackFlagged, OrderStatusUpdated, PaymentFailed, ServiceRequestCreated, ServiceRequestUpdated, SessionParticipantJoined (+9 more)
 
 ### Community 122 - "Table"
-Cohesion: 0.17
-Nodes (9): AdminTableController, JsonResponse, Request, Response, BelongsTo, HasMany, Table, loyaltyFixture() (+1 more)
+Cohesion: 0.34
+Nodes (5): AdminTableController, JsonResponse, Request, Response, StreamedResponse
 
 ### Community 123 - "Pest Testing 4"
 Cohesion: 0.11
@@ -458,8 +478,8 @@ Cohesion: 0.11
 Nodes (17): Basic Server Action, Best Practices, Client Component with Server Action, Error Handling, Form with Server Action, Inline Server Action, Optimistic Updates, Programmatic Server Action Call (+9 more)
 
 ### Community 126 - "OrderController.php"
-Cohesion: 0.16
-Nodes (6): OrderController, JsonResponse, Request, Order, BelongsTo, HasMany
+Cohesion: 0.12
+Nodes (8): OrderController, JsonResponse, Request, Order, BelongsTo, HasMany, OrderItemCustomization, BelongsTo
 
 ### Community 127 - "Design System Master File"
 Cohesion: 0.12
@@ -476,10 +496,6 @@ Nodes (15): Avoiding Data Waterfalls, Client Component Data Fetching, Data Patte
 ### Community 130 - "App Router Architecture"
 Cohesion: 0.12
 Nodes (15): App Router Architecture, Catch-All Routes, Dynamic Routes, Error Boundaries, File-Based Routing, Intercepting Routes, Loading States, Metadata API (+7 more)
-
-### Community 131 - "Restaurant"
-Cohesion: 0.14
-Nodes (4): HasMany, Restaurant, QRCodeGenerationService, TablesTableSeeder
 
 ### Community 132 - "**COMPLETE IMPLEMENTATION GUIDE**"
 Cohesion: 0.12
@@ -502,12 +518,8 @@ Cohesion: 0.29
 Nodes (6): 1. Async Client Components Are Invalid, 2. Non-Serializable Props to Client Components, 3. Server Actions Are the Exception, Detection Rules, Quick Reference, RSC Boundaries
 
 ### Community 137 - "PaymentController.php"
-Cohesion: 0.16
-Nodes (4): Payment, BelongsTo, PaymentCompletionService, ReceiptService
-
-### Community 138 - "SessionParticipant"
 Cohesion: 0.13
-Nodes (17): react, buttonVariants, Calendar(), CalendarDayButton(), ChartConfig, ChartContainer(), ChartContext, ChartContextProps (+9 more)
+Nodes (5): Payment, BelongsTo, HasMany, PaymentCompletionService, ReceiptService
 
 ### Community 139 - "Tailwind CSS Development"
 Cohesion: 0.13
@@ -530,8 +542,8 @@ Cohesion: 0.15
 Nodes (12): Code Examples, Constraints, Core Workflow, generateMetadata for dynamic SEO, Knowledge Reference, MUST DO (Next.js-specific), MUST NOT DO, Next.js Developer (+4 more)
 
 ### Community 144 - "dependencies"
-Cohesion: 0.11
-Nodes (42): DashboardContainer(), formatCurrency(), formatCurrency(), LoyaltyContainer(), tierBadgeClass(), typeBadgeClass(), formatCurrency(), OrdersContainer() (+34 more)
+Cohesion: 0.13
+Nodes (38): CategoryForm, EMPTY_FORM, DashboardContainer(), formatCurrency(), formatCurrency(), OrdersContainer(), STATUS_FILTERS, CashPaymentEntry (+30 more)
 
 ### Community 145 - "Testing"
 Cohesion: 0.17
@@ -554,8 +566,8 @@ Cohesion: 0.17
 Nodes (11): Client-Side Reconnection with Exponential Backoff, Code Examples, Constraints, Core Workflow, Knowledge Reference, MUST DO, MUST NOT DO, Output Templates (+3 more)
 
 ### Community 151 - "🍽️ Smart Restaurant Ecosystem — Feature Documentation"
-Cohesion: 0.29
-Nodes (6): 1. System Overview, 2. System Architecture, 8. Security Features, Key Metrics & Value Propositions, 🍽️ Smart Restaurant Ecosystem — Feature Documentation, 📋 Table of Contents
+Cohesion: 0.17
+Nodes (11): 1. System Overview, 2. System Architecture, 7. AI & Machine Learning Features, 8. Security Features, Demand Forecasting Engine (Module 3 & 11), Key Metrics & Value Propositions, ML Service Deployment, Recommendation Engine (Module 7) (+3 more)
 
 ### Community 152 - "Font Optimization"
 Cohesion: 0.18
@@ -574,8 +586,8 @@ Cohesion: 0.06
 Nodes (31): IMPORTANT: none of these methods send `restaurant_id` — every `/admin/*`, AdminLoyaltyCustomersFilters, AdminOrder, AdminPayment, AdminQueueEntry, AdminReservation, AdminReview, AdminReviewsFilters (+23 more)
 
 ### Community 156 - "MenuController"
-Cohesion: 0.07
-Nodes (52): CategoriesContainer(), CategoryForm, EMPTY_FORM, toForm(), toPayload(), EMPTY_FORM, formatNumber(), IngredientForm (+44 more)
+Cohesion: 0.08
+Nodes (40): MenuContainer(), withCacheBust(), MenuItemCardProps, EMPTY_FORM, FormState, IngredientRow, itemToForm(), MenuItemEditModal() (+32 more)
 
 ### Community 157 - "**1.1 Required Software Installation**"
 Cohesion: 0.18
@@ -590,8 +602,8 @@ Cohesion: 0.18
 Nodes (11): **3.1.10 Admin/Analytics Endpoints**, **3.1.1 Authentication Endpoints**, **3.1.2 Table \& Session Endpoints**, **3.1.3 Menu Endpoints**, **3.1.4 Order Endpoints**, **3.1.5 Payment Endpoints**, **3.1.6 Service Request Endpoints**, **3.1.7 Reservation Endpoints** (+3 more)
 
 ### Community 160 - "devDependencies"
-Cohesion: 0.57
-Nodes (3): AdminController, JsonResponse, Request
+Cohesion: 0.23
+Nodes (7): DeferredFeatureNotice(), DeferredFeatureNoticeProps, formatPkr(), MenuItemCard(), Badge(), badgeVariants, Switch()
 
 ### Community 161 - "Eloquent ORM"
 Cohesion: 0.20
@@ -618,24 +630,28 @@ Cohesion: 0.11
 Nodes (18): Avoid Duplicate Fetches, Basic OG Image, Custom Fonts, Dynamic Metadata, Dynamic OG Image, File Naming, Important Rules, Important: Server Components Only (+10 more)
 
 ### Community 167 - "Scripts"
-Cohesion: 0.12
-Nodes (13): Don't Put Script in Head, Google Analytics, Google Tag Manager, Inline Scripts Need ID, Loading Strategies, Other Third-Party Scripts, Quick Reference, Scripts (+5 more)
+Cohesion: 0.20
+Nodes (9): Don't Put Script in Head, Google Analytics, Google Tag Manager, Inline Scripts Need ID, Loading Strategies, Other Third-Party Scripts, Quick Reference, Scripts (+1 more)
 
 ### Community 168 - "SerializesModels"
-Cohesion: 0.26
-Nodes (7): AdminPaymentController, JsonResponse, Request, JsonResponse, Request, ServiceRequestWebhookController, Controller
+Cohesion: 0.23
+Nodes (6): Determine if feedback should be flagged for immediate attention., Complete sentiment analysis pipeline for a single text., Clean and normalize text., Analyze overall sentiment using TextBlob., Extract aspect-based sentiments using spaCy + TextBlob., SentimentAnalyzer
 
 ### Community 169 - "InteractsWithSockets"
 Cohesion: 0.06
 Nodes (30): 10. Payment refunds & reconciliation, 11. Advanced analytics & exports, 12. Loyalty administration, 13. AI recommendation controls, 14. Activity feed / audit log, 15. Offline / PWA admin, 1. Manager role + granular permissions, 2. Staff invite delivery (email / WhatsApp) (+22 more)
 
 ### Community 170 - "Ingredient"
-Cohesion: 0.10
-Nodes (13): Ingredient, BelongsTo, BelongsToMany, HasMany, LoyaltyReward, OrderItemCustomization, BelongsTo, HasMany (+5 more)
+Cohesion: 0.11
+Nodes (14): Category, BelongsTo, HasMany, Ingredient, BelongsTo, BelongsToMany, HasMany, LoyaltyReward (+6 more)
 
 ### Community 171 - "**4. MODULE-SPECIFIC DEEP DIVES**"
 Cohesion: 0.20
 Nodes (10): **4.1.1 Content-Based Filtering Algorithm**, **4.1 AI Menu Recommendation Engine**, **4.2.1 Urgency Indicator Logic**, **4.2.2 Socket.io Server Implementation**, **4.2 Real-Time Kitchen Display System (KDS)**, **4.3.1 Sentiment Analysis Model**, **4.3 NLP Sentiment Analysis Pipeline**, **4.4.1 WebAR Integration** (+2 more)
+
+### Community 172 - "KDSOrderTicket.tsx"
+Cohesion: 0.18
+Nodes (11): nodemon, devDependencies, nodemon, @types/cors, @types/express, @types/node, typescript, @types/node (+3 more)
 
 ### Community 173 - "app.py"
 Cohesion: 0.11
@@ -678,12 +694,12 @@ Cohesion: 0.38
 Nodes (6): DAY_LABELS, HOURS, intensityClass(), PeakHoursHeatmap(), PeakHoursHeatmapProps, PeakHourPoint
 
 ### Community 183 - "HasFactory"
-Cohesion: 0.19
-Nodes (6): AdminMenuController, JsonResponse, Request, Category, BelongsTo, HasMany
+Cohesion: 0.12
+Nodes (9): AdminMenuController, JsonResponse, Request, MenuItem, BelongsTo, BelongsToMany, HasMany, MenuItemImageService (+1 more)
 
 ### Community 184 - "setup"
-Cohesion: 0.13
-Nodes (8): AdminTeamController, JsonResponse, Request, StoreTableRequest, StoreTeamMemberRequest, UpdateRestaurantRequest, UpdateTeamMemberRequest, FormRequest
+Cohesion: 0.06
+Nodes (22): Authenticatable, AdminTeamController, JsonResponse, Request, AuthController, JsonResponse, Request, EnsureRestaurantRole (+14 more)
 
 ### Community 185 - "Features:"
 Cohesion: 0.25
@@ -694,8 +710,8 @@ Cohesion: 0.25
 Nodes (8): 9. Technology Stack, AI / Machine Learning, Augmented Reality, Backend, DevOps & Third-Party Services, Frontend, Hardware Requirements, Real-Time Communication
 
 ### Community 187 - "Detection Rules"
-Cohesion: 0.43
-Nodes (3): JsonResponse, Request, TableController
+Cohesion: 0.21
+Nodes (6): JsonResponse, Request, TableController, BelongsTo, HasMany, SessionParticipant
 
 ### Community 190 - "**2. PROJECT INITIALIZATION**"
 Cohesion: 0.29
@@ -717,6 +733,10 @@ Nodes (7): **Backend**, **Database**, **Deployment**, **FINAL CHECKLIST**, **Fro
 Cohesion: 0.29
 Nodes (6): 1. Overview, 2. Aesthetics & Theme, 3. Typography & Next.js Optimization, 4. Components & Layout, 5. Next.js Best Practices, Design System: Smart Restaurant Ecosystem
 
+### Community 195 - "FlaggedFeedbackAlert.tsx"
+Cohesion: 0.29
+Nodes (3): GenerateRecommendations, AiRecommendation, BelongsTo
+
 ### Community 196 - "Pre-Delivery Checklist"
 Cohesion: 0.33
 Nodes (6): Accessibility, Interaction, Layout, Light/Dark Mode, Pre-Delivery Checklist, Visual Quality
@@ -726,7 +746,7 @@ Cohesion: 0.33
 Nodes (6): How to Use This Skill, Step 1: Analyze User Requirements, Step 2: Generate Design System (REQUIRED), Step 2b: Persist Design System (Master + Overrides Pattern), Step 3: Supplement with Detailed Searches (as needed), Step 4: Stack Guidelines (React Native)
 
 ### Community 198 - "MenuRecommender"
-Cohesion: 0.20
+Cohesion: 0.21
 Nodes (6): AdminUserSeeder, CustomizableIngredientsSeeder, DatabaseSeeder, RestaurantMenuSeeder, Seeder, WithoutModelEvents
 
 ### Community 199 - "Common Rules for Professional UI"
@@ -738,12 +758,16 @@ Cohesion: 0.40
 Nodes (5): Example Workflow, Step 1: Analyze Requirements, Step 2: Generate Design System (REQUIRED), Step 3: Supplement with Detailed Searches (as needed), Step 4: Stack Guidelines
 
 ### Community 201 - "OrderStatusUpdated"
-Cohesion: 0.29
+Cohesion: 0.27
 Nodes (4): MenuItemIngredient, BelongsTo, IngredientCustomizationPricer, Pivot
 
+### Community 202 - "SessionStateChanged"
+Cohesion: 0.24
+Nodes (4): QRCodeGenerationService, TablesTableSeeder, qrcode, qrcode
+
 ### Community 203 - "SplitBillUnlocked"
-Cohesion: 0.40
-Nodes (5): 7. AI & Machine Learning Features, Demand Forecasting Engine (Module 3 & 11), ML Service Deployment, Recommendation Engine (Module 7), Sentiment Analysis Engine (Module 5)
+Cohesion: 0.29
+Nodes (3): BelongsTo, HasMany, Table
 
 ### Community 204 - "**1.2 Development Tools**"
 Cohesion: 0.40
@@ -785,21 +809,25 @@ Nodes (4): Common Sticking Points, Pre-Delivery Checklist, Query Strategy, Tips 
 Cohesion: 0.50
 Nodes (4): Must Use, Recommended, Skip, When to Apply
 
+### Community 214 - "CashPaymentPending"
+Cohesion: 0.29
+Nodes (5): formatCurrency(), LoyaltyContainer(), tierBadgeClass(), typeBadgeClass(), metadata
+
 ### Community 216 - "OrderCreated"
-Cohesion: 0.18
-Nodes (6): LoyaltyController, JsonResponse, Request, LoyaltyTransaction, BelongsTo, AnalyticsDemoSeeder
+Cohesion: 0.19
+Nodes (6): LoyaltyController, JsonResponse, Request, LoyaltyTransaction, BelongsTo, LoyaltyService
 
 ### Community 217 - "PaymentFailed"
-Cohesion: 0.09
-Nodes (30): AnalyticsContainer(), categoryConfig, forecastConfig, formatCurrency(), Period, revenueConfig, sentimentConfig, TIER_COLORS (+22 more)
+Cohesion: 0.06
+Nodes (41): AnalyticsContainer(), categoryConfig, forecastConfig, formatCurrency(), Period, revenueConfig, sentimentConfig, TIER_COLORS (+33 more)
 
 ### Community 218 - "QueueUpdated"
-Cohesion: 0.26
-Nodes (6): JsonResponse, Request, QueueController, BelongsTo, QueueEntry, ReservationsContainer()
+Cohesion: 0.21
+Nodes (6): QueueUpdated, JsonResponse, Request, QueueController, BelongsTo, QueueEntry
 
 ### Community 220 - "post-create-project-cmd"
-Cohesion: 0.31
-Nodes (3): AuthController, JsonResponse, Request
+Cohesion: 0.29
+Nodes (8): AdminSidebar(), AdminSidebarProps, isActiveHref(), ADMIN_NAV_GROUPS, AdminNavGroup, AdminNavItem, KDS_NAV_ITEM, visibleNavGroups()
 
 ### Community 221 - "**9. MODULE-BY-MODULE IMPLEMENTATION**"
 Cohesion: 0.50
@@ -838,28 +866,48 @@ Cohesion: 0.67
 Nodes (3): 3.7 AR Dish Visualization, Features:, Technical Details:
 
 ### Community 235 - "3.8 Smart Split-Bill Payment"
-Cohesion: 0.67
-Nodes (3): autoload-dev, psr-4, Tests\\
+Cohesion: 0.24
+Nodes (9): getElapsedTime(), getUrgency(), KDSOrder, KDSOrderTicket(), KDSOrderTicketProps, nextStatusMap, OrderItem, UrgencyLevel (+1 more)
 
 ### Community 238 - "@heroicons/react"
-Cohesion: 0.08
-Nodes (29): AdminDashboardLayout(), AdminShell(), initials(), AdminSidebar(), AdminSidebarProps, isActiveHref(), ADMIN_NAV_GROUPS, AdminNavGroup (+21 more)
+Cohesion: 0.11
+Nodes (20): AdminShell(), initials(), Avatar(), AvatarBadge(), AvatarFallback(), AvatarGroup(), AvatarGroupCount(), AvatarImage() (+12 more)
 
 ### Community 239 - "@hookform/resolvers"
-Cohesion: 0.53
-Nodes (4): EnsureRestaurantRole, Request, Response, Closure
+Cohesion: 0.32
+Nodes (5): Any, DemandForecaster, Demand forecasting model for restaurant menu items.  Uses a RandomForestRegresso, Per-restaurant demand forecaster for menu items., historical_rows: list of dicts with keys:             menu_item_id, name, placed
 
 ### Community 241 - "react"
 Cohesion: 0.04
-Nodes (82): DeferredFeatureNotice(), DeferredFeatureNoticeProps, AlertDialogAction(), AlertDialogCancel(), AlertDialogContent(), AlertDialogDescription(), AlertDialogFooter(), AlertDialogHeader() (+74 more)
+Nodes (74): AlertDialogAction(), AlertDialogCancel(), AlertDialogContent(), AlertDialogDescription(), AlertDialogFooter(), AlertDialogHeader(), AlertDialogMedia(), AlertDialogOverlay() (+66 more)
 
 ### Community 242 - "@react-three/fiber"
-Cohesion: 0.29
-Nodes (6): Directives, Next.js Directive, React Directives, `'use cache'`, `'use client'`, `'use server'`
+Cohesion: 0.14
+Nodes (10): Directives, Next.js Directive, React Directives, `'use cache'`, `'use client'`, `'use server'`, Quick Reference, Suspense Boundaries (+2 more)
 
 ### Community 243 - "socket.io-client"
-Cohesion: 0.26
-Nodes (7): AdminLoyaltyController, JsonResponse, Request, AdminRestaurantController, JsonResponse, Request, ResolvesRestaurant
+Cohesion: 0.09
+Nodes (20): AdminFeedbackController, JsonResponse, Request, AdminLoyaltyController, JsonResponse, Request, AdminOrderController, JsonResponse (+12 more)
+
+### Community 244 - "zustand"
+Cohesion: 0.25
+Nodes (8): post-root-package-install, setup, composer install, npm install, npm run build, @php artisan key:generate, @php artisan migrate --force, @php -r \"file_exists('.env') || copy('.env.example', '.env');\
+
+### Community 247 - "cors.php"
+Cohesion: 0.33
+Nodes (5): FlaggedFeedback, FlaggedFeedbackAlert(), FlaggedFeedbackAlertProps, FlaggedItemRating, formatCountdown()
+
+### Community 253 - "19f0cfbce26a61a6755c035aac4c4501.php"
+Cohesion: 0.60
+Nodes (5): ALLOWED_HOST_SUFFIXES, contentTypeFor(), GET(), HEAD(), isAllowedModelUrl()
+
+### Community 255 - "1ed17d594ddf8bf2096e7622bdce6bb1.php"
+Cohesion: 0.40
+Nodes (4): IntrinsicElements, JSX, ModelViewerProps, react
+
+### Community 258 - "22135eaa157b9e985ba4b65189aaeeb3.php"
+Cohesion: 0.50
+Nodes (4): post-create-project-cmd, @php artisan key:generate --ansi, @php artisan migrate --graceful --ansi, @php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\
 
 ### Community 265 - "49a4146768254ea6348a09a1f5de33b1.php"
 Cohesion: 0.29
@@ -870,23 +918,23 @@ Cohesion: 0.67
 Nodes (3): 3.8 Smart Split-Bill Payment, Features:, Technical Details:
 
 ## Knowledge Gaps
-- **1130 isolated node(s):** `php`, `$schema`, `name`, `type`, `description` (+1125 more)
+- **1156 isolated node(s):** `php`, `$schema`, `name`, `type`, `description` (+1151 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `react` to `SessionParticipant`, `@heroicons/react`, `dependencies`, `Component 17`, `WaiterRequestCard.tsx`, `PaymentFailed`, `MenuController`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
-- **Why does `SessionProvider()` connect `Component 30` to `Component 17`, `QueueUpdated`, `OrderController.php`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
-- **Why does `TableSession` connect `Component 6` to `Component 101`, `PaymentController.php`, `Ingredient`, `Component 14`, `Component 24`, `Table`, `Detection Rules`, `OrderController.php`, `OrderCreated`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Are the 15 inferred relationships involving `Order` (e.g. with `.busiestTables()` and `.fulfillmentPerformance()`) actually correct?**
-  _`Order` has 15 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `qrcode` connect `SessionStateChanged` to `dependencies`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `34b43790c749b4d6b71f98e20df5989a.php`, `37bc670e25845b34235a7d0544a196d4.php`, `449b5bcfae1452afdd7a1b813ecc3fa0.php`, `4605483f90af8b14e6c5fff72aaf56e2.php`, `SessionParticipant`, `5091866e20e47c71d22a23e65749eb08.php`, `5967bbadd4fa8a807343e685aacb2818.php`, `5de1d1c58c2d0029fc2e1aabc7132969.php`, `7bd2965f77133a247fba92b2a0adb7f3.php`, `960702834307187685f527355263f07a.php`, `989e8e24d3a86df4178a88cb18012ca1.php`, `a26b629aa6bf2fc22f6a84616819ab10.php`, `b46193d7d901124ba02e726e21303065.php`, `b7ee25a35a541ab0b4ae89af0750cc65.php`, `bc7f358b58c812d88372f45602d81166.php`, `c0bf93877d7cde6c3217af069a53b4d3.php`, `c3a2c7e882530fb1d3e89b8ea5672724.php`, `c6fe5cb4a18c0a591dbebeba58f2b9a9.php`, `package.json`, `SessionStateChanged`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Are the 16 inferred relationships involving `Order` (e.g. with `.busiestTables()` and `.fulfillmentPerformance()`) actually correct?**
+  _`Order` has 16 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 16 inferred relationships involving `Restaurant` (e.g. with `.handle()` and `.handle()`) actually correct?**
+  _`Restaurant` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `BM25 ranking algorithm for text search`, `Lowercase, split, remove punctuation, filter short words`, `Build BM25 index from documents` to the rest of the system?**
-  _1172 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1198 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Component 0` be split into smaller, more focused modules?**
   _Cohesion score 0.10574712643678161 - nodes in this community are weakly interconnected._
 - **Should `Component 1` be split into smaller, more focused modules?**

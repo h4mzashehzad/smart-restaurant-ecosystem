@@ -45,6 +45,10 @@ function sortTablesNaturally(tables: RestaurantTable[]) {
 
 function sessionLinkFor(table: RestaurantTable) {
   if (!table.qr_code) return null;
+  // In development, opening the session link from the admin dashboard stays on localhost:3000
+  if (process.env.NODE_ENV !== 'production') {
+    return `http://localhost:3000/scan/${table.qr_code}`;
+  }
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return `${origin}/scan/${table.qr_code}`;
 }
