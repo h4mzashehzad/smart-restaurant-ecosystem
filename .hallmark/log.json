@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-10-20",
+    "macrostructure": "Catalogue",
+    "theme": "Terminal",
+    "enrichment": "none",
+    "nav": "N3",
+    "footer": "Ft4",
+    "brief": "Developer console with compact process inventory, runtime commands, live metrics, and a dedicated output stream"
+  },
+  {
+    "date": "2026-10-20",
+    "macrostructure": "Workbench",
+    "theme": "Coral",
+    "enrichment": "none",
+    "nav": "N9",
+    "footer": "Ft2",
+    "brief": "Local development service controls and live output for Smart Restaurant"
+  }
+]

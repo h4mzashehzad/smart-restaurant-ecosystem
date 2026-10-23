@@ -31,3 +31,10 @@ yarn-error.log*
 # Docker volumes
 mysql-data/
 redis-data/
+
+# Local development launcher state and Python environments
+.dev-run/
+ml-service/.venv/
+ml-service/venv/
+__pycache__/
+*.pyc

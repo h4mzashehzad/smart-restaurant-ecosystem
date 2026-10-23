@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="dev-token" content="__DEV_TOKEN__">
+  <meta name="theme-color" content="#101215">
+  <title>devctl · Smart Restaurant</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <nav class="rail" aria-label="Workspace navigation">
+    <a class="rail-logo" href="#top" aria-label="Development workspace">&gt;_</a>
+    <a class="rail-link" href="#services-title" aria-label="Service controls" title="Service controls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></a>
+    <a class="rail-link" href="#logs-title" aria-label="Live output" title="Live output"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 7 5 5-5 5m8 0h6"/></svg></a>
+    <a class="rail-link rail-bottom" href="#ml-help" aria-label="ML setup information" title="ML setup information"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 11v6m0-10v1"/></svg></a>
+  </nav>
+  <div class="app-shell" id="top">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Smart Restaurant development dashboard"><span class="wordmark">devctl<span class="wordmark-dot">.</span></span><span class="brand-divider" aria-hidden="true">/</span><span class="project-name">smart-restaurant<span class="project-suffix">-ecosystem</span></span></a>
+      <div class="session-info"><span class="local-badge">LOCAL</span><span id="connection" class="connection" role="status">Connecting…</span></div>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <div><h1 id="title">Development console<span class="title-dot">.</span></h1><p>Six processes. One workspace.</p></div>
+        <div class="global-actions"><button id="stop-all"><span aria-hidden="true">■</span> Stop all</button><button id="start-all" class="primary"><span aria-hidden="true">▶</span> Start all</button></div>
+      </section>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <section class="overview" aria-label="Live process overview">
+        <div class="metric"><span class="metric-label"><span class="dot success"></span>Running</span><strong id="metric-running">—</strong></div>
+        <div class="metric"><span class="metric-label"><span class="dot warning"></span>Starting</span><strong id="metric-starting">—</strong></div>
+        <div class="metric"><span class="metric-label"><span class="dot muted"></span>Stopped</span><strong id="metric-stopped">—</strong></div>
+        <div class="metric"><span class="metric-label"><span class="dot error"></span>Attention</span><strong id="metric-attention">—</strong></div>
+        <div class="external"><span class="external-label">EXTERNAL DEPENDENCIES</span><div id="external-status">Checking Herd and MySQL…</div></div>
+      </section>
+      <div class="workspace">
+        <section class="services-panel" aria-labelledby="services-title"><div class="section-heading"><div class="panel-title"><span class="panel-symbol" aria-hidden="true">⊞</span><h2 id="services-title">Processes</h2></div><span id="ready-count">—</span></div><div id="services" class="services"></div><div class="services-footer"><span class="dot"></span>Only launcher-owned processes are controlled.</div></section>
+        <section class="logs-panel" aria-labelledby="logs-title">
+          <div class="log-heading"><div class="panel-title"><span class="panel-symbol" aria-hidden="true">&gt;_</span><h2 id="logs-title">Output stream</h2></div><span class="live-label"><span class="dot"></span>LIVE</span></div>
+          <div class="log-toolbar"><label for="log-filter" class="sr-only">Filter logs by service</label><select id="log-filter"><option value="all">All services</option></select><button id="pause-logs" aria-pressed="false">Pause</button><button id="clear-logs">Clear</button><button id="copy-logs">Copy logs</button></div>
+          <div class="stream-context"><span id="log-caption">All services</span><span>stdout / stderr</span></div>
+          <div id="logs" class="logs" tabindex="0" aria-label="Service output"></div>
+          <div class="log-footer"><span id="log-count">No output yet</span><span>buffer: 1,000 lines</span></div>
+        </section>
+      </div>
+      <aside class="help" id="ml-help"><div class="help-marker" aria-hidden="true">py</div><div><strong>ML environment</strong><p>First run prepares <code>.venv</code>, requirements and NLP models. Verified installs are reused on subsequent starts.</p></div><button id="repair-ml">Repair ML setup</button></aside>
+    </main>
+    <footer><div class="footer-info"><span class="footer-project">smart-restaurant / devctl</span><span>Tab closed ≠ processes stopped. Keep the launcher terminal open.</span></div><button id="shutdown">Stop & close launcher <span aria-hidden="true">↗</span></button></footer>
+  </div>
+</body>
+</html>

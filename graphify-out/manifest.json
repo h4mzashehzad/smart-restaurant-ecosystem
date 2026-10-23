@@ -1315,8 +1315,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1774693438.8711457,
-    "ast_hash": "c671fefc69189d85c8066a2ff8819717",
+    "mtime": 1792500313.024155,
+    "ast_hash": "c80581ba22fa194baf03b3acc121feb3",
     "semantic_hash": ""
   },
   "backend/.cursor/skills/pest-testing/SKILL.md": {
@@ -2327,6 +2327,61 @@
   "frontend/src/types/model-viewer.d.ts": {
     "mtime": 1784266731.05438,
     "ast_hash": "bbcc8bf3d51ecf23c218fab395f5d382",
+    "semantic_hash": ""
+  },
+  ".hallmark/log.json": {
+    "mtime": 1792501287.3769214,
+    "ast_hash": "0fd02078f103d410d00b14cff3c531fc",
+    "semantic_hash": ""
+  },
+  "backend/storage/framework/views/46828bbfa00249a1b90f840d3e01456d.php": {
+    "mtime": 1792500458.1854956,
+    "ast_hash": "e4edd77a4c3e0ee43f01a59a03bd250e",
+    "semantic_hash": ""
+  },
+  "dev.mjs": {
+    "mtime": 1792500311.6991386,
+    "ast_hash": "c81339d329a202528adf60bd8bb9c2a0",
+    "semantic_hash": ""
+  },
+  "tools/dev/app.js": {
+    "mtime": 1792501416.6529388,
+    "ast_hash": "a39798670f2f0810bc5a473c5a587bef",
+    "semantic_hash": ""
+  },
+  "tools/dev/config.mjs": {
+    "mtime": 1792500888.5374215,
+    "ast_hash": "febfe7feca787826d418a86eefb0c5a7",
+    "semantic_hash": ""
+  },
+  "tools/dev/manager.mjs": {
+    "mtime": 1792500413.1678967,
+    "ast_hash": "e9768a0dcc4baff170995d2ac981ead2",
+    "semantic_hash": ""
+  },
+  "tools/dev/ml_setup.py": {
+    "mtime": 1792500660.3657932,
+    "ast_hash": "caedfbcba79553523334bcc87fdc8a28",
+    "semantic_hash": ""
+  },
+  "tools/dev/server.mjs": {
+    "mtime": 1792500723.732627,
+    "ast_hash": "32e55f58ea087dcf0884df2c4ed60d7d",
+    "semantic_hash": ""
+  },
+  "tools/dev/tests/manager.test.mjs": {
+    "mtime": 1792500635.400344,
+    "ast_hash": "5e99d8c25a146d0f1b072aa7ddba4712",
+    "semantic_hash": ""
+  },
+  "tools/dev/tests/server.test.mjs": {
+    "mtime": 1792500888.6373322,
+    "ast_hash": "c5fb1e8d7a331cb519bf823ee5380173",
+    "semantic_hash": ""
+  },
+  "tools/dev/index.html": {
+    "mtime": 1792501286.8188007,
+    "ast_hash": "0cd813a41236a7b7caf40f355e54e4ae",
     "semantic_hash": ""
   }
 }
