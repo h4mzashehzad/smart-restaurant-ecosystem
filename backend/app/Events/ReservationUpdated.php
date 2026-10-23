@@ -14,12 +14,13 @@ class ReservationUpdated implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public array $reservation;
+
     public string $action;
 
     public function __construct(Reservation $reservation, string $action)
     {
         $reservation->load(['table', 'user']);
-        $this->reservation = $reservation->toArray();
+        $this->reservation = app(\App\Services\ReservationPreorderService::class)->view($reservation);
         $this->action = $action;
     }
 
@@ -33,9 +34,9 @@ class ReservationUpdated implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'reservation'   => $this->reservation,
+            'reservation' => $this->reservation,
             'restaurant_id' => $this->reservation['restaurant_id'],
-            'action'        => $this->action,
+            'action' => $this->action,
         ];
     }
 }

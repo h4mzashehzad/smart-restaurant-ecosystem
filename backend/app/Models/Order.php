@@ -15,6 +15,7 @@ class Order extends Model
 
     protected $fillable = [
         'restaurant_id',
+        'reservation_id', 'kitchen_release_at', 'kitchen_released_at', 'kitchen_notified_at',
         'table_id',
         'session_id',
         'user_id',
@@ -43,6 +44,9 @@ class Order extends Model
             'confirmed_at' => 'datetime',
             'ready_at' => 'datetime',
             'completed_at' => 'datetime',
+            'kitchen_release_at' => 'datetime',
+            'kitchen_released_at' => 'datetime',
+            'kitchen_notified_at' => 'datetime',
         ];
     }
 
@@ -50,6 +54,9 @@ class Order extends Model
 
     public function getEstimatedCompletionAtAttribute()
     {
+        if ($this->reservation_id) {
+            return $this->reservation?->arrival_at;
+        }
         $maxPrep = $this->items->max(fn ($item) => $item->menuItem?->preparation_time ?? 0);
 
         return $this->placed_at?->addMinutes($maxPrep ?: 15);
@@ -60,6 +67,11 @@ class Order extends Model
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);
+    }
+
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
     }
 
     public function table(): BelongsTo

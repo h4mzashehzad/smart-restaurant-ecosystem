@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Events\ReservationUpdated;
 use App\Http\Controllers\Concerns\ResolvesRestaurant;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReservationCheckoutRequest;
 use App\Models\Reservation;
 use App\Models\Restaurant;
 use App\Models\Table;
+use App\Services\ReservationPreorderService;
+use App\Services\ReservationRefundService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -49,6 +53,8 @@ class ReservationController extends Controller
                 'phone' => $restaurant->phone,
                 'opening_time' => $restaurant->opening_time,
                 'closing_time' => $restaurant->closing_time,
+                'timezone' => $restaurant->timezone,
+                'email' => $restaurant->email,
                 'tables' => $tables,
             ],
         ]);
@@ -61,25 +67,18 @@ class ReservationController extends Controller
     {
         $date = $request->input('date', now()->format('Y-m-d'));
 
-        $opening = Carbon::parse($restaurant->opening_time);
-        $closing = Carbon::parse($restaurant->closing_time);
-
+        $timezone = $restaurant->timezone ?: config('reservations.default_timezone');
+        $opening = Carbon::parse($restaurant->opening_time, $timezone)->format('H:i');
+        $closing = Carbon::parse($restaurant->closing_time, $timezone)->format('H:i');
         $slots = [];
-        $current = $opening->copy();
-
-        while ($current->lt($closing)) {
+        $current = Carbon::parse($date.' 00:00', $timezone);
+        $end = $current->copy()->addDay();
+        while ($current->lt($end)) {
             $timeStr = $current->format('H:i');
-
-            // If date is today, skip past slots
-            $isPast = ($date === now()->format('Y-m-d'))
-                && Carbon::parse($date.' '.$timeStr)->lt(now());
-
-            $slots[] = [
-                'time' => $timeStr,
-                'label' => $current->format('g:i A'),
-                'disabled' => $isPast,
-            ];
-
+            $withinHours = $closing > $opening ? $timeStr >= $opening && $timeStr < $closing : $timeStr >= $opening || $timeStr < $closing;
+            if ($withinHours) {
+                $slots[] = ['time' => $timeStr, 'label' => $current->format('g:i A'), 'disabled' => $current->lt(now())];
+            }
             $current->addMinutes(30);
         }
 
@@ -98,25 +97,10 @@ class ReservationController extends Controller
         $time = $request->input('time', now()->format('H:i'));
         $partySize = (int) $request->input('party_size', 1);
 
-        $requestedTime = Carbon::parse($date.' '.$time);
-
-        // Get all tables for this restaurant
-        $tables = $restaurant->tables()
-            ->select('id', 'table_number', 'capacity', 'status')
-            ->orderBy('table_number')
-            ->get();
-
-        // Get reservations for this date that overlap with the requested time window (±1 hour)
-        $windowStart = $requestedTime->copy()->subHour()->format('H:i:s');
-        $windowEnd = $requestedTime->copy()->addHour()->format('H:i:s');
-
-        $reservedTableIds = Reservation::where('restaurant_id', $restaurant->id)
-            ->forDate($date)
-            ->active()
-            ->whereNotNull('table_id')
-            ->whereBetween('reservation_time', [$windowStart, $windowEnd])
-            ->pluck('table_id')
-            ->toArray();
+        $requestedTime = app(ReservationPreorderService::class)->arrival($restaurant, $date, $time);
+        $tables = $restaurant->tables()->select('id', 'table_number', 'capacity', 'status')->orderBy('table_number')->get();
+        $reservedTableIds = Reservation::query()->where('restaurant_id', $restaurant->id)->active()
+            ->whereBetween('arrival_at', [$requestedTime->subHour(), $requestedTime->addHour()])->pluck('table_id')->all();
 
         $result = $tables->map(function ($table) use ($reservedTableIds, $partySize) {
             $isReserved = in_array($table->id, $reservedTableIds);
@@ -126,7 +110,7 @@ class ReservationController extends Controller
                 'id' => $table->id,
                 'table_number' => $table->table_number,
                 'capacity' => $table->capacity,
-                'is_available' => ! $isReserved && ! $tooSmall,
+                'is_available' => ! $isReserved && ! $tooSmall && $table->status !== 'maintenance',
                 'reason' => $isReserved ? 'reserved' : ($tooSmall ? 'too_small' : null),
             ];
         });
@@ -140,87 +124,12 @@ class ReservationController extends Controller
     /**
      * Create a new reservation (public — guests can book without auth).
      */
-    public function store(Request $request): JsonResponse
+    public function store(ReservationCheckoutRequest $request, ReservationPreorderService $service): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'restaurant_id' => 'required|exists:restaurants,id',
-            'table_id' => 'required|exists:tables,id',
-            'guest_name' => 'required|string|max:100',
-            'guest_phone' => 'required|string|max:20',
-            'guest_email' => 'nullable|email|max:150',
-            'party_size' => 'required|integer|min:1|max:20',
-            'reservation_date' => 'required|date|after_or_equal:today|before_or_equal:'.now()->addDays(30)->format('Y-m-d'),
-            'reservation_time' => 'required|date_format:H:i',
-            'special_requests' => 'nullable|string|max:500',
-        ]);
+        abort_if($request->filled('items'), 422, 'Use reservation checkout to pay for a preorder.');
+        $reservation = $service->create($request->validated(), $request->user('sanctum')?->id);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        // Verify the table belongs to the restaurant
-        $table = Table::where('id', $request->table_id)
-            ->where('restaurant_id', $request->restaurant_id)
-            ->first();
-
-        if (! $table) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Table not found for this restaurant',
-            ], 422);
-        }
-
-        // Check the table is not already reserved for this time window
-        $requestedTime = Carbon::parse($request->reservation_date.' '.$request->reservation_time);
-        $windowStart = $requestedTime->copy()->subHour()->format('H:i:s');
-        $windowEnd = $requestedTime->copy()->addHour()->format('H:i:s');
-
-        $conflict = Reservation::where('restaurant_id', $request->restaurant_id)
-            ->where('table_id', $request->table_id)
-            ->forDate($request->reservation_date)
-            ->active()
-            ->whereBetween('reservation_time', [$windowStart, $windowEnd])
-            ->exists();
-
-        if ($conflict) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This table is already reserved for the selected time.',
-            ], 409);
-        }
-
-        $reservation = Reservation::create([
-            'restaurant_id' => $request->restaurant_id,
-            'user_id' => $request->user()?->id,
-            'guest_name' => $request->guest_name,
-            'guest_phone' => $request->guest_phone,
-            'guest_email' => $request->guest_email,
-            'party_size' => $request->party_size,
-            'reservation_date' => $request->reservation_date,
-            'reservation_time' => $request->reservation_time,
-            'table_id' => $request->table_id,
-            'status' => 'pending',
-            'special_requests' => $request->special_requests,
-            'confirmation_code' => strtoupper(Str::random(8)),
-        ]);
-
-        $reservation->load(['table', 'restaurant']);
-
-        event(new ReservationUpdated($reservation, 'created'));
-
-        if ($request->guest_email) {
-            \Illuminate\Support\Facades\Mail::to($request->guest_email)
-                ->send(new \App\Mail\ReservationConfirmed($reservation));
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Reservation created',
-            'data' => $reservation,
-        ], 201);
+        return response()->json(['success' => true, 'message' => 'Reservation requested', 'data' => $reservation->load('table', 'restaurant'), 'management_url' => $reservation->managementUrl()], 201);
     }
 
     /**
@@ -248,28 +157,12 @@ class ReservationController extends Controller
     /**
      * Cancel a reservation (public — by reservation ID).
      */
-    public function cancel(Reservation $reservation): JsonResponse
+    public function cancel(Request $request, Reservation $reservation, ReservationRefundService $refunds): JsonResponse
     {
-        if (in_array($reservation->status, ['cancelled', 'completed'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Reservation cannot be cancelled in its current state',
-            ], 409);
-        }
+        abort_unless(hash_equals($reservation->managementToken(), (string) $request->input('token', '')), 403, 'Use your secure reservation email link to cancel.');
+        $refunds->cancel($reservation);
 
-        $reservation->update([
-            'status' => 'cancelled',
-            'cancelled_at' => now(),
-        ]);
-
-        $reservation->load('table');
-
-        event(new ReservationUpdated($reservation, 'cancelled'));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Reservation cancelled',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Reservation cancelled']);
     }
 
     /**
@@ -279,9 +172,9 @@ class ReservationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $restaurantId = $this->restaurantId($request);
-        $date = $request->input('date', now()->format('Y-m-d'));
+        $date = $request->input('date', now(Restaurant::findOrFail($restaurantId)->timezone ?: config('reservations.default_timezone'))->format('Y-m-d'));
 
-        $reservations = Reservation::with(['table', 'user'])
+        $reservations = Reservation::with(['restaurant', 'table', 'user', 'preorder.reservation', 'preorder.items.menuItem', 'preorder.items.customizations', 'preorder.payments.refunds', 'refunds'])
             ->where('restaurant_id', $restaurantId)
             ->forDate($date)
             ->orderBy('reservation_time')
@@ -289,7 +182,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $reservations,
+            'data' => $reservations->map(fn (Reservation $r) => app(ReservationPreorderService::class)->view($r)),
         ]);
     }
 
@@ -298,6 +191,20 @@ class ReservationController extends Controller
      */
     public function updateStatus(Request $request, Reservation $reservation): JsonResponse
     {
+        abort_unless($reservation->restaurant_id === $this->restaurantId($request), 404);
+
+        return DB::transaction(function () use ($request, $reservation): JsonResponse {
+            Table::query()->lockForUpdate()->findOrFail($reservation->table_id);
+            $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
+
+            return $this->applyStatus($request, $locked);
+        }, 3);
+    }
+
+    private function applyStatus(Request $request, Reservation $reservation): JsonResponse
+    {
+        abort_unless($reservation->restaurant_id === $this->restaurantId($request), 404);
+        abort_if(in_array($reservation->checkout_state, ['pending', 'expired', 'failed'], true), 409, 'This preorder has not been paid.');
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:confirmed,seated,completed,cancelled,no_show',
         ]);
@@ -310,6 +217,15 @@ class ReservationController extends Controller
         }
 
         $newStatus = $request->status;
+        if ($newStatus === 'cancelled') {
+            $request->validate(['cancellation_actor' => 'required|in:customer,restaurant', 'reason' => 'nullable|string|max:500']);
+            $reservation = app(ReservationRefundService::class)->cancel($reservation, $request->cancellation_actor, $request->reason);
+
+            return response()->json(['success' => true, 'data' => app(ReservationPreorderService::class)->view($reservation)]);
+        }
+        if ($newStatus === 'seated' && $reservation->preorder) {
+            return $this->seatPreorder($request, $reservation);
+        }
 
         // Validate status transitions
         $allowed = match ($reservation->status) {
@@ -336,6 +252,10 @@ class ReservationController extends Controller
 
         $reservation->update($updates);
         $reservation->load('table');
+        if ($newStatus === 'confirmed' && ! $reservation->preorder) {
+            $reservation->update(['confirmation_sent_at' => null]);
+            \App\Jobs\SendReservationMail::dispatch($reservation->id);
+        }
 
         event(new ReservationUpdated($reservation, 'status_changed'));
 
@@ -344,6 +264,35 @@ class ReservationController extends Controller
             'message' => "Reservation status updated to {$newStatus}",
             'data' => $reservation,
         ]);
+    }
+
+    private function seatPreorder(Request $request, Reservation $reservation): JsonResponse
+    {
+        $request->validate(['session_id' => 'nullable|integer|exists:table_sessions,id', 'confirm_new_session' => 'sometimes|accepted']);
+        abort_unless($reservation->status === 'confirmed', 409, 'Only confirmed reservations can be seated.');
+        $session = DB::transaction(function () use ($request, $reservation) {
+            $table = Table::query()->lockForUpdate()->findOrFail($reservation->table_id);
+            $booking = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
+            abort_unless($booking->status === 'confirmed', 409, 'Reservation is already seated or cancelled.');
+            $order = $booking->preorder()->lockForUpdate()->firstOrFail();
+            if ($request->filled('session_id')) {
+                $session = \App\Models\TableSession::query()->where('table_id', $table->id)->where('restaurant_id', $booking->restaurant_id)->whereIn('status', ['active', 'checkout_pending'])->findOrFail($request->session_id);
+            } else {
+                abort_unless($request->boolean('confirm_new_session'), 422, 'Confirm a new table session or choose this party’s existing session.');
+                abort_if($table->currentSession && in_array($table->currentSession->status, ['active', 'checkout_pending'], true), 409, 'This table already has a session. Link the reservation to this party’s session explicitly.');
+                $session = \App\Models\TableSession::create(['table_id' => $table->id, 'restaurant_id' => $booking->restaurant_id, 'session_token' => Str::random(32), 'status' => 'active', 'payment_status' => 'paid', 'started_at' => now(), 'total_amount' => 0]);
+                $table->update(['status' => 'occupied', 'current_session_id' => $session->id]);
+            }
+            $order->update(['session_id' => $session->id]);
+            $order->payments()->update(['session_id' => $session->id]);
+            app(ReservationPreorderService::class)->syncDiningSession($order);
+            $booking->update(['status' => 'seated']);
+            DB::afterCommit(fn () => event(new ReservationUpdated($booking->fresh(), 'status_changed')));
+
+            return $session;
+        }, 3);
+
+        return response()->json(['success' => true, 'data' => app(ReservationPreorderService::class)->view($reservation->fresh()), 'session_id' => $session->id]);
     }
 
     /**

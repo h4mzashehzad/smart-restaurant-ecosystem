@@ -40,7 +40,7 @@ class SocketClient {
     if (this.pendingSessionId !== null) this.socket?.emit('session:join', this.pendingSessionId);
     if (this.pendingTable) this.socket?.emit('table:join', this.pendingTable);
     if (this.pendingKitchen !== null && this.kitchenSubscribers > 0) {
-      this.socket?.emit('kitchen:join', this.pendingKitchen);
+      this.socket?.emit('kitchen:join', { restaurantId: this.pendingKitchen, token: localStorage.getItem('auth_token') });
     }
   }
 
@@ -56,7 +56,7 @@ class SocketClient {
   joinKitchen(restaurantId: number) {
     this.kitchenSubscribers += 1;
     this.pendingKitchen = restaurantId;
-    this.socket?.emit('kitchen:join', restaurantId);
+    this.socket?.emit('kitchen:join', { restaurantId, token: localStorage.getItem('auth_token') });
   }
 
   /** Leave kitchen room without tearing down the shared socket unless unused. */

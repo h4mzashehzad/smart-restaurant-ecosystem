@@ -20,7 +20,7 @@ class OrderCreated implements ShouldBroadcastNow
      */
     public function __construct(Order $order)
     {
-        $order->load(['items.menuItem', 'table', 'user']);
+        $order->load(['items.menuItem', 'items.customizations', 'table', 'user', 'reservation.restaurant']);
 
         $this->order = $order->toArray();
     }
@@ -43,7 +43,7 @@ class OrderCreated implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'order'         => $this->order,
+            'order' => $this->order,
             'restaurant_id' => $this->order['restaurant_id'],
         ];
     }

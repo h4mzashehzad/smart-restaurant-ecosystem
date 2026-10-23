@@ -5,11 +5,13 @@ import { usePayment } from '@/contexts/PaymentContext';
 
 interface CartFabProps {
   onClick: () => void;
+  isolated?: boolean;
 }
 
-export function CartFab({ onClick }: CartFabProps) {
+export function CartFab({ onClick, isolated = false }: CartFabProps) {
   const { itemCount, total } = useCart();
-  const { active, step, orderTotal, openPaymentDrawer } = usePayment();
+  const { active: diningActive, step, orderTotal, openPaymentDrawer } = usePayment();
+  const active = !isolated && diningActive;
 
   if (itemCount === 0 && !active) return null;
 

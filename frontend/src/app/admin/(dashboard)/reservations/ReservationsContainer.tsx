@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClock } from 'lucide-react';
 import { adminApi } from '@/lib/admin-api';
 import { PageHeader } from '@/components/admin/PageHeader';
@@ -9,7 +9,8 @@ import { EmptyState } from '@/components/admin/EmptyState';
 import { ErrorState } from '@/components/admin/ErrorState';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { ReservationActions } from '@/components/admin/ReservationActions';
+import { ReservationPreorderDetails } from '@/components/admin/ReservationPreorderDetails';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -20,25 +21,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const NEXT_ACTIONS: Record<string, { label: string; status: string }[]> = {
-  pending: [{ label: 'Confirm', status: 'confirmed' }, { label: 'Cancel', status: 'cancelled' }],
-  confirmed: [{ label: 'Seat', status: 'seated' }, { label: 'No-show', status: 'no_show' }],
-  seated: [{ label: 'Complete', status: 'completed' }],
-};
-
 export default function ReservationsContainer() {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }));
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin', 'reservations', date],
     queryFn: () => adminApi.getReservations({ date }),
-  });
-
-  const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      adminApi.updateReservationStatus(id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'reservations'] }),
+    refetchInterval: 15000,
   });
 
   const reservations = data ?? [];
@@ -82,6 +72,7 @@ export default function ReservationsContainer() {
                 <TableHead>Time</TableHead>
                 <TableHead>Table</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Food preorder</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -98,20 +89,9 @@ export default function ReservationsContainer() {
                   <TableCell>
                     <StatusBadge status={r.status} />
                   </TableCell>
+                  <TableCell><ReservationPreorderDetails preorder={r.preorder} refunds={r.refunds} timezone={r.restaurant?.timezone} onUpdated={() => { void refetch(); }} /></TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1.5">
-                      {(NEXT_ACTIONS[r.status] ?? []).map((action) => (
-                        <Button
-                          key={action.status}
-                          size="sm"
-                          variant="outline"
-                          disabled={mutation.isPending}
-                          onClick={() => mutation.mutate({ id: r.id, status: action.status })}
-                        >
-                          {action.label}
-                        </Button>
-                      ))}
-                    </div>
+                    <ReservationActions reservation={r} onUpdated={() => { void queryClient.invalidateQueries({ queryKey: ['admin', 'reservations'] }); }} />
                   </TableCell>
                 </TableRow>
               ))}

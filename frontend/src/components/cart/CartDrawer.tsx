@@ -9,19 +9,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePayment } from '@/contexts/PaymentContext';
 import { CartItem } from './CartItem';
 import { OrderSuccess } from './OrderSuccess';
+import type { ReservationDraft } from '@/types/reservation';
+import { ReservationPayment } from '@/components/payment/ReservationPayment';
 import { PaymentDrawer } from '@/components/payment/PaymentDrawer';
 import { estimateLoyaltyDiscount, estimateLoyaltyTotals } from '@/lib/loyalty';
 
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
+  reservation?: ReservationDraft;
 }
 
-export function CartDrawer({ open, onClose }: CartDrawerProps) {
+export function CartDrawer({ open, onClose, reservation }: CartDrawerProps) {
   const { items, itemCount, subtotal, taxAmount, total, specialInstructions, setInstructions, clearCart } = useCart();
   const { session } = useSession();
   const { user } = useAuth();
-  const payment = usePayment();
+  const diningPayment = usePayment();
+  const payment = reservation ? { ...diningPayment, active: false, drawerOpen: false, step: 'idle' as const } : diningPayment;
   const router = useRouter();
 
   const [loyaltyDismissed, setLoyaltyDismissed] = useState(false);
@@ -63,6 +67,11 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
   function handlePlaceOrder() {
     setError('');
 
+    if (reservation) {
+      if (items.length) setPaymentOpen(true);
+      return;
+    }
+
     if (!session) {
       setError('Scan your table QR code first to place an order.');
       return;
@@ -82,7 +91,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
   function handlePaid(orderNumber: string) {
     setSuccessOrder(orderNumber);
     setPaymentOpen(false);
-    payment.closePaymentDrawer();
+    if (!reservation) payment.closePaymentDrawer();
   }
 
   function handleSuccessDone() {
@@ -94,7 +103,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
 
   function handleClosePayment() {
     setPaymentOpen(false);
-    payment.closePaymentDrawer();
+    if (!reservation) payment.closePaymentDrawer();
   }
 
   const showShell = open || paymentOpen || !!successOrder || payment.drawerOpen;
@@ -136,7 +145,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             </div>
           ) : inPaymentFlow ? (
             <div className="overflow-y-auto flex-1">
-              <PaymentDrawer
+              {reservation ? <ReservationPayment reservation={reservation} onClose={handleClosePayment} subtotal={subtotal} taxAmount={loyaltyTotals.taxAmount} total={loyaltyTotals.total} discount={loyaltyEstimate.amount} /> : <PaymentDrawer
                 open={inPaymentFlow}
                 onClose={handleClosePayment}
                 cartItems={items.map((i) => ({
@@ -153,7 +162,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                 taxAmount={loyaltyTotals.taxAmount}
                 total={loyaltyTotals.total}
                 onPaid={handlePaid}
-              />
+              />}
             </div>
           ) : (
             <>
@@ -206,7 +215,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                     <button
                       onClick={() => {
                         onClose();
-                        router.push('/login?redirect=/menu');
+                        router.push('/login?redirect=' + encodeURIComponent(reservation ? `/${reservation.slug}/reserve` : '/menu'));
                       }}
                       className="text-xs text-orange-500 font-sans underline underline-offset-2"
                     >
@@ -225,7 +234,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                 </div>
               )}
 
-              {!session && (
+              {!session && !reservation && (
                 <div className="mx-4 mt-3 shrink-0 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2.5">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5 text-amber-500 shrink-0">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />

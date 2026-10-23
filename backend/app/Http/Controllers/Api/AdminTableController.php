@@ -138,21 +138,15 @@ class AdminTableController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $restaurantId = $this->restaurantId($request);
-        $table = Table::where('restaurant_id', $restaurantId)->findOrFail($id);
 
-        if ($table->current_session_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete a table with an active session. End the session first.',
-            ], 409);
-        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($restaurantId, $id): JsonResponse {
+            $table = Table::query()->where('restaurant_id', $restaurantId)->lockForUpdate()->findOrFail($id);
+            abort_if($table->current_session_id, 409, 'Cannot delete a table with an active session. End the session first.');
+            abort_if($table->reservations()->active()->whereHas('preorder')->exists(), 409, 'This table has an active reservation preorder. Cancel the reservation and handle its refund before deleting the table.');
+            $table->delete();
 
-        $table->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Table deleted',
-        ]);
+            return response()->json(['success' => true, 'message' => 'Table deleted']);
+        }, 3);
     }
 
     /**

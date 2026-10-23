@@ -97,11 +97,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Reservation Confirmed</h1>
+            <h1>{{ $notification === 'cancelled' ? 'Reservation Cancelled' : ($notification === 'refund' ? 'Refund Processed' : ($reservation->status === 'pending' ? 'Reservation Request' : 'Reservation Confirmed')) }}</h1>
         </div>
         <div class="content">
             <p>Hi {{ $reservation->guest_name }},</p>
-            <p>Your table reservation at <strong>{{ $reservation->restaurant->name }}</strong> has been confirmed! We look forward to hosting you. Here are your reservation details:</p>
+            @if($notification === 'cancelled')
+            <p>Your reservation and any food preorder at <strong>{{ $reservation->restaurant->name }}</strong> have been cancelled. Any refund below will be returned to your original card through Safepay. A pending refund has not completed yet.</p>
+            @elseif($notification === 'refund')
+            <p>Safepay has processed the refund for your cancelled reservation. Your bank determines when it appears on your card statement.</p>
+            @else
+            <p>Your table reservation at <strong>{{ $reservation->restaurant->name }}</strong> {{ $reservation->status === 'pending' ? 'has been requested and is awaiting staff confirmation.' : 'is confirmed. We look forward to hosting you.' }}</p>
+            @endif
             
             <div class="details-box">
                 <div class="detail-row">
@@ -118,7 +124,7 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Table:</div>
-                    <div class="detail-value">#{{ $reservation->table->table_number }}</div>
+                    <div class="detail-value">#{{ $reservation->table?->table_number ?? 'To be assigned' }}</div>
                 </div>
                 @if($reservation->special_requests)
                 <div class="detail-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
@@ -133,7 +139,25 @@
                 </div>
             </div>
             
-            <p>If you need to make changes to your reservation, please contact us directly.</p>
+            @if($reservation->preorder)
+            <h2>Your food preorder</h2>
+            @foreach($reservation->preorder->items as $item)
+            <p>{{ $item->quantity }} × {{ $item->item_name ?? $item->menuItem?->name }} — Rs {{ number_format((float) $item->total_price, 2) }}<br><small>{{ $item->customization_notes }}</small></p>
+            @endforeach
+            <p><strong>Preorder total:</strong> Rs {{ number_format((float) $reservation->preorder->total_amount, 2) }}. Paid by card through Safepay.</p>
+            @if($reservation->preorder->special_instructions)<p>Food notes: {{ $reservation->preorder->special_instructions }}</p>@endif
+            @if($reservation->preorder->payments->first()?->receipt_url)
+            <p><a href="{{ $reservation->managementUrl() }}">View payment receipt</a></p>
+            @endif
+            <p>You may cancel your reservation and preorder at least two hours before arrival: <strong>{{ $reservation->cancellation_deadline?->setTimezone($reservation->restaurant->timezone)->format('M j, Y g:i A') }} ({{ $reservation->restaurant->timezone }})</strong>. A {{ $reservation->cancellation_fee_percent }}% cancellation fee is deducted; {{ 100 - $reservation->cancellation_fee_percent }}% of the amount paid is refunded.</p>
+            @endif
+            @foreach($reservation->refunds as $refund)
+            <p><strong>Refund:</strong> Rs {{ number_format($refund->amount_paisa / 100, 2) }} · {{ str_replace('_', ' ', $refund->status) }}<br>Cancellation fee: Rs {{ number_format($refund->fee_paisa / 100, 2) }}</p>
+            @endforeach
+            <p><a href="{{ $reservation->managementUrl() }}" style="display:inline-block;padding:14px 20px;background:#f97316;color:white;border-radius:12px;text-decoration:none">Manage or cancel reservation</a></p>
+            <p>You can also contact the restaurant to request cancellation. The preorder cancellation deadline and fee apply to customer requests made by phone too.</p>
+            @if($reservation->restaurant->phone)<p>Phone: <a href="tel:{{ $reservation->restaurant->phone }}">{{ $reservation->restaurant->phone }}</a></p>@endif
+            @if($reservation->restaurant->email)<p>Email: <a href="mailto:{{ $reservation->restaurant->email }}">{{ $reservation->restaurant->email }}</a></p>@endif
         </div>
         <div class="footer">
             &copy; {{ date('Y') }} Smart Restaurant Ecosystem. All rights reserved.

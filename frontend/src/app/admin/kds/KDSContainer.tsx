@@ -14,6 +14,9 @@ import QueueEntryCard, { type QueueEntry } from '@/components/kds/QueueEntryCard
 import CashPaymentCard, { type CashPayment } from '@/components/kds/CashPaymentCard';
 
 interface KDSOrder {
+  reservation?: { guest_name: string; arrival_at: string; restaurant?: { timezone: string } } | null;
+  kitchen_released_at?: string;
+  reservation_id?: number | null;
   id: number;
   order_number: string;
   status: string;
@@ -23,6 +26,7 @@ interface KDSOrder {
   items: Array<{
     id: number;
     quantity: number;
+    item_name?: string;
     menu_item: { name: string; preparation_time?: number };
     customization_notes?: string;
   }>;
@@ -82,11 +86,12 @@ export default function KDSContainer() {
 
     mountedRef.current = true;
     fetchOrders();
+    void api.getRestaurantReservations().then(setReservations).catch(console.error);
 
     socketClient.connect();
     socketClient.joinKitchen(restaurantId);
 
-    const handleConnect    = () => setConnected(true);
+    const handleConnect = () => { setConnected(true); void fetchOrders(); void api.getRestaurantReservations().then(setReservations).catch(console.error); };
     const handleDisconnect = () => setConnected(false);
     socketClient.onConnect(handleConnect);
     socketClient.onDisconnect(handleDisconnect);
@@ -175,12 +180,10 @@ export default function KDSContainer() {
 
     socketClient.onReservationUpdated((data: { reservation: Reservation; action: string }) => {
       if (!mountedRef.current) return;
-      const { reservation, action } = data;
-      if (action === 'created') {
-        setReservations((prev) => prev.some((r) => r.id === reservation.id) ? prev : [reservation, ...prev]);
-      } else {
-        setReservations((prev) => prev.map((r) => r.id === reservation.id ? reservation : r));
-      }
+      const { reservation } = data;
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: reservation.restaurant?.timezone || 'Asia/Karachi' });
+      if (!reservation.reservation_date.startsWith(today)) return;
+      setReservations(prev => prev.some(r => r.id === reservation.id) ? prev.map(r => r.id === reservation.id ? reservation : r) : [reservation, ...prev]);
     });
 
     // ── Walk-in queue ──────────────────────────────────────────────
@@ -299,13 +302,9 @@ export default function KDSContainer() {
     setFlaggedFeedback((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
   }, [restaurantId]);
 
-  const handleReservationStatus = useCallback((reservationId: number, status: string) => {
-    socketClient.updateReservationStatus(reservationId, status);
-    // Optimistic update
-    setReservations((prev) => prev.map((r) =>
-      r.id === reservationId ? { ...r, status: status as Reservation['status'] } : r
-    ));
-  }, []);
+  const refreshReservations = useCallback(() => {
+    if (restaurantId) void api.getRestaurantReservations().then(setReservations).catch(console.error);
+  }, [restaurantId]);
 
   const handleQueueStatus = useCallback((entryId: number, status: string) => {
     socketClient.updateQueueStatus(entryId, status);
@@ -590,7 +589,7 @@ export default function KDSContainer() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {activeReservations.map((res) => (
-                <ReservationCard key={res.id} reservation={res} onUpdateStatus={handleReservationStatus} />
+                <ReservationCard key={res.id} reservation={res} onUpdated={refreshReservations} />
               ))}
             </div>
           </section>

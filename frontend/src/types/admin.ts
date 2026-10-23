@@ -1,9 +1,12 @@
+import type { ReservationPreorder, ReservationRefund } from './reservation';
 // Shared types for the restaurant admin dashboard.
 // These mirror the JSON shapes returned by the Laravel backend's
 // `/api/admin/*` endpoints. Fields marked optional may not be present
 // on every response depending on eager-loaded relations.
 
 export type OrderStatus =
+  | 'pending_payment'
+  | 'scheduled'
   | 'pending'
   | 'confirmed'
   | 'preparing'
@@ -546,6 +549,12 @@ export interface AdminReviewsFilters {
 // ── Reservations ──────────────────────────────────────────────────────────
 
 export interface AdminReservation {
+  preorder?: ReservationPreorder | null;
+  refunds?: ReservationRefund[];
+  checkout_state?: string;
+  cancellation_fee_percent?: number;
+  restaurant?: { timezone: string };
+  arrival_at?: string;
   id: number;
   guest_name: string;
   guest_phone: string;
@@ -577,6 +586,7 @@ export interface AdminQueueEntry {
 // ── Payments ──────────────────────────────────────────────────────────────
 
 export interface AdminPayment {
+  refunds?: ReservationRefund[];
   id: number;
   order_id?: number;
   amount: number;

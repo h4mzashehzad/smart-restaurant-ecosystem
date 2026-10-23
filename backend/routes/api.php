@@ -62,6 +62,14 @@ Route::get('/restaurants/{restaurant}/tables/availability', [ReservationControll
 Route::get('/restaurants/{restaurant}/time-slots', [ReservationController::class, 'timeSlots']);
 Route::get('/reservations/{confirmationCode}', [ReservationController::class, 'show']);
 Route::post('/reservations', [ReservationController::class, 'store']);
+Route::post('/reservation-checkouts', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'store'])->middleware('throttle:20,1');
+Route::prefix('reservation-management/{code}')->middleware('throttle:60,1')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'show']);
+    Route::get('/receipt', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'receipt']);
+    Route::post('/verify', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'verify']);
+    Route::post('/cancel', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'cancel']);
+    Route::post('/checkout', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'retry']);
+});
 Route::post('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
 
 // ── Public Queue Routes ──
@@ -70,7 +78,7 @@ Route::post('/queue/join', [QueueController::class, 'join']);
 // ── Webhooks (called by socket server, no auth) ──
 Route::post('/webhooks/order-status', [OrderController::class,               'webhookUpdateStatus']);
 Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController::class, 'handle']);
-Route::post('/webhooks/reservation-status', [ReservationController::class,          'webhookUpdateStatus']);
+Route::post('/webhooks/reservation-status', [ReservationController::class, 'webhookUpdateStatus'])->middleware(['auth:sanctum', 'restaurant.role:admin,staff']);
 Route::post('/webhooks/queue-status', [QueueController::class,                'webhookUpdateStatus']);
 
 // ── Service Requests (public — guests in a session may request assistance) ──
@@ -226,6 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Reservation Management (admin+staff) — restaurant-scoped, ignores any path/body restaurant id ──
         Route::get('/reservations', [ReservationController::class, 'index']);
         Route::patch('/reservations/{reservation}/status', [ReservationController::class, 'updateStatus']);
+        Route::post('/reservation-refunds/{refund}/reconcile', [\App\Http\Controllers\Api\ReservationCheckoutController::class, 'reconcileRefund']);
 
         // ── Queue Management (admin+staff) — restaurant-scoped, ignores any path/body restaurant id ──
         Route::get('/queue', [QueueController::class, 'index']);

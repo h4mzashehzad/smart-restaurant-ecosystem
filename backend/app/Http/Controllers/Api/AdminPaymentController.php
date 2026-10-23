@@ -23,7 +23,7 @@ class AdminPaymentController extends Controller
 
         $query = Payment::query()
             ->whereHas('order', fn ($q) => $q->where('restaurant_id', $restaurantId))
-            ->with(['order.table', 'user', 'participant']);
+            ->with(['order.table', 'user', 'participant', 'refunds']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);

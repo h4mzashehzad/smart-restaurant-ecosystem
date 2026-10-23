@@ -17,6 +17,7 @@ class OrderItem extends Model
         'unit_price',
         'total_price',
         'customization_notes',
+        'item_name', 'preparation_minutes', 'customization_snapshot',
     ];
 
     protected function casts(): array
@@ -25,6 +26,8 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'customization_snapshot' => 'array',
+            'preparation_minutes' => 'integer',
         ];
     }
 

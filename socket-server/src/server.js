@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const Redis = require('ioredis');
 const cors = require('cors');
+const { isKitchenOrder, shouldNotifyTable, orderStatusPayload } = require('./preorder-contract');
 require('dotenv').config();
 
 const app = express();
@@ -71,11 +72,12 @@ redisSubscriber.on('message', async (channel, message) => {
     if (channel === `${REDIS_PREFIX}order:created`) {
       const { order, restaurant_id } = data;
 
+      if (!isKitchenOrder(order)) return;
       await redis.setex(`order:${order.id}:details`, 7200, JSON.stringify(order));
       await redis.sadd(`order:pending:${restaurant_id}`, order.id);
 
       io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:created', order);
-      io.to(`table:restaurant_${restaurant_id}_table_${order.table_id}`).emit('order:confirmed', {
+      if (shouldNotifyTable(order)) io.to(`table:restaurant_${restaurant_id}_table_${order.table_id}`).emit('order:confirmed', {
         orderId: order.id,
         orderNumber: order.order_number,
         estimatedTime: order.estimated_time
@@ -93,12 +95,13 @@ redisSubscriber.on('message', async (channel, message) => {
         await redis.setex(`order:${order_id}:details`, 7200, JSON.stringify(order));
       }
 
-      if (['completed', 'cancelled'].includes(status)) {
+      if (['served', 'completed', 'cancelled'].includes(status)) {
         await redis.srem(`order:pending:${restaurant_id}`, order_id);
       }
 
-      io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:status:changed', { orderId: order_id, status });
-      io.to(`table:restaurant_${restaurant_id}_table_${table_id}`).emit('status:changed', { orderId: order_id, status });
+      io.to(`kitchen:restaurant_${restaurant_id}`).emit('order:status:changed', orderStatusPayload(order_id, status));
+      const cachedDetails = cachedOrder ? JSON.parse(cachedOrder) : null;
+      if (table_id && shouldNotifyTable(cachedDetails || {})) io.to(`table:restaurant_${restaurant_id}_table_${table_id}`).emit('status:changed', { orderId: order_id, status });
       console.log(`[Orders] Order ${order_id} status updated to ${status}`);
     }
 
@@ -132,7 +135,7 @@ redisSubscriber.on('message', async (channel, message) => {
       );
 
       // Maintain today's reservation set
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: reservation.restaurant?.timezone || 'Asia/Karachi' }).format(new Date());
       if (reservation.reservation_date && reservation.reservation_date.startsWith(today)) {
         if (['cancelled', 'completed', 'no_show'].includes(reservation.status)) {
           await redis.srem(`reservations:today:${restaurant_id}`, String(reservation.id));
@@ -339,23 +342,34 @@ io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
 
   // ── Kitchen Display joins ─────────────────────────────────────────────────
-  socket.on('kitchen:join', async (restaurantId) => {
+  socket.on('kitchen:join', async (membership) => {
+    const { restaurantId, token } = membership || {};
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const auth = await fetch(`${process.env.LARAVEL_API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+      if (!auth.ok) throw new Error('Authentication failed');
+      const { data: staff } = await auth.json();
+      if (staff.is_active === false || !['admin', 'staff'].includes(staff.role) || Number(staff.restaurant_id) !== Number(restaurantId)) throw new Error('Restaurant access denied');
+      socket.data.staffToken = token;
+      socket.data.restaurantId = Number(restaurantId);
+    } catch {
+      socket.emit('error', { message: 'Sign in to access the kitchen.' });
+      return;
+    }
     socket.join(`kitchen:restaurant_${restaurantId}`);
     console.log(`[Kitchen] Socket ${socket.id} joined kitchen room for restaurant ${restaurantId}`);
 
-    // Send active orders from Redis cache
+    // The database is authoritative after expiry, restart, or a missed publish.
     try {
-      const activeOrderIds = await redis.smembers(`order:pending:${restaurantId}`);
-      const orders = await Promise.all(
-        activeOrderIds.map(async (id) => {
-          const d = await redis.get(`order:${id}:details`);
-          return d ? JSON.parse(d) : null;
-        })
-      );
-      socket.emit('kitchen:initial:orders', orders.filter(Boolean));
-      console.log(`[Kitchen] Sent ${orders.filter(Boolean).length} active orders to ${socket.id}`);
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/admin/kitchen/orders/active`, {
+        headers: { Authorization: `Bearer ${socket.data.staffToken}`, Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error('Cannot load active orders');
+      const { data: orders } = await response.json();
+      socket.emit('kitchen:initial:orders', orders || []);
     } catch (error) {
-      console.error('[Kitchen] Error sending initial orders:', error);
+      console.error('[Kitchen] Cannot load initial orders:', error.message);
     }
 
     // Send active service requests from Redis cache
@@ -399,29 +413,17 @@ io.on('connection', (socket) => {
       console.error('[Kitchen] Error sending flagged feedback:', error);
     }
 
-    // Send today's reservations from Redis cache
+    // Reload the restaurant-local reservation day even for bookings made weeks ago.
     try {
-      const reservationIds = await redis.smembers(`reservations:today:${restaurantId}`);
-      const reservations = [];
-      const staleResIds = [];
-
-      for (const id of reservationIds) {
-        const d = await redis.get(`reservation:${id}:details`);
-        if (d) {
-          reservations.push(JSON.parse(d));
-        } else {
-          staleResIds.push(id);
-        }
-      }
-
-      if (staleResIds.length > 0) {
-        await redis.srem(`reservations:today:${restaurantId}`, ...staleResIds);
-      }
-
-      socket.emit('kitchen:initial:reservations', reservations);
-      console.log(`[Kitchen] Sent ${reservations.length} reservations to ${socket.id}`);
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/admin/reservations`, {
+        headers: { Authorization: `Bearer ${socket.data.staffToken}`, Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error('Cannot load reservations');
+      const { data: reservations } = await response.json();
+      socket.emit('kitchen:initial:reservations', reservations || []);
     } catch (error) {
-      console.error('[Kitchen] Error sending reservations:', error);
+      console.error('[Kitchen] Cannot load initial reservations:', error.message);
     }
 
     // Send active queue entries from Redis cache
@@ -519,7 +521,7 @@ io.on('connection', (socket) => {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/order-status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${socket.data.staffToken || ''}`, Accept: 'application/json' },
         body: JSON.stringify({ order_id: orderId, status })
       });
       if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
@@ -582,8 +584,8 @@ io.on('connection', (socket) => {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/reservation-status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservation_id: reservationId, status })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${socket.data.staffToken || ''}`, Accept: 'application/json' },
+        body: JSON.stringify({ reservation_id: reservationId, status, cancellation_actor: 'customer' })
       });
       if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
       console.log(`[Reservation] Reservation ${reservationId} status updated via webhook`);

@@ -19,6 +19,7 @@ class Restaurant extends Model
         'opening_time',
         'closing_time',
         'is_active',
+        'timezone',
     ];
 
     protected function casts(): array

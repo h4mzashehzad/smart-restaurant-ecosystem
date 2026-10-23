@@ -20,6 +20,9 @@ class PaymentCompletionService
 
     public function markCompleted(Payment $payment, array $gatewayResponse = []): Payment
     {
+        if ($payment->order?->reservation_id) {
+            return app(ReservationPreorderService::class)->complete($payment, $gatewayResponse);
+        }
         if ($payment->status === 'completed') {
             return $payment;
         }
@@ -53,6 +56,13 @@ class PaymentCompletionService
 
     public function markFailed(Payment $payment, string $reason = 'Payment failed'): Payment
     {
+        if ($payment->order?->reservation_id) {
+            if (! $payment->paid_at) {
+                $payment->update(['status' => 'failed']);
+            }
+
+            return $payment->fresh();
+        }
         if (in_array($payment->status, ['completed', 'refunded'], true)) {
             return $payment;
         }

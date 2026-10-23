@@ -12,9 +12,10 @@ import { ARViewerOverlay } from '@/components/Menu/ARViewerOverlay';
 import { toArMenuItem, type ArMenuItem } from '@/components/Menu/ar';
 import { CartFab } from '@/components/cart/CartFab';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import type { ReservationDraft } from '@/types/reservation';
 import { FeedbackDrawer } from '@/components/customer/FeedbackDrawer';
 
-export function MenuContainer() {
+export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?: number; reservation?: ReservationDraft }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,16 +30,16 @@ export function MenuContainer() {
   const payment = usePayment();
 
   useEffect(() => {
-    if (payment.drawerOpen) {
+    if (!reservation && payment.drawerOpen) {
       setCartOpen(true);
     }
-  }, [payment.drawerOpen]);
+  }, [payment.drawerOpen, reservation]);
 
   // Resume after Safepay redirect (full pay or split share).
   useEffect(() => {
     const paid = searchParams.get('paid') === '1';
     const split = searchParams.get('split') === '1';
-    if (!paid && !split) return;
+    if (reservation || (!paid && !split)) return;
     payment.resumeAfterSafepayReturn(paid ? 'paid' : 'split');
     setCartOpen(true);
     router.replace('/menu', { scroll: false });
@@ -49,8 +50,8 @@ export function MenuContainer() {
     async function fetchMenu() {
       try {
         const [menuData, recData] = await Promise.all([
-          api.getMenu(1), // 1 is for Lahore Karahi
-          api.getRecommendations().catch(() => null)
+          api.getMenu(restaurantId),
+          reservation ? Promise.resolve(null) : api.getRecommendations().catch(() => null)
         ]);
         
         let allCategories = menuData || [];
@@ -80,7 +81,7 @@ export function MenuContainer() {
       }
     }
     fetchMenu();
-  }, []);
+  }, [restaurantId, reservation]);
 
   const activeCategory = useMemo(() => {
     return categories.find((c) => c.id === activeCategoryId);
@@ -182,9 +183,9 @@ export function MenuContainer() {
       </div>
 
       {/* Floating Cart Button */}
-      <CartFab onClick={() => setCartOpen(true)} />
+      <CartFab isolated={!!reservation} onClick={() => setCartOpen(true)} />
 
-      {payment.active && !payment.drawerOpen && (
+      {!reservation && payment.active && !payment.drawerOpen && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[45] w-full max-w-md px-4 pointer-events-none">
           <button
             type="button"
@@ -213,12 +214,13 @@ export function MenuContainer() {
 
       {/* Cart Bottom Sheet */}
       <CartDrawer
+        reservation={reservation}
         open={cartOpen}
         onClose={() => setCartOpen(false)}
       />
 
       {/* Feedback Drawer — auto-opens when order is served */}
-      <FeedbackDrawer />
+      {!reservation && <FeedbackDrawer />}
     </>
   );
 }

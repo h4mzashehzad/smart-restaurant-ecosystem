@@ -9,7 +9,7 @@ use RuntimeException;
 
 class SafepayService
 {
-    public function createTracker(float $amountPkr, array $metadata = []): array
+    public function createTracker(float $amountPkr, array $metadata = [], ?string $intent = null): array
     {
         $paisa = (int) round($amountPkr * 100);
 
@@ -22,7 +22,7 @@ class SafepayService
 
         $response = $this->client()->post('/order/payments/v3/', [
             'merchant_api_key' => config('safepay.api_key'),
-            'intent' => config('safepay.intent'),
+            'intent' => $intent ?? config('safepay.intent'),
             'mode' => 'payment',
             'currency' => config('safepay.currency'),
             'amount' => $paisa,
@@ -146,6 +146,13 @@ class SafepayService
         }
 
         return false;
+    }
+
+    public function refundAmount(string $trackerToken, int $amountPaisa): array
+    {
+        return $this->client()->timeout(30)->post('/order/payments/v3/'.rawurlencode($trackerToken).'/refund', [
+            'payload' => ['currency' => config('safepay.currency'), 'amount' => $amountPaisa],
+        ])->throw()->json('data') ?? [];
     }
 
     /**

@@ -54,7 +54,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    'frontend_url' => env('RESERVATION_FRONTEND_URL', trim(explode(',', env('FRONTEND_URL', 'http://localhost:3000'))[0])),
 
     'qr_frontend_url' => env('QR_FRONTEND_URL', 'http://192.168.18.88:3000'),
 

@@ -491,6 +491,17 @@ class PaymentController extends Controller
             return response()->json(['success' => true, 'message' => 'Ignored — unknown tracker']);
         }
 
+        if ($payment->order?->reservation_id) {
+            if (! $payment->paid_at) {
+                $verified = $this->safepay->fetchTrackerStatus($payment->safepay_tracker_token);
+                if ($this->safepay->isTrackerPaid($verified)) {
+                    $this->completion->markCompleted($payment, ['webhook' => $payload, 'verification' => $verified]);
+                }
+            }
+
+            return response()->json(['success' => true]);
+        }
+
         $state = data_get($payload, 'notification.state');
         $success = data_get($payload, 'success')
             ?? in_array($type, ['payment.succeeded', 'payment:succeeded', 'payment:created'], true)
@@ -642,6 +653,7 @@ class PaymentController extends Controller
 
     public function refund(Payment $payment): JsonResponse
     {
+        abort_if($payment->order?->reservation_id, 409, 'Refund this payment through the reservation cancellation controls.');
         if ($payment->status !== 'completed') {
             return response()->json([
                 'success' => false,

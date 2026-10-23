@@ -1,15 +1,22 @@
 'use client';
 
 import {
-  CheckCircleIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon,
+
   UserGroupIcon,
   ClockIcon,
   TicketIcon,
 } from '@heroicons/react/24/outline';
 
+import type { ReservationPreorder, ReservationRefund } from '@/types/reservation';
+import { ReservationActions } from '@/components/admin/ReservationActions';
+import { ReservationPreorderDetails } from '@/components/admin/ReservationPreorderDetails';
+
 export interface Reservation {
+  preorder?: ReservationPreorder | null;
+  refunds?: ReservationRefund[];
+  checkout_state?: string;
+  cancellation_fee_percent?: number;
+  restaurant?: { timezone: string };
   id: number;
   guest_name: string;
   guest_phone: string;
@@ -28,7 +35,7 @@ export interface Reservation {
 
 interface Props {
   reservation: Reservation;
-  onUpdateStatus: (reservationId: number, status: string) => void;
+  onUpdated: () => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -47,7 +54,7 @@ function formatTime(time: string) {
   return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
-export default function ReservationCard({ reservation, onUpdateStatus }: Props) {
+export default function ReservationCard({ reservation, onUpdated }: Props) {
   const r = reservation;
   const status = STATUS_CONFIG[r.status] || STATUS_CONFIG.pending;
 
@@ -93,65 +100,9 @@ export default function ReservationCard({ reservation, onUpdateStatus }: Props) 
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-2 mt-1">
-        {r.status === 'pending' && (
-          <>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'confirmed')}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/15 text-blue-400 text-xs font-bold hover:bg-blue-500/25 transition-colors"
-            >
-              <CheckCircleIcon className="w-4 h-4" />
-              Confirm
-            </button>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'cancelled')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/15 text-red-400 text-xs font-bold hover:bg-red-500/25 transition-colors"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </>
-        )}
-        {r.status === 'confirmed' && (
-          <>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'seated')}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition-colors"
-            >
-              <CheckCircleIcon className="w-4 h-4" />
-              Seat
-            </button>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'no_show')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition-colors"
-            >
-              <ExclamationTriangleIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'cancelled')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/15 text-red-400 text-xs font-bold hover:bg-red-500/25 transition-colors"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </>
-        )}
-        {r.status === 'seated' && (
-          <>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'completed')}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition-colors"
-            >
-              <CheckCircleIcon className="w-4 h-4" />
-              Complete
-            </button>
-            <button
-              onClick={() => onUpdateStatus(r.id, 'no_show')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition-colors"
-            >
-              <ExclamationTriangleIcon className="w-4 h-4" />
-            </button>
-          </>
-        )}
+      <div className="text-gray-300 space-y-3">
+        <ReservationPreorderDetails preorder={r.preorder} refunds={r.refunds} timezone={r.restaurant?.timezone} onUpdated={onUpdated} />
+        <ReservationActions reservation={r} onUpdated={onUpdated} />
       </div>
     </div>
   );

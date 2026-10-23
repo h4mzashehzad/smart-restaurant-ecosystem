@@ -74,7 +74,7 @@ class AdminController extends Controller
 
         $orders = Order::where('restaurant_id', $restaurantId)
             ->whereIn('status', ['pending', 'confirmed', 'preparing', 'ready'])
-            ->with(['items.menuItem', 'table', 'user'])
+            ->with(['items.menuItem', 'items.customizations', 'table', 'user', 'reservation.restaurant'])
             ->orderBy('placed_at')
             ->get();
 

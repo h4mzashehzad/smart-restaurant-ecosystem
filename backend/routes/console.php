@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('ml:generate-demand-forecast')->dailyAt('02:00');
+Schedule::command('reservations:process-preorders')->everyMinute()->withoutOverlapping();

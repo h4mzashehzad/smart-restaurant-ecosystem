@@ -33,10 +33,10 @@ function normalizeCartItem(item: CartItem & { lineKey?: string }): CartItem {
   };
 }
 
-function loadPersisted(): CartItem[] {
+function loadPersisted(storageKey: string): CartItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     const parsed = raw ? (JSON.parse(raw) as CartItem[]) : [];
     return parsed.map(normalizeCartItem);
   } catch {
@@ -44,9 +44,9 @@ function loadPersisted(): CartItem[] {
   }
 }
 
-function persist(items: CartItem[]) {
+function persist(items: CartItem[], storageKey: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  localStorage.setItem(storageKey, JSON.stringify(items));
 }
 
 /** Merge remote items into local cart (union by lineKey, take max qty for shared lines) */
@@ -68,8 +68,9 @@ function mergeItems(local: CartItem[], remote: CartItem[]): CartItem[] {
   return Array.from(map.values());
 }
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session } = useSession();
+export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: string; isolated?: boolean }> = ({ children, storageKey = STORAGE_KEY, isolated = false }) => {
+  const { session: diningSession } = useSession();
+  const session = isolated ? null : diningSession;
   const [items, setItems] = useState<CartItem[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const initialSyncDone = useRef(false);
@@ -78,8 +79,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const lastSyncedJson = useRef<string>('');
 
   useEffect(() => {
-    setItems(loadPersisted());
-  }, []);
+    setItems(loadPersisted(storageKey));
+  }, [storageKey]);
 
   // Broadcast cart to other devices whenever items change locally
   const mountedRef = useRef(false);
@@ -106,7 +107,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       initialSyncDone.current = false;
       lastSyncedJson.current = '';
     }
-  }, [session?.id]);
+  }, [session?.id, storageKey]);
 
   // Listen for remote cart updates
   useEffect(() => {
@@ -127,7 +128,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         initialSyncDone.current = true;
         setItems((prev) => {
           const merged = mergeItems(prev, data.items.map(normalizeCartItem));
-          persist(merged);
+          persist(merged, storageKey);
           // Update synced ref to the merged result (what we'll actually render)
           lastSyncedJson.current = JSON.stringify(merged);
           return merged;
@@ -135,7 +136,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Subsequent syncs — replace with remote
         const normalized = data.items.map(normalizeCartItem);
-        persist(normalized);
+        persist(normalized, storageKey);
         setItems(normalized);
       }
     };
@@ -144,14 +145,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       socketClient.offCartSync(handleCartSync);
     };
-  }, [session?.id]);
+  }, [session?.id, storageKey]);
 
   // Broadcast current cart when session starts (so other devices get it)
   useEffect(() => {
     if (!session?.id) return;
     // Wait for socket to connect and join session room, then broadcast
     const handleConnected = () => {
-      const current = loadPersisted();
+      const current = loadPersisted(storageKey);
       if (current.length > 0) {
         socketClient.emitCartUpdate(session.id, current);
       }
@@ -166,7 +167,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       socketClient.offConnect(handleConnected);
     };
-  }, [session?.id]);
+  }, [session?.id, storageKey]);
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity' | 'lineKey'> & { lineKey?: string }) => {
     setItems((prev) => {
@@ -189,33 +190,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
         ];
       }
-      persist(next);
+      persist(next, storageKey);
       return next;
     });
-  }, []);
+  }, [storageKey]);
 
   const removeItem = useCallback((lineKey: string) => {
     setItems((prev) => {
       const next = prev.filter((i) => i.lineKey !== lineKey);
-      persist(next);
+      persist(next, storageKey);
       return next;
     });
-  }, []);
+  }, [storageKey]);
 
   const updateQty = useCallback((lineKey: string, qty: number) => {
     if (qty < 1) return;
     setItems((prev) => {
       const next = prev.map((i) => (i.lineKey === lineKey ? { ...i, quantity: qty } : i));
-      persist(next);
+      persist(next, storageKey);
       return next;
     });
-  }, []);
+  }, [storageKey]);
 
   const clearCart = useCallback(() => {
     setItems([]);
     setSpecialInstructions('');
-    persist([]);
-  }, []);
+    persist([], storageKey);
+  }, [storageKey]);
 
   const setInstructions = useCallback((s: string) => {
     setSpecialInstructions(s);

@@ -550,7 +550,7 @@ class AdminAnalyticsController extends Controller
 
         $avgConfirm = (clone $orders)
             ->whereNotNull('confirmed_at')
-            ->selectRaw($this->minutesBetweenExpr('placed_at', 'confirmed_at').' as avg_minutes')
+            ->selectRaw($this->minutesBetweenExpr('COALESCE(kitchen_released_at, placed_at)', 'confirmed_at').' as avg_minutes')
             ->value('avg_minutes');
 
         $avgPrep = (clone $orders)
@@ -568,7 +568,7 @@ class AdminAnalyticsController extends Controller
         $avgTotal = (clone $orders)
             ->where('status', 'completed')
             ->whereNotNull('completed_at')
-            ->selectRaw($this->minutesBetweenExpr('placed_at', 'completed_at').' as avg_minutes')
+            ->selectRaw($this->minutesBetweenExpr('COALESCE(kitchen_released_at, placed_at)', 'completed_at').' as avg_minutes')
             ->value('avg_minutes');
 
         $flaggedOnCompleted = Feedback::query()

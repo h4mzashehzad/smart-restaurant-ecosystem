@@ -298,8 +298,8 @@ export const adminApi = {
   getReservations: (params?: { date?: string }) =>
     get<AdminReservation[]>('/admin/reservations', params),
 
-  updateReservationStatus: (id: number, status: string) =>
-    patch<AdminReservation>(`/admin/reservations/${id}/status`, { status }),
+  updateReservationStatus: (id: number, status: string, options?: { cancellation_actor?: 'customer' | 'restaurant'; reason?: string; session_id?: number; confirm_new_session?: boolean }) =>
+    patch<AdminReservation>(`/admin/reservations/${id}/status`, { status, ...options }),
 
   // ── Queue ─────────────────────────────────────────────────────────────
   getQueue: () => get<AdminQueueEntry[]>('/admin/queue'),

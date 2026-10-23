@@ -152,6 +152,7 @@ export default function PaymentsContainer() {
                   <TableHead>Method</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Refund / fee</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>When</TableHead>
                 </TableRow>
@@ -165,6 +166,7 @@ export default function PaymentsContainer() {
                     <TableCell>
                       <StatusBadge status={payment.status} />
                     </TableCell>
+                    <TableCell className="text-xs">{payment.refunds?.map(r => <div key={r.id}>Rs {(r.amount_paisa / 100).toFixed(2)} · {r.status.replaceAll('_', ' ')}<br />Fee Rs {(r.fee_paisa / 100).toFixed(2)}</div>) ?? '—'}</TableCell>
                     <TableCell>{payment.order?.order_number ?? payment.order_id}</TableCell>
                     <TableCell className="text-xs text-gray-500">
                       {payment.created_at
@@ -181,7 +183,7 @@ export default function PaymentsContainer() {
 
       <DeferredFeatureNotice
         title="Refunds & settlement deferred"
-        description="Role-gated refunds, dispute handling, and settlement exports are not enabled yet."
+        description="Reservation cancellations and refunds are managed under Reservations. General refunds, disputes, and settlement exports are not enabled here."
         todoSection="10. Payment refunds & reconciliation"
       />
     </div>

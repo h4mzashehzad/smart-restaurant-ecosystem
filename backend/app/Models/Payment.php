@@ -53,6 +53,11 @@ class Payment extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(PaymentRefund::class);
+    }
+
     public function session(): BelongsTo
     {
         return $this->belongsTo(TableSession::class, 'session_id');

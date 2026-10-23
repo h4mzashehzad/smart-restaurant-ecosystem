@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import { CartProvider } from '@/contexts/CartContext';
+import { MenuContainer } from '@/app/menu/MenuContainer';
+import { reservationCheckoutKey, type ReservationDraft } from '@/types/reservation';
 import { api } from '@/lib/api';
 import {
   CalendarDaysIcon,
@@ -29,6 +32,7 @@ interface Restaurant {
   phone: string;
   opening_time: string;
   closing_time: string;
+  timezone: string;
   tables: TableInfo[];
 }
 
@@ -46,7 +50,7 @@ interface TimeSlot {
   disabled: boolean;
 }
 
-type Step = 'date' | 'time' | 'table' | 'info' | 'success';
+type Step = 'date' | 'time' | 'table' | 'info' | 'menu' | 'success';
 const STEPS: Step[] = ['date', 'time', 'table', 'info', 'success'];
 const STEP_LABELS: Record<Step, string> = {
   date: 'Date & Guests',
@@ -54,6 +58,7 @@ const STEP_LABELS: Record<Step, string> = {
   table: 'Table',
   info: 'Your Info',
   success: 'Done',
+  menu: 'Preorder',
 };
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
@@ -94,6 +99,9 @@ export default function ReservationContainer({ slug }: { slug: string }) {
   const [specialRequests, setSpecialRequests] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmationCode, setConfirmationCode] = useState('');
+  const [preordering, setPreordering] = useState(false);
+  const [checkoutKey, setCheckoutKey] = useState('');
+  const [managementUrl, setManagementUrl] = useState('');
 
   // Calendar state
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -152,6 +160,12 @@ export default function ReservationContainer({ slug }: { slug: string }) {
 
   const handleSubmit = useCallback(async () => {
     if (!restaurant || !selectedTable) return;
+    if (preordering) {
+      if (!guestEmail.trim()) { setError('Enter your email to receive your prepaid reservation and cancellation link.'); return; }
+      setCheckoutKey(reservationCheckoutKey());
+      setStep('menu');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -167,23 +181,28 @@ export default function ReservationContainer({ slug }: { slug: string }) {
         special_requests: specialRequests.trim() || undefined,
       });
       setConfirmationCode(result.data.confirmation_code);
+      setManagementUrl(result.management_url || '');
       setStep('success');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data?.errors
-        ? Object.values(err.response.data.errors).flat().join(', ')
-        : 'Failed to create reservation.';
-      setError(typeof msg === 'string' ? msg : 'Failed to create reservation.');
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response?.data;
+      setError(data?.errors ? Object.values(data.errors).flat().join(', ') : data?.message || 'Failed to create reservation.');
     } finally {
       setSubmitting(false);
     }
-  }, [restaurant, selectedTable, guestName, guestPhone, guestEmail, partySize, selectedDate, selectedTime, specialRequests]);
+  }, [restaurant, selectedTable, guestName, guestPhone, guestEmail, partySize, selectedDate, selectedTime, specialRequests, preordering]);
 
   /* ── Validation ──────────────────────────────────────────────────────── */
 
   const canProceedDate = !!selectedDate && partySize >= 1;
   const canProceedTime = !!selectedTime;
   const canProceedTable = selectedTable !== null;
-  const canProceedInfo = guestName.trim().length >= 2 && guestPhone.trim().length >= 7;
+  const canProceedInfo = guestName.trim().length >= 2 && guestPhone.trim().length >= 7 && (!preordering || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim()));
+
+  const reservationDraft = useMemo<ReservationDraft | undefined>(() => restaurant && selectedTable ? ({
+    restaurant_id: restaurant.id, table_id: selectedTable, guest_name: guestName.trim(), guest_phone: guestPhone.trim(), guest_email: guestEmail.trim(),
+    party_size: partySize, reservation_date: selectedDate, reservation_time: selectedTime, special_requests: specialRequests.trim(), checkout_key: checkoutKey, slug,
+    restaurantName: restaurant.name, tableNumber: tables.find(t => t.id === selectedTable)?.table_number || '', timezone: restaurant.timezone || 'Asia/Karachi',
+  }) : undefined, [restaurant, selectedTable, guestName, guestPhone, guestEmail, partySize, selectedDate, selectedTime, specialRequests, checkoutKey, slug, tables]);
 
   /* ── Calendar helpers ────────────────────────────────────────────────── */
 
@@ -221,6 +240,22 @@ export default function ReservationContainer({ slug }: { slug: string }) {
     return d >= today && d <= maxDate;
   }
 
+  if (step === 'menu' && reservationDraft) {
+    return <CartProvider key={checkoutKey} isolated storageKey={`reservation-cart:${slug}:${checkoutKey}`}>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-100 px-5 py-5">
+          <div className="max-w-2xl mx-auto space-y-2">
+            <button onClick={() => setStep('info')} className="text-sm text-gray-500 hover:text-orange-600">← Back to reservation</button>
+            <h1 className="font-display text-2xl font-bold text-gray-900">{restaurant?.name}</h1>
+            <p className="text-sm text-gray-500">Preorder for {friendlyDate(selectedDate)} · {selectedTime} ({reservationDraft.timezone}) · Table {reservationDraft.tableNumber} · {partySize} guests</p>
+            <p className="text-xs text-orange-600">Your table is held when you start card checkout. Complete payment to confirm your reservation.</p>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto pt-4"><Suspense fallback={<p className="p-6 text-gray-500">Loading menu…</p>}><MenuContainer restaurantId={reservationDraft.restaurant_id} reservation={reservationDraft} /></Suspense></main>
+      </div>
+    </CartProvider>;
+  }
+
   /* ── Render ──────────────────────────────────────────────────────────── */
 
   if (loading) {
@@ -239,7 +274,7 @@ export default function ReservationContainer({ slug }: { slug: string }) {
       <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center px-6">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold text-zinc-900 mb-2">Restaurant Not Found</h1>
-          <p className="text-zinc-500 mb-6">The restaurant you're looking for doesn't exist or isn't available.</p>
+          <p className="text-zinc-500 mb-6">The restaurant you are looking for is not available.</p>
           <button onClick={() => router.push('/')} className="px-6 py-2.5 rounded-2xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors">
             Go Home
           </button>
@@ -569,7 +604,7 @@ export default function ReservationContainer({ slug }: { slug: string }) {
                   <EnvelopeIcon className="w-5 h-5 text-zinc-400 flex-shrink-0" />
                   <input
                     type="email"
-                    placeholder="Email (optional)"
+                    placeholder={preordering ? "Email *" : "Email (optional)"}
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
                     className="w-full py-4 bg-transparent outline-none text-zinc-900 placeholder:text-zinc-400 font-medium"
@@ -592,6 +627,10 @@ export default function ReservationContainer({ slug }: { slug: string }) {
               </div>
             </div>
 
+            <label className="flex items-start gap-3 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={preordering} onChange={e => setPreordering(e.target.checked)} className="mt-1 accent-orange-500" />
+              <span><strong className="block text-gray-900">Preorder food for your visit</strong>Browse the full menu, customize your dishes, and pay by card to confirm your table. You can also book the table only.</span>
+            </label>
             <button
               onClick={handleSubmit}
               disabled={!canProceedInfo || submitting}
@@ -604,7 +643,7 @@ export default function ReservationContainer({ slug }: { slug: string }) {
                 </>
               ) : (
                 <>
-                  Confirm Reservation
+                  {preordering ? 'Choose food from the menu' : 'Request Reservation'}
                   <CheckCircleIcon className="w-5 h-5" />
                 </>
               )}
@@ -619,8 +658,9 @@ export default function ReservationContainer({ slug }: { slug: string }) {
               <CheckCircleIcon className="w-10 h-10 text-emerald-600" />
             </div>
 
-            <h2 className="font-display text-3xl font-bold text-zinc-900 mb-2">Reservation Confirmed!</h2>
-            <p className="text-zinc-500 mb-8">Your table has been reserved. Please save your confirmation code.</p>
+            <h2 className="font-display text-3xl font-bold text-zinc-900 mb-2">Reservation Requested!</h2>
+            {managementUrl && <a href={managementUrl} className="block text-orange-600 underline mb-4">Manage or cancel reservation</a>}
+            <p className="text-zinc-500 mb-8">Your booking is awaiting restaurant confirmation. Please save your confirmation code.</p>
 
             <div className="bg-white rounded-3xl border border-zinc-100 p-6 shadow-sm mb-8 max-w-sm mx-auto">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Confirmation Code</p>

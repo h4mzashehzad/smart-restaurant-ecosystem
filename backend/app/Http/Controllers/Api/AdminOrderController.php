@@ -77,6 +77,7 @@ class AdminOrderController extends Controller
     {
         $restaurantId = $this->restaurantId($request);
         $order = Order::where('restaurant_id', $restaurantId)->findOrFail($id);
+        abort_if($order->reservation_id, 409, 'Cancel this preorder through the reservations section to process its refund.');
 
         $validator = Validator::make($request->all(), [
             'reason' => 'nullable|string|max:255',

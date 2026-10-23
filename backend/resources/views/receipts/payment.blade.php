@@ -49,7 +49,7 @@
             @elseif($order)
                 @foreach($order->items as $item)
                     <tr>
-                        <td>{{ $item->menuItem?->name ?? 'Item' }}</td>
+                        <td>{{ $item->item_name ?? $item->menuItem?->name ?? 'Item' }} @if($item->customization_notes)<br><small>{{ $item->customization_notes }}</small>@endif</td>
                         <td>{{ $item->quantity }}</td>
                         <td class="right">Rs {{ number_format((float) $item->total_price, 2) }}</td>
                     </tr>

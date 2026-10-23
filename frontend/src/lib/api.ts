@@ -396,13 +396,13 @@ class ApiClient {
     return response.data.data;
   }
 
-  async cancelReservation(reservationId: number) {
-    const response = await this.client.post(`/reservations/${reservationId}/cancel`);
+  async cancelReservation(reservationId: number, token: string) {
+    const response = await this.client.post(`/reservations/${reservationId}/cancel`, { token });
     return response.data;
   }
 
-  async getRestaurantReservations(restaurantId: number, date?: string) {
-    const response = await this.client.get(`/admin/restaurants/${restaurantId}/reservations`, {
+  async getRestaurantReservations(date?: string) {
+    const response = await this.client.get('/admin/reservations', {
       params: date ? { date } : {},
     });
     return response.data.data;

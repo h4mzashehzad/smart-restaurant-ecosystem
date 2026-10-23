@@ -5,11 +5,14 @@ import { useState, useEffect } from 'react';
 interface OrderItem {
   id: number;
   quantity: number;
+  item_name?: string;
   menu_item: { name: string; preparation_time?: number };
   customization_notes?: string;
 }
 
 interface KDSOrder {
+  reservation?: { guest_name: string; arrival_at: string; restaurant?: { timezone: string } } | null;
+  kitchen_released_at?: string;
   id: number;
   order_number: string;
   status: string;
@@ -82,16 +85,16 @@ export default function KDSOrderTicket({ order, onStatusUpdate }: KDSOrderTicket
   const [urgency, setUrgency] = useState<UrgencyLevel>(() =>
     getUrgency(order.estimated_completion_at)
   );
-  const [elapsed, setElapsed] = useState(() => getElapsedTime(order.placed_at));
+  const [elapsed, setElapsed] = useState(() => getElapsedTime(order.kitchen_released_at || order.placed_at));
 
   useEffect(() => {
     const interval = setInterval(() => {
       setUrgency(getUrgency(order.estimated_completion_at));
-      setElapsed(getElapsedTime(order.placed_at));
+      setElapsed(getElapsedTime(order.kitchen_released_at || order.placed_at));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [order.estimated_completion_at, order.placed_at]);
+  }, [order.estimated_completion_at, order.placed_at, order.kitchen_released_at]);
 
   const style = urgencyStyles[urgency];
   const nextAction = nextStatusMap[order.status];
@@ -125,6 +128,7 @@ export default function KDSOrderTicket({ order, onStatusUpdate }: KDSOrderTicket
         </div>
       </div>
 
+      {order.reservation && <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800"><strong>Reservation preorder · {order.reservation.guest_name}</strong><p className="mt-1">Arrival: {new Date(order.reservation.arrival_at).toLocaleString('en-PK', { timeZone: order.reservation.restaurant?.timezone || 'Asia/Karachi', dateStyle: 'medium', timeStyle: 'short' })}</p></div>}
       {/* Items */}
       <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
         {order.items.map((item) => (
@@ -134,7 +138,7 @@ export default function KDSOrderTicket({ order, onStatusUpdate }: KDSOrderTicket
             </span>
             <div className="min-w-0">
               <span className="text-sm font-semibold text-gray-800 leading-tight">
-                {item.menu_item?.name ?? 'Unknown item'}
+                {item.item_name ?? item.menu_item?.name ?? 'Unknown item'}
               </span>
               {item.customization_notes && (
                 <p className="text-xs text-gray-500 italic truncate">

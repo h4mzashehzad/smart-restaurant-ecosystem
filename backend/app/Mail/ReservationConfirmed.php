@@ -2,14 +2,12 @@
 
 namespace App\Mail;
 
+use App\Models\Reservation;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-
-use App\Models\Reservation;
 
 class ReservationConfirmed extends Mailable
 {
@@ -20,7 +18,7 @@ class ReservationConfirmed extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(Reservation $reservation)
+    public function __construct(Reservation $reservation, public string $notification = 'booking')
     {
         $this->reservation = $reservation;
     }
@@ -31,7 +29,11 @@ class ReservationConfirmed extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Reservation is Confirmed',
+            subject: match ($this->notification) {
+                'cancelled' => 'Your Reservation Has Been Cancelled',
+                'refund' => 'Your Reservation Refund Has Been Processed',
+                default => $this->reservation->status === 'pending' ? 'Your Reservation Request' : 'Your Reservation is Confirmed',
+            },
         );
     }
 

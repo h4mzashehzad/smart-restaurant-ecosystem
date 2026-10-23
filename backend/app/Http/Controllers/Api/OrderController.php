@@ -184,6 +184,11 @@ class OrderController extends Controller
             ], 422);
         }
 
+        if ($order->reservation_id) {
+            $updated = app(\App\Services\ReservationPreorderService::class)->advance($order, $request->status, $request->user('sanctum'));
+
+            return response()->json(['success' => true, 'data' => $updated]);
+        }
         $order->update(['status' => $request->status]);
 
         // Set lifecycle timestamps
@@ -216,6 +221,7 @@ class OrderController extends Controller
      */
     public function cancel(Order $order, LoyaltyService $loyalty): JsonResponse
     {
+        abort_if($order->reservation_id, 409, 'Cancel this preorder through the reservation management page.');
         if (in_array($order->status, ['completed', 'cancelled'])) {
             return response()->json([
                 'success' => false,
@@ -273,6 +279,11 @@ class OrderController extends Controller
         }
 
         $order = Order::findOrFail($request->order_id);
+        if ($order->reservation_id) {
+            $updated = app(\App\Services\ReservationPreorderService::class)->advance($order, $request->status, $request->user('sanctum'));
+
+            return response()->json(['success' => true, 'data' => $updated]);
+        }
         $order->update(['status' => $request->status]);
 
         $timestampMap = [
