@@ -512,7 +512,7 @@ export interface AdminOrdersFilters {
 
 export interface WaiterServiceRequest {
   id: number;
-  request_type: 'waiter_call' | 'bill_request' | 'water_refill' | 'cutlery' | 'complaint' | 'other';
+  request_type: 'waiter_call' | 'extra_naan_roti' | 'extra_raita_salad' | 'bill_request' | 'water_refill' | 'cutlery' | 'complaint' | 'other';
   priority: ServiceRequestPriority;
   status: ServiceRequestStatus;
   message?: string | null;

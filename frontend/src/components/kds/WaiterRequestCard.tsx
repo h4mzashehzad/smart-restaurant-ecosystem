@@ -25,6 +25,8 @@ interface WaiterRequestCardProps {
 // ── Config ─────────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<string, { label: string; iconPath: string }> = {
+  extra_naan_roti: { label: 'Extra Naan/Roti', iconPath: 'M20 12c0 4-3.5 7-8 7s-8-3-8-7 3.5-7 8-7 8 3 8 7zM8 10l1 1m5-3 1 1m-4 5 1 1m4-3 1 1' },
+  extra_raita_salad: { label: 'Extra Raita/Salad', iconPath: 'M3 12h18a9 9 0 01-18 0zM7 21h10M8 9V7m4 2V5m4 4V7' },
   waiter_call:  { label: 'Call Waiter',   iconPath: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0' },
   bill_request: { label: 'Request Bill',  iconPath: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z' },
   water_refill: { label: 'Water Refill',  iconPath: 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' },
@@ -139,7 +141,7 @@ export default function WaiterRequestCard({ request, onResolved }: WaiterRequest
       {/* Message */}
       {request.message && (
         <div className="bg-gray-700/40 rounded-xl px-3 py-2 border border-gray-700/50">
-          <p className="text-xs text-gray-300 font-sans leading-relaxed italic">"{request.message}"</p>
+          <p className="text-xs text-gray-300 font-sans leading-relaxed italic">&quot;{request.message}&quot;</p>
         </div>
       )}
 

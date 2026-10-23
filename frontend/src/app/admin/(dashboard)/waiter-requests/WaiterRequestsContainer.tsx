@@ -13,6 +13,8 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   waiter_call: 'Waiter Call',
+  extra_naan_roti: 'Extra Naan/Roti',
+  extra_raita_salad: 'Extra Raita/Salad',
   bill_request: 'Bill Request',
   water_refill: 'Water Refill',
   cutlery: 'Cutlery',

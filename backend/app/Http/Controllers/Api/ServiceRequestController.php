@@ -6,10 +6,10 @@ use App\Events\ServiceRequestCreated;
 use App\Events\ServiceRequestUpdated;
 use App\Http\Controllers\Concerns\ResolvesRestaurant;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreServiceRequestRequest;
 use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class ServiceRequestController extends Controller
 {
@@ -19,25 +19,8 @@ class ServiceRequestController extends Controller
      * Create a new service request (call waiter, request bill, etc.).
      * Public route — works for both authenticated users and guests with a session.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreServiceRequestRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'restaurant_id' => 'required|exists:restaurants,id',
-            'table_id' => 'required|exists:tables,id',
-            'session_id' => 'nullable|exists:table_sessions,id',
-            // Aligned to migration enum values
-            'request_type' => 'required|in:waiter_call,bill_request,water_refill,cutlery,complaint,other',
-            'priority' => 'nullable|in:low,medium,high,urgent',
-            'message' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         $serviceRequest = ServiceRequest::create([
             'restaurant_id' => $request->restaurant_id,
             'table_id' => $request->table_id,

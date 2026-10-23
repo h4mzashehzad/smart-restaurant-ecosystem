@@ -475,7 +475,7 @@ class AnalyticsDemoSeeder extends Seeder
 
     private function seedServiceRequests(int $restaurantId, $tables): void
     {
-        $types = ['waiter_call', 'water_refill', 'cutlery', 'bill_request', 'complaint'];
+        $types = ['waiter_call', 'extra_naan_roti', 'extra_raita_salad', 'water_refill', 'cutlery', 'bill_request', 'complaint'];
 
         for ($i = 0; $i < 8; $i++) {
             ServiceRequest::create([

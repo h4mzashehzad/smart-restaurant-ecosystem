@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Portal } from '@/components/Portal';
 import { useSession } from '@/contexts/SessionContext';
 
-type RequestType = 'waiter_call' | 'bill_request' | 'water_refill' | 'cutlery' | 'complaint' | 'other';
+type RequestType = 'waiter_call' | 'extra_naan_roti' | 'extra_raita_salad' | 'bill_request' | 'water_refill' | 'cutlery' | 'complaint' | 'other';
 type Priority = 'low' | 'medium' | 'high';
 type SubmitState = 'idle' | 'submitting' | 'sent' | 'error';
 
@@ -26,6 +26,18 @@ const REQUEST_OPTIONS: RequestOption[] = [
     label: 'Call Waiter',
     desc: 'Get someone to your table',
     path: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+  },
+  {
+    type: 'extra_naan_roti',
+    label: 'Extra Naan/Roti',
+    desc: 'Bring more naan or roti please',
+    path: 'M20 12c0 4-3.5 7-8 7s-8-3-8-7 3.5-7 8-7 8 3 8 7zM8 10l1 1m5-3 1 1m-4 5 1 1m4-3 1 1',
+  },
+  {
+    type: 'extra_raita_salad',
+    label: 'Extra Raita/Salad',
+    desc: 'Bring more raita or salad please',
+    path: 'M3 12h18a9 9 0 01-18 0zM7 21h10M8 9V7m4 2V5m4 4V7',
   },
   {
     type: 'bill_request',
