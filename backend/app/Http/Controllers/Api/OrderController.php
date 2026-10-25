@@ -46,6 +46,10 @@ class OrderController extends Controller
             ], 422);
         }
 
+        $session = TableSession::findOrFail($request->session_id);
+        if ((int) $request->table_id !== (int) $session->table_id || MenuItem::whereIn('id', collect($request->items)->pluck('menu_item_id'))->where('restaurant_id', '!=', $session->restaurant_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'All items and the table must belong to this restaurant session.'], 422);
+        }
         DB::beginTransaction();
 
         try {
@@ -173,6 +177,8 @@ class OrderController extends Controller
      */
     public function updateStatus(Request $request, Order $order): JsonResponse
     {
+        $operator = $request->user();
+        abort_unless($operator && in_array($operator->role, ['admin', 'staff'], true) && $operator->is_active && (int) $operator->restaurant_id === (int) $order->restaurant_id, 403);
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:confirmed,preparing,ready,served,completed,cancelled',
         ]);
@@ -279,6 +285,7 @@ class OrderController extends Controller
         }
 
         $order = Order::findOrFail($request->order_id);
+        abort_unless((int) $request->user()?->restaurant_id === (int) $order->restaurant_id, 404);
         if ($order->reservation_id) {
             $updated = app(\App\Services\ReservationPreorderService::class)->advance($order, $request->status, $request->user('sanctum'));
 

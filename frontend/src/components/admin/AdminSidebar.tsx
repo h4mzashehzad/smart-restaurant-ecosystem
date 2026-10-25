@@ -23,7 +23,7 @@ export function AdminSidebar({ role, onNavigate, className }: AdminSidebarProps)
 
   return (
     <nav className={cn('flex h-full flex-col gap-6 overflow-y-auto px-3 py-5', className)}>
-      <Link href={KDS_NAV_ITEM.href} onClick={onNavigate} className="px-1">
+      <Link href={KDS_NAV_ITEM.href} data-tour-link={KDS_NAV_ITEM.href} onClick={onNavigate} className="px-1">
         <div
           className={cn(
             'flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition-colors',
@@ -71,6 +71,7 @@ export function AdminSidebar({ role, onNavigate, className }: AdminSidebarProps)
                 <Link
                   key={item.href}
                   href={item.href}
+                  data-tour-link={item.href}
                   onClick={onNavigate}
                   className={cn(
                     'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors',

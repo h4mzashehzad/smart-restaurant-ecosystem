@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
   // Already logged in as admin/staff — skip the login form entirely.
   useEffect(() => {
     if (authLoading) return;
-    if (user && (user.role === 'admin' || user.role === 'staff')) {
+    if (user && user.restaurant_id && user.is_active !== false && (user.role === 'admin' || user.role === 'staff')) {
       router.replace('/admin');
     }
   }, [user, authLoading, router]);
@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
 
     try {
       const loggedInUser = await login(email, password);
-      if (loggedInUser.role !== 'admin' && loggedInUser.role !== 'staff') {
+      if (!loggedInUser.restaurant_id || loggedInUser.is_active === false || (loggedInUser.role !== 'admin' && loggedInUser.role !== 'staff')) {
         setError('Access denied. Admin or staff credentials required.');
         setLoading(false);
         return;
@@ -146,6 +146,7 @@ export default function AdminLoginPage() {
               </button>
             </div>
           </form>
+          <p className="mt-6 text-center text-sm text-gray-400">New restaurant? <a href="/partners" className="font-semibold text-orange-400 underline underline-offset-4">Partner with us</a></p>
         </div>
       </div>
     </div>

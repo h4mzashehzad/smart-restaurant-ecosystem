@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useSession } from '@/contexts/SessionContext';
 import { useCart } from '@/contexts/CartContext';
 import { usePayment } from '@/contexts/PaymentContext';
 import { CategorySlider } from '@/components/Menu/CategorySlider';
@@ -15,7 +17,7 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import type { ReservationDraft } from '@/types/reservation';
 import { FeedbackDrawer } from '@/components/customer/FeedbackDrawer';
 
-export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?: number; reservation?: ReservationDraft }) {
+export function MenuContainer({ restaurantId: explicitRestaurantId, reservation }: { restaurantId?: number; reservation?: ReservationDraft }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,11 @@ export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const { addItem } = useCart();
+  const { session, restaurant } = useSession();
+  const requestedId = Number(searchParams.get('restaurant_id'));
+  const restaurantId = reservation ? explicitRestaurantId : session?.restaurant_id ?? restaurant?.id ?? explicitRestaurantId ?? (Number.isSafeInteger(requestedId) && requestedId > 0 ? requestedId : undefined);
+  const { addItem, setRestaurantScope } = useCart();
+  useEffect(() => { if (restaurantId && !reservation) setRestaurantScope(restaurantId); }, [restaurantId, reservation, setRestaurantScope]);
   const payment = usePayment();
 
   useEffect(() => {
@@ -47,13 +53,17 @@ export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?
   }, [searchParams]);
 
   useEffect(() => {
+    if (!restaurantId) { setCategories([]); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true); setError(''); setCategories([]);
     async function fetchMenu() {
       try {
         const [menuData, recData] = await Promise.all([
-          api.getMenu(restaurantId),
-          reservation ? Promise.resolve(null) : api.getRecommendations().catch(() => null)
+          api.getMenu(restaurantId!),
+          reservation ? Promise.resolve(null) : api.getRecommendations(restaurantId!).catch(() => null)
         ]);
         
+        if (cancelled) return;
         let allCategories = menuData || [];
         
         if (recData && recData.success && recData.data?.length > 0) {
@@ -75,12 +85,13 @@ export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?
           setActiveCategoryId(allCategories[0].id);
         }
       } catch (err) {
-        setError('Failed to load menu. Please try again later.');
+        if (!cancelled) setError('Failed to load menu. Please try again later.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     fetchMenu();
+    return () => { cancelled = true; };
   }, [restaurantId, reservation]);
 
   const activeCategory = useMemo(() => {
@@ -104,6 +115,8 @@ export function MenuContainer({ restaurantId = 1, reservation }: { restaurantId?
     const ar = toArMenuItem(item);
     if (ar) setArItem(ar);
   };
+
+  if (!restaurantId) return <div className="m-4 rounded-2xl border border-orange-200 bg-white p-6 text-center"><h2 className="font-display text-xl font-semibold text-gray-900">Open your restaurant’s menu</h2><p className="mt-3 text-sm text-gray-600">Scan the QR code at your table, or use your restaurant’s menu link. This keeps your order connected to the right restaurant.</p><Link href="/" className="mt-4 inline-block text-sm font-semibold text-orange-700 underline">Back to Table.com.pk</Link></div>;
 
   if (loading) {
     return (

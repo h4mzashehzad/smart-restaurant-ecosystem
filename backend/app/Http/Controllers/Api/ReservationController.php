@@ -65,6 +65,9 @@ class ReservationController extends Controller
      */
     public function timeSlots(Request $request, Restaurant $restaurant): JsonResponse
     {
+        if (! $restaurant->opening_time || ! $restaurant->closing_time) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
         $date = $request->input('date', now()->format('Y-m-d'));
 
         $timezone = $restaurant->timezone ?: config('reservations.default_timezone');

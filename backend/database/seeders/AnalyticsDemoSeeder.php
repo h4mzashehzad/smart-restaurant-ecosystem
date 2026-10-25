@@ -30,7 +30,9 @@ use Illuminate\Support\Str;
  */
 class AnalyticsDemoSeeder extends Seeder
 {
-    private const DEMO_EMAIL_DOMAIN = 'demo.darbar.pk';
+    private string $demoDomain = 'demo.darbar.pk';
+
+    private int $demoIndex = 0;
 
     private const LOOKBACK_DAYS = 60;
 
@@ -84,15 +86,20 @@ class AnalyticsDemoSeeder extends Seeder
 
     public function run(): void
     {
-        $restaurant = Restaurant::query()->where('slug', 'darbar')->first()
-            ?? Restaurant::query()->orderBy('id')->first();
-
+        $restaurant = Restaurant::query()->whereIn('slug', ['darbar', 'darbar-restaurant'])->first()
+            ?? Restaurant::query()->where('name', 'Darbar Restaurant')->first();
         if (! $restaurant) {
-            $this->command?->error('No restaurant found. Run RestaurantMenuSeeder first.');
+            $this->command?->error('Darbar not found. Run RestaurantMenuSeeder first.');
 
             return;
         }
+        $this->seedForRestaurant($restaurant);
+    }
 
+    public function seedForRestaurant(Restaurant $restaurant, int $demoIndex = 0): void
+    {
+        $this->demoIndex = $demoIndex;
+        $this->demoDomain = $demoIndex === 0 ? 'demo.darbar.pk' : 'demo.'.$restaurant->slug.'.test';
         $tables = Table::query()->where('restaurant_id', $restaurant->id)->get();
         $menuItems = MenuItem::query()->where('restaurant_id', $restaurant->id)->where('is_available', true)->get();
 
@@ -143,7 +150,7 @@ class AnalyticsDemoSeeder extends Seeder
                     $statusRoll = random_int(1, 100);
                     $status = match (true) {
                         $statusRoll <= 6 => 'cancelled',
-                        $statusRoll <= 10 => 'preparing',
+                        $statusRoll <= 10 && $dayOffset === 0 => 'preparing',
                         default => 'completed',
                     };
 
@@ -180,11 +187,11 @@ class AnalyticsDemoSeeder extends Seeder
                         'restaurant_id' => $restaurant->id,
                         'session_token' => Str::random(40),
                         'started_at' => $placedAt->copy()->subMinutes(random_int(5, 20)),
-                        'ended_at' => $status === 'completed'
+                        'ended_at' => $status !== 'preparing'
                             ? $placedAt->copy()->addMinutes(random_int(45, 110))
                             : null,
                         'total_amount' => $status === 'completed' ? $total : 0,
-                        'status' => $status === 'completed' ? 'completed' : 'active',
+                        'status' => $status !== 'preparing' ? 'completed' : 'active',
                         'payment_status' => $status === 'completed' ? 'paid' : 'unpaid',
                     ]);
 
@@ -270,7 +277,7 @@ class AnalyticsDemoSeeder extends Seeder
                                 'is_flagged' => $shouldFlag,
                                 'flagged_reason' => $shouldFlag ? 'Highly negative feedback with low rating' : null,
                                 'admin_response' => $responded
-                                    ? 'JazakAllah for your feedback. We appreciate you dining with us at Darbar.'
+                                    ? 'Thank you for your feedback. We appreciate you dining with us at '.$restaurant->name.'.'
                                     : null,
                                 'responded_at' => $responded ? $reviewedAt->copy()->addHours(random_int(2, 48)) : null,
                             ]);
@@ -304,6 +311,7 @@ class AnalyticsDemoSeeder extends Seeder
             // Keep denormalized menu item ratings in sync with seeded reviews
             foreach ($menuItems as $menuItem) {
                 $menuItem->recalculateAverageRating();
+                $menuItem->update(['total_orders' => $menuItem->orderItems()->sum('quantity')]);
             }
 
             // Sync loyalty tiers from awarded points
@@ -323,7 +331,7 @@ class AnalyticsDemoSeeder extends Seeder
 
                 $txn = LoyaltyTransaction::create([
                     'user_id' => $user->id,
-                    'order_id' => null,
+                    'order_id' => $user->orders()->where('restaurant_id', $restaurant->id)->where('status', 'completed')->value('id'),
                     'transaction_type' => 'redeemed',
                     'points' => $points,
                     'balance_after' => (int) $user->loyalty_points,
@@ -363,13 +371,13 @@ class AnalyticsDemoSeeder extends Seeder
             $this->command?->info("Created {$orderCount} orders ({$guestOrderCount} guest), {$reviewCount} reviews, {$users->count()} customers.");
         });
 
-        $this->command?->info('Analytics demo seeding complete. Login as admin@darbar.pk and open /admin/analytics.');
+        $this->command?->info('Analytics demo seeding complete for '.$restaurant->name.'.');
     }
 
     private function cleanupPreviousDemo(int $restaurantId): void
     {
         $demoUserIds = User::query()
-            ->where('email', 'like', '%@'.self::DEMO_EMAIL_DOMAIN)
+            ->where('email', 'like', '%@'.$this->demoDomain)
             ->pluck('id');
 
         $demoOrderIds = Order::query()
@@ -392,14 +400,14 @@ class AnalyticsDemoSeeder extends Seeder
         Feedback::query()->whereIn('order_id', $demoOrderIds)->delete();
         Payment::query()->whereIn('order_id', $demoOrderIds)->delete();
         LoyaltyTransaction::query()->whereIn('order_id', $demoOrderIds)->delete();
-        LoyaltyTransaction::query()->whereIn('user_id', $demoUserIds)->delete();
+        LoyaltyTransaction::query()->whereIn('user_id', $demoUserIds)->whereNull('order_id')->delete();
         OrderItem::query()->whereIn('order_id', $demoOrderIds)->delete();
         Order::query()->whereIn('id', $demoOrderIds)->delete();
         TableSession::query()->whereIn('id', $sessionIds)->delete();
 
         Reservation::query()
             ->where('restaurant_id', $restaurantId)
-            ->where('guest_email', 'like', '%@'.self::DEMO_EMAIL_DOMAIN)
+            ->where('guest_email', 'like', '%@'.$this->demoDomain)
             ->delete();
 
         ServiceRequest::query()
@@ -407,7 +415,7 @@ class AnalyticsDemoSeeder extends Seeder
             ->where('message', 'like', '[DEMO]%')
             ->delete();
 
-        User::query()->whereIn('id', $demoUserIds)->delete();
+        User::query()->whereIn('id', $demoUserIds)->whereDoesntHave('orders')->delete();
     }
 
     /** @return \Illuminate\Support\Collection<int, User> */
@@ -424,10 +432,11 @@ class AnalyticsDemoSeeder extends Seeder
                 default => random_int(1500, 3200),
             };
 
-            $user = User::create([
+            $email = explode('@', $row['email'])[0].'@'.$this->demoDomain;
+            $phone = $this->demoIndex === 0 ? $row['phone'] : '+923'.(50 + $this->demoIndex).str_pad((string) ($index + 1), 7, '0', STR_PAD_LEFT);
+            $user = User::firstOrCreate(['email' => $email], [
                 'name' => $row['name'],
-                'email' => $row['email'],
-                'phone' => $row['phone'],
+                'phone' => $phone,
                 'password' => 'password',
                 'role' => 'customer',
                 'loyalty_points' => $points,
@@ -462,7 +471,7 @@ class AnalyticsDemoSeeder extends Seeder
                 'user_id' => null,
                 'guest_name' => $guest['name'],
                 'guest_phone' => $guest['phone'],
-                'guest_email' => $guest['email'],
+                'guest_email' => explode('@', $guest['email'])[0].'@'.$this->demoDomain,
                 'party_size' => random_int(2, 6),
                 'reservation_date' => now()->addDays($i + 1)->toDateString(),
                 'reservation_time' => collect(['19:00:00', '20:00:00', '20:30:00', '21:00:00'])->random(),

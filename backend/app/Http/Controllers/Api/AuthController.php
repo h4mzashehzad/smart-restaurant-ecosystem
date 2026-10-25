@@ -162,6 +162,10 @@ class AuthController extends Controller
                 ], 401);
             }
 
+            if (in_array($user->role, ['admin', 'staff'], true) && (! $user->restaurant_id || ! $user->is_active)) {
+                return response()->json(['success' => false, 'message' => 'This operator account is inactive or has no restaurant. Contact your restaurant administrator.'], 403);
+            }
+
             // Revoke previous tokens
             $user->tokens()->delete();
 

@@ -1,0 +1,35 @@
+/* Hallmark · theme: Table.com.pk (existing brand) · light / geometric-sans / warm */
+.marketing,
+.marketing-mobile-nav,
+.product-shot-dialog {
+  --color-paper: oklch(99% 0.003 80);
+  --color-surface: oklch(100% 0 0);
+  --color-wash: oklch(96% 0.014 75);
+  --color-accent: oklch(69% 0.19 47);
+  --color-action: oklch(53% 0.17 41);
+  --color-action-hover: oklch(46% 0.15 41);
+  --color-ink: oklch(21% 0.018 62);
+  --color-ink-soft: oklch(44% 0.018 62);
+  --color-muted: oklch(48% 0.016 62);
+  --color-rule: oklch(89% 0.01 72);
+  --color-focus: oklch(50% 0.18 42);
+  --color-error: oklch(48% 0.19 27);
+  --color-success: oklch(40% 0.1 150);
+  --color-scrim: oklch(10% 0.01 60 / 0.65);
+  --font-display: var(--font-outfit), sans-serif;
+  --font-body: var(--font-sans), sans-serif;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --radius-control: 8px;
+  --radius-panel: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-normal: 240ms;
+}

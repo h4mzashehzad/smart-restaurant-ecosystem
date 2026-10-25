@@ -38,6 +38,10 @@ use Illuminate\Support\Facades\Route;
 // ──────────────────────────────────────────────
 
 Route::prefix('auth')->group(function () {
+    Route::post('/restaurant-registration', [\App\Http\Controllers\Api\RestaurantRegistrationController::class, 'store'])->middleware('throttle:6,1');
+    Route::post('/restaurant-registration/verify', [\App\Http\Controllers\Api\RestaurantRegistrationController::class, 'verify'])->middleware('throttle:12,1')->name('restaurant-registration.verify');
+    Route::post('/restaurant-registration/resend', [\App\Http\Controllers\Api\RestaurantRegistrationController::class, 'resend'])->middleware('throttle:6,1');
+    Route::post('/restaurant-registration/existing', [\App\Http\Controllers\Api\RestaurantRegistrationController::class, 'existing'])->middleware(['auth:sanctum', 'throttle:6,1'])->name('restaurant-registration.existing');
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/request-otp', [AuthController::class, 'requestOTP']);
@@ -76,10 +80,10 @@ Route::post('/reservations/{reservation}/cancel', [ReservationController::class,
 Route::post('/queue/join', [QueueController::class, 'join']);
 
 // ── Webhooks (called by socket server, no auth) ──
-Route::post('/webhooks/order-status', [OrderController::class,               'webhookUpdateStatus']);
-Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController::class, 'handle']);
+Route::post('/webhooks/order-status', [OrderController::class,               'webhookUpdateStatus'])->middleware(['auth:sanctum', 'restaurant.role:admin,staff']);
+Route::post('/webhooks/waiter-request-action', [ServiceRequestWebhookController::class, 'handle'])->middleware(['auth:sanctum', 'restaurant.role:admin,staff']);
 Route::post('/webhooks/reservation-status', [ReservationController::class, 'webhookUpdateStatus'])->middleware(['auth:sanctum', 'restaurant.role:admin,staff']);
-Route::post('/webhooks/queue-status', [QueueController::class,                'webhookUpdateStatus']);
+Route::post('/webhooks/queue-status', [QueueController::class,                'webhookUpdateStatus'])->middleware(['auth:sanctum', 'restaurant.role:admin,staff']);
 
 // ── Service Requests (public — guests in a session may request assistance) ──
 Route::post('/service-requests', [ServiceRequestController::class, 'store']);
@@ -150,10 +154,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Payments (staff + legacy) ──
     Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
     Route::post('/payments/split-bill', [PaymentController::class, 'splitBill']);
-    Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
-    Route::post('/payments/{payment}/confirm-cash', [PaymentController::class, 'confirmCashPayment']);
+    Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm'])->middleware('restaurant.role:admin,staff');
+    Route::post('/payments/{payment}/confirm-cash', [PaymentController::class, 'confirmCashPayment'])->middleware('restaurant.role:admin,staff');
     Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund']);
-    Route::get('/payments/cash/pending', [PaymentController::class, 'pendingCashPayments']);
+    Route::get('/payments/cash/pending', [PaymentController::class, 'pendingCashPayments'])->middleware('restaurant.role:admin,staff');
 
     // ── Queue (authenticated) ──
     Route::get('/queue/status', [QueueController::class, 'status']);
@@ -177,6 +181,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // `restaurant.role:admin,staff` enforces role + active + restaurant-bound; all
     // controllers resolve the restaurant via ResolvesRestaurant, never a route/body param.
     Route::prefix('admin')->middleware('restaurant.role:admin,staff')->group(function () {
+        Route::get('/onboarding', [\App\Http\Controllers\Api\AdminOnboardingController::class, 'show']);
+        Route::patch('/onboarding', [\App\Http\Controllers\Api\AdminOnboardingController::class, 'update']);
         Route::get('/dashboard/stats', [AdminController::class, 'dashboardStats']);
         Route::get('/analytics/revenue', [AdminAnalyticsController::class, 'revenue']);
         Route::get('/analytics/revenue-by-category', [AdminAnalyticsController::class, 'revenueByCategory']);

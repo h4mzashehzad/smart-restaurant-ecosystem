@@ -1,5 +1,7 @@
 'use client';
 
+import QRCode from 'react-qr-code';
+
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,17 +47,13 @@ function sortTablesNaturally(tables: RestaurantTable[]) {
 
 function sessionLinkFor(table: RestaurantTable) {
   if (!table.qr_code) return null;
-  // In development, opening the session link from the admin dashboard stays on localhost:3000
-  if (process.env.NODE_ENV !== 'production') {
-    return `http://localhost:3000/scan/${table.qr_code}`;
-  }
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return `${origin}/scan/${table.qr_code}`;
 }
 
 async function downloadQrImage(table: RestaurantTable) {
-  if (!table.qr_code_url) {
-    throw new Error('No QR code image available for this table.');
+  if (!table.qr_code) {
+    throw new Error('No QR code token available for this table.');
   }
 
   await adminApi.downloadTableQr(table.id, table.table_number);
@@ -101,7 +99,7 @@ export default function TablesContainer() {
       setCreateError('');
       if (!table.qr_code_url) {
         setCreateWarning(
-          `Table ${table.table_number} was created, but the QR image is missing. Open the table and use Regenerate QR.`
+          `Table ${table.table_number} is ready. Its QR code can be previewed and downloaded here even when cloud storage is unavailable.`
         );
       } else {
         setCreateWarning('');
@@ -460,12 +458,10 @@ export default function TablesContainer() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center">
-                <QrCode className="h-10 w-10 text-gray-300" />
-                <p className="text-sm text-gray-600">
-                  No QR image is stored for this table yet. Generate one to preview and download.
-                </p>
-              </div>
+              activeQrTable?.qr_code ? <div className="flex flex-col items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4">
+                <QRCode value={sessionLinkFor(activeQrTable)!} size={224} title={`QR code for table ${activeQrTable.table_number}`} />
+                <p className="text-center text-xs text-gray-500">This QR code is ready to scan and download.</p>
+              </div> : <p className="text-sm text-gray-600">No table QR token is available.</p>
             )}
           </div>
 
@@ -491,7 +487,7 @@ export default function TablesContainer() {
                 variant="outline"
                 size="lg"
                 className="w-full justify-center px-4"
-                disabled={!activeQrTable?.qr_code_url || downloading}
+                disabled={!activeQrTable?.qr_code || downloading}
                 onClick={handleDownload}
               >
                 <Download className="h-4 w-4" />

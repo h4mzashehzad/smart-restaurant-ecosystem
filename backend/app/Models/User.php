@@ -38,6 +38,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'loyalty_points' => 'integer',
             'is_active' => 'boolean',
+            'admin_onboarding' => 'array',
         ];
     }
 

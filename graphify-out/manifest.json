@@ -45,8 +45,8 @@
     "semantic_hash": ""
   },
   "backend/app/Events/OrderCreated.php": {
-    "mtime": 1781591538.6298022,
-    "ast_hash": "f25c46984a0b677fad3e55feb32a4cd1",
+    "mtime": 1792744196.224943,
+    "ast_hash": "d5a5987748b9d5d072d5fb1f3692657f",
     "semantic_hash": ""
   },
   "backend/app/Events/OrderStatusUpdated.php": {
@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "backend/app/Events/ReservationUpdated.php": {
-    "mtime": 1781591538.6309834,
-    "ast_hash": "21abd69e604146ba93c4902413608abc",
+    "mtime": 1792743895.114055,
+    "ast_hash": "f3d1fd36ba7074e850e588f1c14f6b43",
     "semantic_hash": ""
   },
   "backend/app/Events/ServiceRequestCreated.php": {
@@ -115,13 +115,13 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminController.php": {
-    "mtime": 1784125391.0847642,
-    "ast_hash": "4c34cde8f168023e48f99a1cdc33201d",
+    "mtime": 1792910873.1925316,
+    "ast_hash": "88bfa1ed1e25d5c482d1a99232bc5292",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AuthController.php": {
-    "mtime": 1784038627.2678764,
-    "ast_hash": "54cbc0a2c8468c24c50539d603c42b52",
+    "mtime": 1792912242.663092,
+    "ast_hash": "6cbec466f0e112c0cf7ace526c7d93ab",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/FeedbackController.php": {
@@ -135,38 +135,38 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/MenuController.php": {
-    "mtime": 1784038546.9456198,
-    "ast_hash": "27cdce78c551813ee844097ddf27f269",
+    "mtime": 1792910873.190014,
+    "ast_hash": "6578330b3fced3e517e43e183c06e196",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/OrderController.php": {
-    "mtime": 1784041633.4933605,
-    "ast_hash": "67f7bf81336ccc5d49e32336aa3349ee",
+    "mtime": 1792912071.8254797,
+    "ast_hash": "1b4063ed3560225ae8c18cc8d196bb20",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/PaymentController.php": {
-    "mtime": 1784041609.4260578,
-    "ast_hash": "60ffad81218caec5810c444910dc70f2",
+    "mtime": 1792912071.8348076,
+    "ast_hash": "792faaf5cc506f0ad3a4bac970cc866d",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/QueueController.php": {
-    "mtime": 1783871802.5895941,
-    "ast_hash": "66f59f245052f466f19f5b1e7b44e429",
+    "mtime": 1792912071.832195,
+    "ast_hash": "79988c448dd0dfac2f74afa2d0c51fd5",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/ReservationController.php": {
-    "mtime": 1783871802.3980088,
-    "ast_hash": "927d54a037738096648a6ba38a39547e",
+    "mtime": 1792912318.8703792,
+    "ast_hash": "2a5859885f8bd2aff0f3f90cfc6f5844",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/ServiceRequestController.php": {
-    "mtime": 1783871803.7753384,
-    "ast_hash": "2e22e650a7934f808e88f70ad0ae407c",
+    "mtime": 1792740466.9546049,
+    "ast_hash": "5ec04ca71fa4069719028e658789f4f0",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/ServiceRequestWebhookController.php": {
-    "mtime": 1781591538.6456435,
-    "ast_hash": "5b1c615c0a2c8c6dc536186a63956470",
+    "mtime": 1792912752.4624674,
+    "ast_hash": "1ccb808176f0f39b4b2d6b76e0433875",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/SessionController.php": {
@@ -195,8 +195,8 @@
     "semantic_hash": ""
   },
   "backend/app/Mail/ReservationConfirmed.php": {
-    "mtime": 1782971430.8960545,
-    "ast_hash": "195142d0e31f0de541c1af11f32b7de9",
+    "mtime": 1792743893.3598812,
+    "ast_hash": "2238ca92a376d9c9b529925c3af08dc5",
     "semantic_hash": ""
   },
   "backend/app/Models/AiRecommendation.php": {
@@ -255,13 +255,13 @@
     "semantic_hash": ""
   },
   "backend/app/Models/Order.php": {
-    "mtime": 1781591538.6492739,
-    "ast_hash": "51510c37c5b7d8d6b26882851951068f",
+    "mtime": 1792743058.4708705,
+    "ast_hash": "3ba972d5294b77f856cb5f37888bbd97",
     "semantic_hash": ""
   },
   "backend/app/Models/OrderItem.php": {
-    "mtime": 1774693438.8819065,
-    "ast_hash": "388c2cd3f5f69303c96c25b9047cf0f8",
+    "mtime": 1792743058.5706203,
+    "ast_hash": "ec3c50ca7fec28199262b5c854a0fe5e",
     "semantic_hash": ""
   },
   "backend/app/Models/OrderItemCustomization.php": {
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "backend/app/Models/Payment.php": {
-    "mtime": 1783686042.9904778,
-    "ast_hash": "7b6a86fde6071a0962e23d908a61fee5",
+    "mtime": 1792743058.660902,
+    "ast_hash": "094d4d8a42c2148cd49542073e9d7ea5",
     "semantic_hash": ""
   },
   "backend/app/Models/QueueEntry.php": {
@@ -285,13 +285,13 @@
     "semantic_hash": ""
   },
   "backend/app/Models/Reservation.php": {
-    "mtime": 1781591538.6501641,
-    "ast_hash": "2717dfa13738d0f9710ab039b7fc46f2",
+    "mtime": 1792743893.630899,
+    "ast_hash": "1e78a7f749147b310f04827e4a5709f2",
     "semantic_hash": ""
   },
   "backend/app/Models/Restaurant.php": {
-    "mtime": 1784038627.2496474,
-    "ast_hash": "9f0c110ec1d4e384cc510748e7bdb462",
+    "mtime": 1792743058.2989604,
+    "ast_hash": "950c7216234ceedba67ce574e436104f",
     "semantic_hash": ""
   },
   "backend/app/Models/ServiceRequest.php": {
@@ -320,8 +320,8 @@
     "semantic_hash": ""
   },
   "backend/app/Models/User.php": {
-    "mtime": 1784038627.273897,
-    "ast_hash": "4a01084a65323276a460eb9ef2c5d188",
+    "mtime": 1792910682.42982,
+    "ast_hash": "cf3f20364f52d52cbe1b7ec990d6daf1",
     "semantic_hash": ""
   },
   "backend/app/Models/UserPreference.php": {
@@ -335,13 +335,13 @@
     "semantic_hash": ""
   },
   "backend/app/Services/PaymentCompletionService.php": {
-    "mtime": 1784041625.3370535,
-    "ast_hash": "addccf54b816f6c28ae4e48a790fab8e",
+    "mtime": 1792743895.6099296,
+    "ast_hash": "c66bb117fff608506a2c4e23cde261f1",
     "semantic_hash": ""
   },
   "backend/app/Services/QRCodeGenerationService.php": {
-    "mtime": 1791728345.3314176,
-    "ast_hash": "b9cc1dd8b8e160fbd582b70f2ff60473",
+    "mtime": 1792912753.5823576,
+    "ast_hash": "00a2e394666f66247a4cf1bef2223dea",
     "semantic_hash": ""
   },
   "backend/app/Services/ReceiptService.php": {
@@ -350,8 +350,8 @@
     "semantic_hash": ""
   },
   "backend/app/Services/SafepayService.php": {
-    "mtime": 1783686042.9927404,
-    "ast_hash": "2c1d29e6cd70cbbee4c7db4d89bf2bf7",
+    "mtime": 1792743921.7310946,
+    "ast_hash": "21603a636fc8d8925525bb07ff294e47",
     "semantic_hash": ""
   },
   "backend/app/Services/SplitBillService.php": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "backend/config/app.php": {
-    "mtime": 1791727454.2760806,
-    "ast_hash": "6606e936fb905b0e4ccbce35b7f4c1b8",
+    "mtime": 1792745550.494718,
+    "ast_hash": "114910b4163ed6f25541d098deb53c3c",
     "semantic_hash": ""
   },
   "backend/config/auth.php": {
@@ -665,18 +665,18 @@
     "semantic_hash": ""
   },
   "backend/database/seeders/DatabaseSeeder.php": {
-    "mtime": 1784125391.08812,
-    "ast_hash": "988fa1ea5fa705d0467cb6e8f58896dd",
+    "mtime": 1792910873.1864254,
+    "ast_hash": "a4caae69b5edcdd6f8433afe910e240e",
     "semantic_hash": ""
   },
   "backend/database/seeders/RestaurantMenuSeeder.php": {
-    "mtime": 1783686043.001648,
-    "ast_hash": "241f3aa719f864bb662cbf95ebcbe053",
+    "mtime": 1792912751.105956,
+    "ast_hash": "b7297e306269758cec061ef3b416f876",
     "semantic_hash": ""
   },
   "backend/database/seeders/TablesTableSeeder.php": {
-    "mtime": 1782971430.902663,
-    "ast_hash": "cd7df13e48eb880fdc8d4d9d67c92dba",
+    "mtime": 1792912751.1532383,
+    "ast_hash": "9df49f39b4bf1bed65b3e4170f7276dc",
     "semantic_hash": ""
   },
   "backend/package.json": {
@@ -710,13 +710,13 @@
     "semantic_hash": ""
   },
   "backend/resources/views/emails/reservation-confirmed.blade.php": {
-    "mtime": 1782971430.907155,
-    "ast_hash": "2ab7e5fcc8c52ae02d743e55069a94e5",
+    "mtime": 1792745278.1763158,
+    "ast_hash": "481a05cdfd749c6f6176d7e42fcbde2a",
     "semantic_hash": ""
   },
   "backend/resources/views/receipts/payment.blade.php": {
-    "mtime": 1783686043.1773503,
-    "ast_hash": "d70db9c54ac2063c9ab96f66660c2899",
+    "mtime": 1792743312.0135338,
+    "ast_hash": "19e8561732af5d12bcb7677a6fad5371",
     "semantic_hash": ""
   },
   "backend/resources/views/welcome.blade.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "backend/routes/api.php": {
-    "mtime": 1784125391.0893931,
-    "ast_hash": "b0862facdaaaf1c00dddf15eb83c1be7",
+    "mtime": 1792912071.817947,
+    "ast_hash": "343dafdc6940b31d29210209110b9685",
     "semantic_hash": ""
   },
   "backend/routes/channels.php": {
@@ -735,8 +735,8 @@
     "semantic_hash": ""
   },
   "backend/routes/console.php": {
-    "mtime": 1784125391.0920975,
-    "ast_hash": "0003230dcb1eaeca723eccd7398f1355",
+    "mtime": 1792743311.7862651,
+    "ast_hash": "692a83583172dacc3a6e908bafd5e547",
     "semantic_hash": ""
   },
   "backend/routes/web.php": {
@@ -785,13 +785,13 @@
     "semantic_hash": ""
   },
   "frontend/next-env.d.ts": {
-    "mtime": 1783874967.2899566,
-    "ast_hash": "d0f8375ae1199dc7acd3977fc33b78b8",
+    "mtime": 1792912373.830193,
+    "ast_hash": "2a74d3909800ca5467fa83b0ab4a4890",
     "semantic_hash": ""
   },
   "frontend/next.config.ts": {
-    "mtime": 1783686043.1859682,
-    "ast_hash": "b5c47edf64a1a15d5240a408f221fb7d",
+    "mtime": 1792566106.945377,
+    "ast_hash": "72a5fbf2e351975f1dfc36b5be69d148",
     "semantic_hash": ""
   },
   "frontend/package.json": {
@@ -805,18 +805,18 @@
     "semantic_hash": ""
   },
   "frontend/src/app/(auth)/login/page.tsx": {
-    "mtime": 1781591538.7014546,
-    "ast_hash": "71c66a2251070b9260f1e2080e3ba0c8",
+    "mtime": 1792911155.2794688,
+    "ast_hash": "3edfb85a5ff62b636c413a18d6612f24",
     "semantic_hash": ""
   },
   "frontend/src/app/(auth)/register/page.tsx": {
-    "mtime": 1782971430.914397,
-    "ast_hash": "6a179fc28946f637e61d42cf905c2406",
+    "mtime": 1792911155.2808778,
+    "ast_hash": "def47ca606f76c7184daa76edd0df1db",
     "semantic_hash": ""
   },
   "frontend/src/app/[slug]/reserve/ReservationContainer.tsx": {
-    "mtime": 1781591538.7035708,
-    "ast_hash": "b334b2f3f62640cd52432c12420741d8",
+    "mtime": 1792745213.017462,
+    "ast_hash": "943c134319570d2bd7b06142ae8f2de0",
     "semantic_hash": ""
   },
   "frontend/src/app/[slug]/reserve/page.tsx": {
@@ -825,8 +825,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/kds/KDSContainer.tsx": {
-    "mtime": 1783872689.5905023,
-    "ast_hash": "87b42777982274fe3d766f4a4bb39265",
+    "mtime": 1792913043.5716555,
+    "ast_hash": "4455ea060aa0fb72c06fe80421072a5a",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/kds/page.tsx": {
@@ -835,13 +835,13 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/layout.tsx": {
-    "mtime": 1781591538.7062654,
-    "ast_hash": "5d251ada484e03f5ef7d47c73da3be39",
+    "mtime": 1792911396.106396,
+    "ast_hash": "5ccbbe21c60cb61b34782eb8f58ae5ce",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/login/page.tsx": {
-    "mtime": 1783872377.7482438,
-    "ast_hash": "705587d182976db23fb096cf60ad6cbe",
+    "mtime": 1792911155.056388,
+    "ast_hash": "caa0dde27c4ac48eddcb137da8960c5d",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/queue-management/page.tsx": {
@@ -850,13 +850,13 @@
     "semantic_hash": ""
   },
   "frontend/src/app/layout.tsx": {
-    "mtime": 1783871226.9216144,
-    "ast_hash": "63b4db62025f211a42a424efda6c0cf2",
+    "mtime": 1792911105.0473607,
+    "ast_hash": "431c7adc52b6c17efe0ea121f0261078",
     "semantic_hash": ""
   },
   "frontend/src/app/menu/MenuContainer.tsx": {
-    "mtime": 1784266731.0468724,
-    "ast_hash": "2208a6c217c96584358dc7400899d84b",
+    "mtime": 1792913368.7368565,
+    "ast_hash": "5a1344745a4a131d3b547c59821150cd",
     "semantic_hash": ""
   },
   "frontend/src/app/menu/page.tsx": {
@@ -865,8 +865,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/page.tsx": {
-    "mtime": 1781591538.7281778,
-    "ast_hash": "e1b52d34170a371ff68b46566f0dcd44",
+    "mtime": 1792912872.7512357,
+    "ast_hash": "73a145aef75071b7a4bb8c49d5ad6dfb",
     "semantic_hash": ""
   },
   "frontend/src/app/payment/callback/page.tsx": {
@@ -910,8 +910,8 @@
     "semantic_hash": ""
   },
   "frontend/src/components/Menu/WaiterAssistanceDrawer.tsx": {
-    "mtime": 1781591538.7391276,
-    "ast_hash": "4f43a53156bb2cc6e12da86c1663b9df",
+    "mtime": 1792740466.705266,
+    "ast_hash": "b0b18e72893c067d65d2ac2ff218dacf",
     "semantic_hash": ""
   },
   "frontend/src/components/PhoneInput.tsx": {
@@ -925,13 +925,13 @@
     "semantic_hash": ""
   },
   "frontend/src/components/cart/CartDrawer.tsx": {
-    "mtime": 1784041808.4583457,
-    "ast_hash": "e6b40fa475865f96efe74600e4820921",
+    "mtime": 1792743530.7667754,
+    "ast_hash": "d3081cd8951d0e6363e81aca356862ee",
     "semantic_hash": ""
   },
   "frontend/src/components/cart/CartFab.tsx": {
-    "mtime": 1783686043.2068055,
-    "ast_hash": "22217092b2fac7d4a586765b02acb6ba",
+    "mtime": 1792743530.7652051,
+    "ast_hash": "e64a18d1339c1ae53533592d7e6a8ec0",
     "semantic_hash": ""
   },
   "frontend/src/components/cart/CartItem.tsx": {
@@ -950,8 +950,8 @@
     "semantic_hash": ""
   },
   "frontend/src/components/kds/CashPaymentCard.tsx": {
-    "mtime": 1783686043.2101994,
-    "ast_hash": "0ae06d4f3c93702193bc2ceccb52aaac",
+    "mtime": 1792913043.5770714,
+    "ast_hash": "19ddd25ad1afb7b52abc2e966667d65a",
     "semantic_hash": ""
   },
   "frontend/src/components/kds/FlaggedFeedbackAlert.tsx": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "frontend/src/components/kds/KDSOrderTicket.tsx": {
-    "mtime": 1781591538.7603807,
-    "ast_hash": "0d9af8246dea141bc43754ca27356c21",
+    "mtime": 1792744196.2265553,
+    "ast_hash": "2fc8627cfe642c89c4a99b0e40d79352",
     "semantic_hash": ""
   },
   "frontend/src/components/kds/QueueEntryCard.tsx": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "frontend/src/components/kds/ReservationCard.tsx": {
-    "mtime": 1781591538.7613037,
-    "ast_hash": "e4a5342835af5f389d54b049d659aea0",
+    "mtime": 1792743738.4980633,
+    "ast_hash": "2803459c2e11a20d99176b706c0411a2",
     "semantic_hash": ""
   },
   "frontend/src/components/kds/WaiterRequestCard.tsx": {
-    "mtime": 1781591538.7617345,
-    "ast_hash": "a5737f369c29f8be2eb2fc1f9266e91d",
+    "mtime": 1792740616.3386626,
+    "ast_hash": "c4d542706151275cd007db95eeda2350",
     "semantic_hash": ""
   },
   "frontend/src/components/payment/BillSummary.tsx": {
@@ -1010,13 +1010,13 @@
     "semantic_hash": ""
   },
   "frontend/src/contexts/AuthContext.tsx": {
-    "mtime": 1783872366.4233274,
-    "ast_hash": "7cc61fed6a8b442451ba82f2b66efbd3",
+    "mtime": 1792912835.4332347,
+    "ast_hash": "902d4288c236bddaad4309c83abf05cd",
     "semantic_hash": ""
   },
   "frontend/src/contexts/CartContext.tsx": {
-    "mtime": 1784038547.0577407,
-    "ast_hash": "db0bbe215841242d5bebfd0e7732114b",
+    "mtime": 1792913421.496427,
+    "ast_hash": "a9cafecdfa91636c5c0f2ed6e1194ed8",
     "semantic_hash": ""
   },
   "frontend/src/contexts/PaymentContext.tsx": {
@@ -1030,13 +1030,13 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/api.ts": {
-    "mtime": 1784041829.8417919,
-    "ast_hash": "650340faf2d750ed2514df60c31fe4e1",
+    "mtime": 1792912589.0262785,
+    "ast_hash": "30dc96f4bb8f7a5154ed7cd2a9e7be18",
     "semantic_hash": ""
   },
   "frontend/src/lib/socket.ts": {
-    "mtime": 1783872688.5604687,
-    "ast_hash": "36a469f62248e86c5e0dbf62599f7220",
+    "mtime": 1792911155.0523472,
+    "ast_hash": "4194c9e772c730a34e6960db37fc1d49",
     "semantic_hash": ""
   },
   "frontend/src/types/cart.ts": {
@@ -1080,13 +1080,13 @@
     "semantic_hash": ""
   },
   "socket-server/package.json": {
-    "mtime": 1781591538.806129,
-    "ast_hash": "fb41c10f0e906eb557f3565c71cdbec2",
+    "mtime": 1792744196.3261144,
+    "ast_hash": "3c4659e517b9925dc30b63e2e107e7ac",
     "semantic_hash": ""
   },
   "socket-server/src/server.js": {
-    "mtime": 1783872694.3505833,
-    "ast_hash": "e010b50723c8f618b9c8033c75442ddc",
+    "mtime": 1792912071.8390336,
+    "ast_hash": "d46a847ae4a6bcb446f0e76bc90dbc2e",
     "semantic_hash": ""
   },
   "socket-server/tsconfig.json": {
@@ -1435,13 +1435,13 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminOrderController.php": {
-    "mtime": 1784041641.0064917,
-    "ast_hash": "51866899cf0bad5803a072e3f9563e61",
+    "mtime": 1792743406.904393,
+    "ast_hash": "6bc3493003fa8efc8d48ade63c699cfa",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminPaymentController.php": {
-    "mtime": 1783871421.317341,
-    "ast_hash": "2cc8f784647c8b5416277533ffea2ead",
+    "mtime": 1792743738.5019996,
+    "ast_hash": "5bcea2640378015792d722f356fe59a7",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminRestaurantController.php": {
@@ -1450,8 +1450,8 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminTableController.php": {
-    "mtime": 1784038546.9444304,
-    "ast_hash": "2c78544e18bc53bbd00b4a4f4c29e642",
+    "mtime": 1792911802.9925916,
+    "ast_hash": "86972ed134a1b2e50284ac07ab43ca73",
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminTeamController.php": {
@@ -1540,8 +1540,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/DashboardContainer.tsx": {
-    "mtime": 1783875205.0040777,
-    "ast_hash": "bbaf1ffd93674828e2196ef419b007db",
+    "mtime": 1792911396.1075928,
+    "ast_hash": "11cf3f3dff24b839faaa5a31170d5acb",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/analytics/AnalyticsContainer.tsx": {
@@ -1575,8 +1575,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/layout.tsx": {
-    "mtime": 1783871576.5631163,
-    "ast_hash": "b9949fa6789cf081fc4321972dc6d74b",
+    "mtime": 1792911396.117886,
+    "ast_hash": "55ae741401781d44072eb2a906de73cd",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/menu/MenuContainer.tsx": {
@@ -1605,8 +1605,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/payments/PaymentsContainer.tsx": {
-    "mtime": 1783872995.036922,
-    "ast_hash": "ec6217bbe2c427a79ab006b908d34491",
+    "mtime": 1792743738.50406,
+    "ast_hash": "3d3593e41ea94b74c5611bfec648ad22",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/payments/page.tsx": {
@@ -1615,8 +1615,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/reservations/ReservationsContainer.tsx": {
-    "mtime": 1783871871.7461228,
-    "ast_hash": "0cf8321f7b0286e0918a1477456230a3",
+    "mtime": 1792743738.4970992,
+    "ast_hash": "6e749b4490d49ca6576b7bbbf2227b8f",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/reservations/page.tsx": {
@@ -1645,8 +1645,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/tables/TablesContainer.tsx": {
-    "mtime": 1791727545.6892016,
-    "ast_hash": "16ba69c57bac9611c1bed43dbe446b1b",
+    "mtime": 1792911966.4668982,
+    "ast_hash": "a95fc05f647702c7b07495d5c11536ab",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/tables/page.tsx": {
@@ -1665,8 +1665,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/waiter-requests/WaiterRequestsContainer.tsx": {
-    "mtime": 1783871894.5301082,
-    "ast_hash": "876c8096cd6ac6dfe06d1cea1ff5c016",
+    "mtime": 1792740466.8414676,
+    "ast_hash": "cd632d73c1b5c684e6e7951d801ebacc",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/(dashboard)/waiter-requests/page.tsx": {
@@ -1675,8 +1675,8 @@
     "semantic_hash": ""
   },
   "frontend/src/app/admin/queue/QueueContainer.tsx": {
-    "mtime": 1783872690.5352933,
-    "ast_hash": "e429968c539169f159b906197d44f4b2",
+    "mtime": 1792913043.573487,
+    "ast_hash": "a569aef39c55088b4f1eb21935a78f3d",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/queue/page.tsx": {
@@ -1690,13 +1690,13 @@
     "semantic_hash": ""
   },
   "frontend/src/components/admin/AdminShell.tsx": {
-    "mtime": 1783875208.6848178,
-    "ast_hash": "98b4de9324c4c278dfe5dcd5571cd643",
+    "mtime": 1792911396.108187,
+    "ast_hash": "d11bb01b1bb7a8ae884b063c5579d715",
     "semantic_hash": ""
   },
   "frontend/src/components/admin/AdminSidebar.tsx": {
-    "mtime": 1783871484.8847916,
-    "ast_hash": "475045227aaa610765fdf0069c580b27",
+    "mtime": 1792911396.1151178,
+    "ast_hash": "b3ef991bc6f9bbdfa66be6cffb180c88",
     "semantic_hash": ""
   },
   "frontend/src/components/admin/DeferredFeatureNotice.tsx": {
@@ -1900,8 +1900,8 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/admin-api.ts": {
-    "mtime": 1784125391.0955715,
-    "ast_hash": "f44e51a215dc09e78ce383a6be6f4706",
+    "mtime": 1792745423.0272877,
+    "ast_hash": "2bbb5707ace79d8006bab3c5c2ff02be",
     "semantic_hash": ""
   },
   "frontend/src/lib/error-message.ts": {
@@ -1915,8 +1915,8 @@
     "semantic_hash": ""
   },
   "frontend/src/types/admin.ts": {
-    "mtime": 1784266731.0540636,
-    "ast_hash": "ff2b22063abfccf4d904415f3d774cca",
+    "mtime": 1792743738.4952505,
+    "ast_hash": "86fd8809b6458ee126d830c44ca9148d",
     "semantic_hash": ""
   },
   "frontend/src/app/admin/ADMIN_DASHBOARD_TODOS.md": {
@@ -1925,8 +1925,8 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminLoyaltyController.php": {
-    "mtime": 1784041647.770384,
-    "ast_hash": "005b94418a0f8128e717ec6ce519e6b0",
+    "mtime": 1792910873.196356,
+    "ast_hash": "0dc46dbfa9a21e9903418e4571eba926",
     "semantic_hash": ""
   },
   "backend/app/Services/LoyaltyService.php": {
@@ -1975,8 +1975,8 @@
     "semantic_hash": ""
   },
   "backend/app/Http/Controllers/Api/AdminAnalyticsController.php": {
-    "mtime": 1784125391.083435,
-    "ast_hash": "f0df758aee986a9b7773fe69121abc05",
+    "mtime": 1792912835.4352443,
+    "ast_hash": "1b47f546f473cfb53591432ec2602c33",
     "semantic_hash": ""
   },
   "frontend/src/components/admin/analytics/PeakHoursHeatmap.tsx": {
@@ -1990,8 +1990,8 @@
     "semantic_hash": ""
   },
   "backend/database/seeders/AnalyticsDemoSeeder.php": {
-    "mtime": 1784266730.982836,
-    "ast_hash": "347f4734fb7bf248c3b3cd9fca69cc20",
+    "mtime": 1792912835.436302,
+    "ast_hash": "7525868f049dc82207d06abca53170b2",
     "semantic_hash": ""
   },
   "backend/tests/Feature/AdminAnalyticsTest.php": {
@@ -2185,13 +2185,13 @@
     "semantic_hash": ""
   },
   "backend/storage/framework/views/623e399ced57adc6c025990d1d3df8e5.php": {
-    "mtime": 1782974292.3606222,
-    "ast_hash": "4f2f219073b5ef6148d6be11c94a287c",
+    "mtime": 1792745295.535715,
+    "ast_hash": "5a8cff7ef8b26a1a9bd3976a3f64427f",
     "semantic_hash": ""
   },
   "backend/storage/framework/views/7bd2965f77133a247fba92b2a0adb7f3.php": {
-    "mtime": 1783693823.9992862,
-    "ast_hash": "59b1ab912152ff1b45d122e65ce792c0",
+    "mtime": 1792743412.269091,
+    "ast_hash": "ac905a05c1725fd942506cdb5c1f63c3",
     "semantic_hash": ""
   },
   "backend/storage/framework/views/811019569398412769d9f43fef506e33.php": {
@@ -2330,8 +2330,8 @@
     "semantic_hash": ""
   },
   ".hallmark/log.json": {
-    "mtime": 1792501287.3769214,
-    "ast_hash": "0fd02078f103d410d00b14cff3c531fc",
+    "mtime": 1792911105.0578241,
+    "ast_hash": "e9c482a4cdbae98967bbdfdeb0970826",
     "semantic_hash": ""
   },
   "backend/storage/framework/views/46828bbfa00249a1b90f840d3e01456d.php": {
@@ -2382,6 +2382,366 @@
   "tools/dev/index.html": {
     "mtime": 1792501286.8188007,
     "ast_hash": "0cd813a41236a7b7caf40f355e54e4ae",
+    "semantic_hash": ""
+  },
+  ".hallmark/preflight.json": {
+    "mtime": 1792911105.0553684,
+    "ast_hash": "017430e62c00e0a825298040e5720f1a",
+    "semantic_hash": ""
+  },
+  "backend/app/Console/Commands/ProcessReservationPreorders.php": {
+    "mtime": 1792743895.9884348,
+    "ast_hash": "2a41dee914b952eb7afbd0d83fb820f4",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Controllers/Api/AdminOnboardingController.php": {
+    "mtime": 1792912751.617547,
+    "ast_hash": "fd8a4339c3cab0271fccc83214fd314d",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Controllers/Api/ReservationCheckoutController.php": {
+    "mtime": 1792745280.954311,
+    "ast_hash": "7d63dc8cf7c30ecfd6c9096f26bbd8f6",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Controllers/Api/RestaurantRegistrationController.php": {
+    "mtime": 1792912752.4377587,
+    "ast_hash": "877ee05d55219c3a3795550463c621ab",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Requests/Admin/UpdateOnboardingRequest.php": {
+    "mtime": 1792912751.5703733,
+    "ast_hash": "9cd49eb55c98fee59173d720dc91630c",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Requests/ReservationCheckoutRequest.php": {
+    "mtime": 1792743921.729235,
+    "ast_hash": "370b470c82cbbae1ae08b33b6785cf6f",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Requests/RestaurantRegistrationCodeRequest.php": {
+    "mtime": 1792912751.5854475,
+    "ast_hash": "61bb079517b87bfbba38d8691d142a65",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Requests/RestaurantRegistrationRequest.php": {
+    "mtime": 1792912751.5576327,
+    "ast_hash": "a9f4bdff05cb9c40c385e40dcf726356",
+    "semantic_hash": ""
+  },
+  "backend/app/Http/Requests/StoreServiceRequestRequest.php": {
+    "mtime": 1792740510.4450238,
+    "ast_hash": "abc714a5d4b790ce6baf7651588f133c",
+    "semantic_hash": ""
+  },
+  "backend/app/Jobs/SendReservationMail.php": {
+    "mtime": 1792743895.0915515,
+    "ast_hash": "ecf4b396f3f3f3c1d031d93688b3c357",
+    "semantic_hash": ""
+  },
+  "backend/app/Mail/RestaurantRegistrationOTP.php": {
+    "mtime": 1792912751.4331136,
+    "ast_hash": "ab49355ddf4795c345edf376e5d06d24",
+    "semantic_hash": ""
+  },
+  "backend/app/Models/PaymentRefund.php": {
+    "mtime": 1792743058.9214563,
+    "ast_hash": "64ecc60d79401f87a617612e345b31b6",
+    "semantic_hash": ""
+  },
+  "backend/app/Services/ReservationPreorderService.php": {
+    "mtime": 1792745469.8300614,
+    "ast_hash": "e4a8a34df4f9837ef09d8c2d681282ae",
+    "semantic_hash": ""
+  },
+  "backend/app/Services/ReservationRefundService.php": {
+    "mtime": 1792745469.8321042,
+    "ast_hash": "be67a10f26b2461dc20e4402da87e3ae",
+    "semantic_hash": ""
+  },
+  "backend/app/Services/RestaurantRegistrationService.php": {
+    "mtime": 1792912753.8658926,
+    "ast_hash": "a20aa4a3a313a58de1aec6d85df54081",
+    "semantic_hash": ""
+  },
+  "backend/config/reservations.php": {
+    "mtime": 1792743058.8428764,
+    "ast_hash": "d0818910a4cfb263f139af475b22f489",
+    "semantic_hash": ""
+  },
+  "backend/database/migrations/2026_10_23_072708_add_extra_food_types_to_service_requests_table.php": {
+    "mtime": 1792740510.5105863,
+    "ast_hash": "01126f809f5aa870d9ba3e354e8db308",
+    "semantic_hash": ""
+  },
+  "backend/database/migrations/2026_10_23_080932_add_reservation_preorders.php": {
+    "mtime": 1792744086.9713185,
+    "ast_hash": "e463ecbe8bed17cfa6036985a9b0c067",
+    "semantic_hash": ""
+  },
+  "backend/database/migrations/2026_10_25_064253_add_admin_onboarding_to_users_table.php": {
+    "mtime": 1792910682.3760395,
+    "ast_hash": "365c755dd47cd4c80ac687b52fd2dc34",
+    "semantic_hash": ""
+  },
+  "backend/database/seeders/AdditionalRestaurantsSeeder.php": {
+    "mtime": 1792912751.3947437,
+    "ast_hash": "1219d9883d78394109d708686f6f6cda",
+    "semantic_hash": ""
+  },
+  "backend/resources/views/emails/restaurant-registration-otp.blade.php": {
+    "mtime": 1792910682.2032826,
+    "ast_hash": "180925f63161169fa62784aa6457bb21",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/AdditionalRestaurantsSeederTest.php": {
+    "mtime": 1792912753.953401,
+    "ast_hash": "e75dd28601018b8a124f4f418df91539",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/AdminOnboardingTest.php": {
+    "mtime": 1792912835.4671445,
+    "ast_hash": "e14adb81ea6782a1f7b8ab8823c6b868",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/ReservationPreorderTest.php": {
+    "mtime": 1792745469.842176,
+    "ast_hash": "1c71d69260738169e21f824963578ecb",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/RestaurantIsolationTest.php": {
+    "mtime": 1792912754.1106994,
+    "ast_hash": "2577afd760cdfdc60d6a6bc48c2f7e22",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/RestaurantRegistrationTest.php": {
+    "mtime": 1792913043.5943305,
+    "ast_hash": "7d1f681e3df9c1ea0ffc7a6e5a49bd60",
+    "semantic_hash": ""
+  },
+  "backend/tests/Feature/ServiceRequestTest.php": {
+    "mtime": 1792740510.589021,
+    "ast_hash": "f1a12d0513c1319aa745e227773f96e8",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/[slug]/reserve/error.tsx": {
+    "mtime": 1792744445.9286993,
+    "ast_hash": "196b3eb69bfe700e0874221a54c5f9bf",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/[slug]/reserve/loading.tsx": {
+    "mtime": 1792744445.9221568,
+    "ast_hash": "56857911674d43b4f12ead2ea853e0d2",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/partners/page.tsx": {
+    "mtime": 1792912872.9557023,
+    "ast_hash": "a6d30e89d11f9842bc2e620d6dc426d0",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/partners/register/page.tsx": {
+    "mtime": 1792912873.0317328,
+    "ast_hash": "926d50a0bf482c85cc40885a1ca5ffd2",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/reservations/[code]/ReservationManagement.tsx": {
+    "mtime": 1792743593.8977573,
+    "ast_hash": "2f552915229c00b946ede93cebbf345c",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/reservations/[code]/error.tsx": {
+    "mtime": 1792744445.9121327,
+    "ast_hash": "0b0ddc4ed6ae59dbb46213fd93cf4a46",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/reservations/[code]/loading.tsx": {
+    "mtime": 1792744445.898203,
+    "ast_hash": "d302db24352dfb4a5409e6fbf1b5121c",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/reservations/[code]/page.tsx": {
+    "mtime": 1792744142.3459487,
+    "ast_hash": "12d9a4cec1f4633d615e50c08d506950",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/ReservationActions.tsx": {
+    "mtime": 1792743696.7486875,
+    "ast_hash": "5842fab43bd342139b65bf1e44e3ef72",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/ReservationPreorderDetails.tsx": {
+    "mtime": 1792743696.7537396,
+    "ast_hash": "98559a30a027b6561832f122339fd697",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/onboarding/AdminOnboardingProvider.tsx": {
+    "mtime": 1792913368.8287783,
+    "ast_hash": "7adbd4c1685a750e9e545c155d753dde",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/onboarding/AdminTourCard.tsx": {
+    "mtime": 1792912875.8932707,
+    "ast_hash": "d5a43c3cd546fd151f8db32dc23598bc",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/onboarding/RestaurantSetupChecklist.tsx": {
+    "mtime": 1792912876.034232,
+    "ast_hash": "5029565d80524e10b0646aca532abb53",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/admin/onboarding/tour-steps.ts": {
+    "mtime": 1792912876.3488631,
+    "ast_hash": "5312ca555ad37db2fe6ee42fa802a66e",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/marketing/MarketingFooter.tsx": {
+    "mtime": 1792912873.1140742,
+    "ast_hash": "4b549ccd03e22908f4d899acf05aaaad",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/marketing/MarketingHeader.tsx": {
+    "mtime": 1792912873.3027065,
+    "ast_hash": "c50ab1ca5daa69db8af8b66c92cfbfb6",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/marketing/ProductScreenshot.tsx": {
+    "mtime": 1792912873.6177409,
+    "ast_hash": "a5ee752ac60bb73b3c10160d6907e77c",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/partners/RestaurantRegistrationWizard.tsx": {
+    "mtime": 1792912874.843465,
+    "ast_hash": "ac91c3c0329a0527dbb215cf63ad421a",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/payment/ReservationPayment.tsx": {
+    "mtime": 1792743531.0883815,
+    "ast_hash": "e0de8f0a2208a434cf330d9f663571f5",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/marketing-content.ts": {
+    "mtime": 1792912876.626354,
+    "ast_hash": "7873552901ae6f75657488a595768eda",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/restaurant-registration.ts": {
+    "mtime": 1792912876.699257,
+    "ast_hash": "9dce37707d5d943fc30dcd99e5d8fe2f",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/safe-redirect.ts": {
+    "mtime": 1792912876.8303053,
+    "ast_hash": "5f4d5289af5dff98cb42400c157a431b",
+    "semantic_hash": ""
+  },
+  "frontend/src/types/onboarding.ts": {
+    "mtime": 1792912876.857545,
+    "ast_hash": "86d881adb6bd60a88db397dd48737bd5",
+    "semantic_hash": ""
+  },
+  "frontend/src/types/reservation.ts": {
+    "mtime": 1792745212.9227471,
+    "ast_hash": "3ca619cb0ed2f43d827581abb1d10a52",
+    "semantic_hash": ""
+  },
+  "socket-server/src/preorder-contract.js": {
+    "mtime": 1792744196.2493799,
+    "ast_hash": "88b6daa67471be6583e6e65bf34186f8",
+    "semantic_hash": ""
+  },
+  "socket-server/test/preorder-contract.test.js": {
+    "mtime": 1792744196.253685,
+    "ast_hash": "1f33379775185f17faf0c83c7c7ff410",
+    "semantic_hash": ""
+  },
+  "docs/homepage-partner-onboarding-plan.md": {
+    "mtime": 1792912916.6381192,
+    "ast_hash": "1f88f918adaa0a88aafae6480d3d9a6f",
+    "semantic_hash": ""
+  },
+  "docs/reservation-preorders-plan.md": {
+    "mtime": 1792745550.4952328,
+    "ast_hash": "2c58e35d5349c0cb3158abdf2fa4ac64",
+    "semantic_hash": ""
+  },
+  "backend/storage/framework/testing/disks/local/receipts/reservation-test.pdf": {
+    "mtime": 1792913472.2567027,
+    "ast_hash": "8e308b78d421a4efdc98b087f813be8c",
+    "semantic_hash": ""
+  },
+  "backend/storage/framework/testing/disks/s3/restaurants/spice-route/menu/dal-makhani.png": {
+    "mtime": 1792913429.81668,
+    "ast_hash": "e17832834b5367324fb6824594cb3519",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/analytics-forecast.png": {
+    "mtime": 1792232033.0,
+    "ast_hash": "d20ffe0ae30fe687ecfe85124baaa9c0",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/analytics-heatmap.png": {
+    "mtime": 1792231481.0,
+    "ast_hash": "1bcf7e28b5fd6b087594d18160627876",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/ar-dish-preview.PNG": {
+    "mtime": 1792232469.0,
+    "ast_hash": "35b803d9fa2c555b0bc1c81919a62d2d",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/customer-feedback.PNG": {
+    "mtime": 1792232636.0,
+    "ast_hash": "efa0823facd7c24cef81645c663ebf4c",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/ingredient-picker.PNG": {
+    "mtime": 1792232557.0,
+    "ast_hash": "d156160088a19d8b44402f18848239b3",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/kds-board.png": {
+    "mtime": 1792225439.0,
+    "ast_hash": "d156b9e6179c3717085c6a11ac13770e",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/loyalty-dashboard.PNG": {
+    "mtime": 1792232510.0,
+    "ast_hash": "2433e2892eea3938b6749a377c3d1b7d",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/menu-recommendations.PNG": {
+    "mtime": 1792232624.0,
+    "ast_hash": "a417715a8b468acb9e97ea93b1cef28a",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/payment-item-claims.PNG": {
+    "mtime": 1792232599.0,
+    "ast_hash": "276112eebda172a98fb9d784f833ee18",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/payment-options.PNG": {
+    "mtime": 1792232612.0,
+    "ast_hash": "7b25be6f7cb317c21105a60d4be733d6",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/payment-tracker.PNG": {
+    "mtime": 1792232582.0,
+    "ast_hash": "1d7b485c70acebda0fbc524c0be4ffef",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/table-reservation.png": {
+    "mtime": 1792233256.0,
+    "ast_hash": "0a7bf3bbdee9bca7fda24b3198084a17",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/table-session.PNG": {
+    "mtime": 1792232671.0,
+    "ast_hash": "816a2012953f4efc139ed5861094ee62",
+    "semantic_hash": ""
+  },
+  "frontend/public/photos/waiter-assistance.PNG": {
+    "mtime": 1792232647.0,
+    "ast_hash": "3277ee4cca7ae1a92582fe737ef9a7cd",
     "semantic_hash": ""
   }
 }

@@ -5,6 +5,7 @@ import { Menu, LogOut, ChevronDown, Store } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { useAdminOnboarding } from './onboarding/AdminOnboardingProvider';
 import { AdminSidebar } from './AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -31,6 +32,7 @@ function initials(name?: string) {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const onboarding = useAdminOnboarding();
   const { user, logout } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -117,6 +119,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onboarding?.start()}>Restart dashboard tour</DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
                 Log out
@@ -125,7 +128,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </DropdownMenu>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main data-tour-content className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl space-y-6">{children}</div>
         </main>
       </div>

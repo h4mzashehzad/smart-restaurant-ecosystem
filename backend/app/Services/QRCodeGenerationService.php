@@ -17,22 +17,7 @@ class QRCodeGenerationService
      */
     public function generateAndStoreQrCode(Restaurant $restaurant, Table $table): string
     {
-        // Construct the frontend URL encoded in the QR code
-        // Prioritize QR_FRONTEND_URL (LAN IP for phone cameras) or FRONTEND_URL
-        $configuredUrl = config('app.qr_frontend_url') ?: config('app.frontend_url') ?: env('QR_FRONTEND_URL', env('FRONTEND_URL', 'http://192.168.18.88:3000'));
-        $origins = array_filter(array_map('trim', explode(',', (string) $configuredUrl)));
-        $frontendUrl = rtrim($origins[0] ?? 'http://192.168.18.88:3000', '/');
-
-        // This is the string that gets generated when scanned.
-        // Example: http://192.168.18.88:3000/scan/550e8400-e29b-41d4-a716-446655440000
-        $qrPayload = $frontendUrl.'/scan/'.$table->qr_code;
-
-        // Generate the raw SVG image of the QR Code (avoids Imagick dependency)
-        // Size 300x300, 10px margin
-        $image = QrCode::format('svg')
-            ->size(300)
-            ->margin(1)
-            ->generate($qrPayload);
+        $image = $this->generateSvg($table);
 
         // Define the S3 storage path
         // e.g. restaurants/the-lahore-karahi/tables/table_1.svg
@@ -57,6 +42,15 @@ class QRCodeGenerationService
 
         // Return the public URL
         return $disk->url($s3Path);
+    }
+
+    public function generateSvg(Table $table): string
+    {
+        $configured = config('app.qr_frontend_url') ?: config('app.frontend_url') ?: 'http://localhost:3000';
+        $origins = array_values(array_filter(array_map('trim', explode(',', (string) $configured))));
+        $origin = rtrim($origins[0] ?? 'http://localhost:3000', '/');
+
+        return (string) QrCode::format('svg')->size(300)->margin(1)->generate($origin.'/scan/'.$table->qr_code);
     }
 
     /**

@@ -92,9 +92,10 @@ class MenuController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
+        $request->validate(['restaurant_id' => 'required|integer|exists:restaurants,id']);
         $query = $request->input('q', '');
 
-        $items = MenuItem::where('is_available', true)
+        $items = MenuItem::where('restaurant_id', $request->integer('restaurant_id'))->where('is_available', true)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                     ->orWhere('description', 'like', "%{$query}%")
@@ -115,11 +116,13 @@ class MenuController extends Controller
      */
     public function recommended(Request $request): JsonResponse
     {
+        $request->validate(['restaurant_id' => 'required|integer|exists:restaurants,id']);
         $user = $request->user('sanctum');
 
         if ($user) {
             // Fetch recommendations — fall back to popular items if no AI recs exist
             $recommendations = $user->aiRecommendations()
+                ->whereHas('menuItem', fn ($q) => $q->where('restaurant_id', $request->integer('restaurant_id'))->where('is_available', true))
                 ->with('menuItem.ingredients')
                 ->orderByDesc('recommendation_score')
                 ->limit(10)
@@ -135,7 +138,7 @@ class MenuController extends Controller
         }
 
         // Fallback: return popular items
-        $items = MenuItem::where('is_available', true)
+        $items = MenuItem::where('restaurant_id', $request->integer('restaurant_id'))->where('is_available', true)
             ->with('ingredients')
             ->orderByDesc('popularity_score')
             ->limit(10)

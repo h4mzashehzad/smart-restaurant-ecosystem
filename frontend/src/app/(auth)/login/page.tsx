@@ -2,13 +2,14 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { safeRedirect } from '@/lib/safe-redirect';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInput } from '@/components/PhoneInput';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/menu';
+  const redirectTo = safeRedirect(searchParams.get('redirect'), '/menu');
   const { login } = useAuth();
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [identifier, setIdentifier] = useState('');

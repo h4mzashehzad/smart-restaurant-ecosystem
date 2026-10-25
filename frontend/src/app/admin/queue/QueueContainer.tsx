@@ -65,16 +65,19 @@ export default function QueueContainer() {
     if (authLoading || !user || !restaurantId) return;
 
     mountedRef.current = true;
+    const loadQueue = () => api.getRestaurantQueue(restaurantId).then(data => { if (mountedRef.current) setQueueEntries(data ?? []); }).catch(console.error);
+    void loadQueue();
     socketClient.connect();
     socketClient.joinKitchen(restaurantId);
 
-    const handleConnect    = () => setConnected(true);
+    const handleConnect    = () => { setConnected(true); void loadQueue(); };
     const handleDisconnect = () => setConnected(false);
     socketClient.onConnect(handleConnect);
     socketClient.onDisconnect(handleDisconnect);
 
     socketClient.onKitchenInitialQueue((initial: QueueEntry[]) => {
-      if (mountedRef.current) setQueueEntries(initial ?? []);
+      if (mountedRef.current && initial?.length) setQueueEntries(initial);
+      void loadQueue();
     });
 
     socketClient.onQueueUpdated((data: { entry: QueueEntry; action: string }) => {
@@ -146,7 +149,7 @@ export default function QueueContainer() {
               <UsersIcon className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold font-display text-gray-900">Host Stand</h1>
+              <h1 data-tour-target className="text-xl font-bold font-display text-gray-900">Host Stand</h1>
               <p className="text-xs text-gray-500 font-medium">Walk-In Queue Management</p>
             </div>
           </Link>
@@ -165,7 +168,7 @@ export default function QueueContainer() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main data-tour-content className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* ── Left Col: Add Guest Form ──────────────────────────────────── */}
         <div className="lg:col-span-4 space-y-6">

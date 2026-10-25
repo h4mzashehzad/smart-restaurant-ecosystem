@@ -68,6 +68,9 @@ class PaymentController extends Controller
         }
 
         $session = TableSession::findOrFail($request->session_id);
+        if ((int) $request->table_id !== (int) $session->table_id || MenuItem::whereIn('id', collect($request->items)->pluck('menu_item_id'))->where('restaurant_id', '!=', $session->restaurant_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'All items and the table must belong to this restaurant session.'], 422);
+        }
         $participant = $this->resolveParticipant($session, $request);
 
         try {
@@ -522,6 +525,9 @@ class PaymentController extends Controller
 
     public function confirmCashPayment(Request $request, Payment $payment): JsonResponse
     {
+        $operator = $request->user();
+        abort_unless($operator && in_array($operator->role, ['admin', 'staff'], true) && $operator->is_active, 403);
+        abort_unless((int) $operator->restaurant_id === (int) ($payment->order?->restaurant_id ?? $payment->session?->restaurant_id), 404);
         if ($payment->payment_method !== 'cash') {
             return response()->json(['success' => false, 'message' => 'Not a cash payment'], 422);
         }
@@ -653,6 +659,9 @@ class PaymentController extends Controller
 
     public function refund(Payment $payment): JsonResponse
     {
+        $operator = request()->user();
+        abort_unless($operator && $operator->role === 'admin' && $operator->is_active, 403);
+        abort_unless((int) $operator->restaurant_id === (int) ($payment->order?->restaurant_id ?? $payment->session?->restaurant_id), 404);
         abort_if($payment->order?->reservation_id, 409, 'Refund this payment through the reservation cancellation controls.');
         if ($payment->status !== 'completed') {
             return response()->json([

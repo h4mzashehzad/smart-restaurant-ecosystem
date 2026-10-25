@@ -20,6 +20,7 @@ interface CartContextType {
   updateQty: (lineKey: string, qty: number) => void;
   clearCart: () => void;
   setInstructions: (s: string) => void;
+  setRestaurantScope: (id: number) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -68,9 +69,13 @@ function mergeItems(local: CartItem[], remote: CartItem[]): CartItem[] {
   return Array.from(map.values());
 }
 
-export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: string; isolated?: boolean }> = ({ children, storageKey = STORAGE_KEY, isolated = false }) => {
+export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: string; isolated?: boolean }> = ({ children, storageKey: suppliedStorageKey = STORAGE_KEY, isolated = false }) => {
   const { session: diningSession } = useSession();
   const session = isolated ? null : diningSession;
+  const [previewRestaurantId, setRestaurantScope] = useState<number | null>(null);
+  const restaurantScope = session?.restaurant_id ?? previewRestaurantId;
+  const storageKey = isolated ? suppliedStorageKey : `${suppliedStorageKey}:restaurant:${restaurantScope ?? 'unselected'}`;
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
   const [items, setItems] = useState<CartItem[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const initialSyncDone = useRef(false);
@@ -79,7 +84,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: st
   const lastSyncedJson = useRef<string>('');
 
   useEffect(() => {
+    // Hydrate browser storage after SSR; the loaded-key guard hides another restaurant's cart.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(loadPersisted(storageKey));
+    setSpecialInstructions('');
+    setLoadedStorageKey(storageKey);
+    initialSyncDone.current = false;
+    lastSyncedJson.current = '';
   }, [storageKey]);
 
   // Broadcast cart to other devices whenever items change locally
@@ -90,7 +101,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: st
       mountedRef.current = true;
       return;
     }
-    if (!session?.id) return;
+    if (!session?.id || loadedStorageKey !== storageKey) return;
 
     const json = JSON.stringify(items);
     // Skip if this is the same cart we just synced (received or sent)
@@ -99,7 +110,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: st
     lastSyncedJson.current = json;
     console.log('[CartSync] Broadcasting', items.length, 'items to session', session.id);
     socketClient.emitCartUpdate(session.id, items);
-  }, [items, session?.id]);
+  }, [items, session?.id, loadedStorageKey, storageKey]);
 
   // Reset sync state when session is cleared (user left)
   useEffect(() => {
@@ -222,15 +233,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: st
     setSpecialInstructions(s);
   }, []);
 
-  const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = items.reduce((acc, i) => acc + i.unitPrice * i.quantity, 0);
+  const visibleItems = loadedStorageKey === storageKey ? items : [];
+  const itemCount = visibleItems.reduce((acc, i) => acc + i.quantity, 0);
+  const subtotal = visibleItems.reduce((acc, i) => acc + i.unitPrice * i.quantity, 0);
   const taxAmount = Math.round(subtotal * 0.12 * 100) / 100;
   const total = subtotal + taxAmount;
 
   return (
     <CartContext.Provider
       value={{
-        items,
+        items: visibleItems,
         itemCount,
         subtotal,
         taxAmount,
@@ -241,6 +253,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode; storageKey?: st
         updateQty,
         clearCart,
         setInstructions,
+        setRestaurantScope,
       }}
     >
       {children}

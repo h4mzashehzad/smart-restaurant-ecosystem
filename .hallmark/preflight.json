@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-25",
+  "framework": "Next.js 16.1.6, React 19, Tailwind 4",
+  "fonts": [
+    "Outfit",
+    "Plus Jakarta Sans"
+  ],
+  "palette": "Existing orange-and-white brand preserved",
+  "motion": "CSS only; reduced motion supported",
+  "scope": "Homepage, partners, restaurant signup"
+}

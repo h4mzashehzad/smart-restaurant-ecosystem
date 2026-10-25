@@ -1,0 +1,279 @@
+/* Table.com.pk · restaurant-owner onboarding */
+.registration-layout {
+  padding-block: 40px 72px;
+  display: grid;
+  gap: 40px;
+  align-items: start;
+}
+.registration-aside h1 {
+  font-size: clamp(2.6rem, 4vw, 4.1rem);
+  margin-block: 24px;
+}
+.registration-aside > .marketing-kicker {
+  margin-top: 40px;
+}
+.registration-aside > p {
+  max-width: 40ch;
+}
+.registration-aside ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-block: 32px;
+  list-style: none;
+  padding: 0;
+}
+.registration-aside li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.76rem;
+  color: var(--color-muted);
+}
+.registration-aside li > span {
+  border: 1px solid var(--color-rule);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.registration-aside li[aria-current='step'] {
+  color: var(--color-action);
+  font-weight: 650;
+}
+.registration-aside li[aria-current='step'] > span {
+  background: var(--color-action);
+  color: var(--color-surface);
+  border-color: var(--color-action);
+}
+.registration-panel {
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface);
+  border-radius: var(--radius-panel);
+  padding: 24px;
+  min-width: 0;
+}
+.registration-panel h2 {
+  font-size: 2rem;
+  margin-bottom: 16px;
+  outline-offset: 6px;
+}
+.registration-panel > p {
+  font-size: 0.88rem;
+  margin-bottom: 28px;
+}
+.registration-fields {
+  display: grid;
+  gap: 20px;
+}
+.registration-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.registration-field label,
+.registration-verification label {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--color-ink);
+}
+.registration-field label > span {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.registration-field input,
+.registration-verification input {
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
+  padding: 12px 14px;
+  min-height: 48px;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+.registration-field input[aria-invalid='true'],
+.registration-verification input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.registration-field input:hover {
+  background: var(--color-wash);
+}
+.registration-input-wrap {
+  position: relative;
+}
+.registration-input-wrap:has(.password-toggle) input {
+  padding-right: 46px;
+}
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--color-muted);
+}
+.registration-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.marketing .registration-hint {
+  font-size: 0.73rem;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.marketing .registration-error,
+.registration-alert {
+  color: var(--color-error);
+  font-size: 0.8rem;
+}
+.registration-alert {
+  padding: 16px;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-control);
+  margin-bottom: 24px;
+  background: var(--color-paper);
+}
+.marketing .registration-success {
+  color: var(--color-success);
+}
+.registration-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.registration-controls > .secondary {
+  margin-right: auto;
+}
+.marketing .registration-signin,
+.marketing .registration-bottom {
+  font-size: 0.76rem;
+  margin-top: 24px;
+}
+.registration-signin a,
+.registration-bottom a {
+  color: var(--color-action);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  display: inline-block;
+  min-height: 30px;
+}
+.registration-review {
+  background: var(--color-wash);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-control);
+  padding: 20px;
+  margin-top: 24px;
+}
+.registration-review > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.registration-review h3 {
+  font-size: 1.2rem;
+}
+.registration-review p {
+  font-size: 0.82rem;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.registration-panel form > .registration-field {
+  margin-top: 20px;
+}
+.registration-verification {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.registration-verification > svg {
+  color: var(--color-action);
+}
+.registration-verification .registration-otp {
+  font-size: 1.8rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+  font-family: var(--font-display);
+  max-width: 320px;
+}
+.registration-verification .marketing-text-link:disabled {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+.existing-account {
+  padding: 20px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
+}
+.existing-account p {
+  font-size: 0.85rem;
+  margin-block: 8px;
+}
+.registration-loading {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  min-height: 50dvh;
+  font-size: 0.9rem;
+}
+@media (min-width: 40rem) {
+  .registration-panel {
+    padding: 40px;
+  }
+  .registration-two {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+@media (min-width: 64rem) {
+  .registration-layout {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    gap: 96px;
+    padding-block: 64px 96px;
+  }
+  .registration-aside ol {
+    display: grid;
+    gap: 24px;
+    margin-block: 40px;
+  }
+  .registration-aside li {
+    font-size: 0.86rem;
+  }
+  .registration-aside > p {
+    font-size: 0.95rem;
+  }
+  .registration-panel h2 {
+    font-size: 2.25rem;
+  }
+}
+@media (max-width: 63.99rem) {
+  .registration-aside > .marketing-kicker,
+  .registration-aside > .marketing-small {
+    display: none;
+  }
+  .registration-aside h1 {
+    font-size: 2.3rem;
+    margin-block: 16px;
+  }
+  .registration-aside > p {
+    font-size: 0.85rem;
+  }
+  .registration-aside ol {
+    margin-block: 20px 0;
+  }
+  .registration-layout {
+    gap: 28px;
+    padding-top: 24px;
+  }
+}

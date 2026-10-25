@@ -81,6 +81,7 @@ class AdminLoyaltyController extends Controller
 
         $totalPointsIssued = (int) LoyaltyTransaction::query()
             ->where('transaction_type', 'earned')
+            ->whereHas('order', fn ($q) => $q->where('restaurant_id', $restaurantId))
             ->whereHas('user', function ($q) use ($restaurantId) {
                 $q->where('role', 'customer')
                     ->whereHas('orders', fn ($oq) => $oq->where('restaurant_id', $restaurantId));
@@ -122,6 +123,7 @@ class AdminLoyaltyController extends Controller
 
         $transactions = LoyaltyTransaction::query()
             ->where('user_id', $customer->id)
+            ->whereHas('order', fn ($q) => $q->where('restaurant_id', $restaurantId))
             ->with('order:id,order_number,total_amount,placed_at')
             ->orderByDesc('created_at')
             ->paginate((int) $request->input('per_page', 20));

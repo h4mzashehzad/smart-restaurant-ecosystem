@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Called by the Socket.io server (no user auth) when kitchen staff
+ * Called by the Socket.io server with the authenticated operator token when kitchen staff
  * acknowledge or resolve a waiter-assistance request directly from the KDS.
  */
 class ServiceRequestWebhookController extends Controller
@@ -18,19 +18,19 @@ class ServiceRequestWebhookController extends Controller
     {
         $validated = $request->validate([
             'request_id' => 'required|exists:service_requests,id',
-            'action'     => 'required|in:acknowledge,resolve',
+            'action' => 'required|in:acknowledge,resolve',
         ]);
 
-        $serviceRequest = ServiceRequest::findOrFail($validated['request_id']);
+        $serviceRequest = ServiceRequest::where('restaurant_id', $request->user()->restaurant_id)->findOrFail($validated['request_id']);
 
         if ($validated['action'] === 'acknowledge') {
             $serviceRequest->update([
-                'status'          => 'acknowledged',
+                'status' => 'acknowledged',
                 'acknowledged_at' => now(),
             ]);
         } else {
             $serviceRequest->update([
-                'status'      => 'resolved',
+                'status' => 'resolved',
                 'resolved_at' => now(),
             ]);
         }
@@ -40,7 +40,7 @@ class ServiceRequestWebhookController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $serviceRequest->fresh(),
+            'data' => $serviceRequest->fresh(),
         ]);
     }
 }

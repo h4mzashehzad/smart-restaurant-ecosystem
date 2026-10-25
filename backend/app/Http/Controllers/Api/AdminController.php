@@ -100,7 +100,7 @@ class AdminController extends Controller
             'is_signature' => 'sometimes|boolean',
             'spice_level' => 'sometimes|in:none,mild,medium,hot,extra_hot',
             'image_url' => 'sometimes|nullable|url|max:500',
-            'category_id' => 'sometimes|integer',
+            'category_id' => ['sometimes', 'integer', \Illuminate\Validation\Rule::exists('categories', 'id')->where('restaurant_id', $restaurantId)],
         ]);
 
         if ($validator->fails()) {
@@ -111,7 +111,7 @@ class AdminController extends Controller
         }
 
         $menuItem = MenuItem::where('restaurant_id', $restaurantId)->findOrFail($id);
-        $menuItem->update($request->only($menuItem->getFillable()));
+        $menuItem->update($validator->validated());
 
         return response()->json([
             'success' => true,

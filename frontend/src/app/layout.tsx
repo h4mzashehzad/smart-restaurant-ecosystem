@@ -21,8 +21,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Restaurant Ecosystem",
-  description: "Minimal, structured, high-end restaurant experience.",
+  title: "Table.com.pk — Smart Restaurant Ecosystem",
+  description: "Connect guest ordering, kitchen service, reservations, payments and restaurant insights with Table.com.pk.",
   formatDetection: {
     telephone: false,
     date: false,

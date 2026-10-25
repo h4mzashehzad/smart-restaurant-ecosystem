@@ -13,6 +13,11 @@ class RestaurantMenuSeeder extends Seeder
      */
     public function run(): void
     {
+        if (DB::table('restaurants')->whereIn('slug', ['darbar', 'darbar-restaurant'])->exists()) {
+            $this->command?->info('Darbar already exists; preserving its current menu.');
+
+            return;
+        }
         // 1. Create Restaurant
         $restaurantId = DB::table('restaurants')->insertGetId([
             'name' => 'Darbar Restaurant',
@@ -75,7 +80,9 @@ class RestaurantMenuSeeder extends Seeder
             $ing['minimum_threshold'] = 10.00;
             $ing['created_at'] = now();
             $ing['updated_at'] = now();
-            if (!isset($ing['is_allergen'])) $ing['is_allergen'] = false;
+            if (! isset($ing['is_allergen'])) {
+                $ing['is_allergen'] = false;
+            }
             $ingredientIds[$ing['name']] = DB::table('ingredients')->insertGetId($ing);
         }
 
@@ -139,16 +146,18 @@ class RestaurantMenuSeeder extends Seeder
         foreach ($menuItemsData as $itemData) {
             $requiredIngredients = $itemData['ingredients'];
             unset($itemData['ingredients']);
-            
+
             $itemData['restaurant_id'] = $restaurantId;
             $itemData['category_id'] = $categoryIds[$itemData['category']];
             unset($itemData['category']);
-            
+
             $itemData['slug'] = Str::slug($itemData['name']);
-            if (!isset($itemData['is_signature'])) $itemData['is_signature'] = false;
+            if (! isset($itemData['is_signature'])) {
+                $itemData['is_signature'] = false;
+            }
             $itemData['created_at'] = now();
             $itemData['updated_at'] = now();
-            
+
             $menuItemId = DB::table('menu_items')->insertGetId($itemData);
 
             // 5. Link Ingredients to Menu Items

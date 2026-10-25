@@ -86,12 +86,18 @@ export default function KDSContainer() {
 
     mountedRef.current = true;
     fetchOrders();
+    const loadOperations = () => {
+      void api.getActiveServiceRequests(restaurantId).then(data => { if (mountedRef.current) setServiceRequests(data ?? []); }).catch(console.error);
+      void api.getRestaurantQueue(restaurantId).then(data => { if (mountedRef.current) setQueueEntries(data ?? []); }).catch(console.error);
+      void api.getPendingCashPayments(restaurantId).then(data => { if (mountedRef.current) setCashPayments(data ?? []); }).catch(console.error);
+    };
+    loadOperations();
     void api.getRestaurantReservations().then(setReservations).catch(console.error);
 
     socketClient.connect();
     socketClient.joinKitchen(restaurantId);
 
-    const handleConnect = () => { setConnected(true); void fetchOrders(); void api.getRestaurantReservations().then(setReservations).catch(console.error); };
+    const handleConnect = () => { setConnected(true); loadOperations(); void fetchOrders(); void api.getRestaurantReservations().then(setReservations).catch(console.error); };
     const handleDisconnect = () => setConnected(false);
     socketClient.onConnect(handleConnect);
     socketClient.onDisconnect(handleDisconnect);
@@ -189,7 +195,8 @@ export default function KDSContainer() {
     // ── Walk-in queue ──────────────────────────────────────────────
 
     socketClient.onKitchenInitialQueue((initial: QueueEntry[]) => {
-      if (mountedRef.current) setQueueEntries(initial ?? []);
+      if (mountedRef.current && initial?.length) setQueueEntries(initial);
+      loadOperations();
     });
 
     socketClient.onQueueUpdated((data: { entry: QueueEntry; action: string }) => {
@@ -204,7 +211,8 @@ export default function KDSContainer() {
 
     // ── Cash payments ────────────────────────────────────────────────
     socketClient.onKitchenInitialCashPayments((initial: CashPayment[]) => {
-      if (mountedRef.current) setCashPayments(initial ?? []);
+      if (mountedRef.current && initial?.length) setCashPayments(initial);
+      loadOperations();
     });
 
     socketClient.onCashPaymentPending((payment: CashPayment) => {
@@ -365,7 +373,7 @@ export default function KDSContainer() {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-bold font-display tracking-tight">Kitchen Display</h1>
+              <h1 data-tour-target className="text-lg font-bold font-display tracking-tight">Kitchen Display</h1>
               <p className="text-[11px] text-gray-400 font-medium -mt-0.5">
                 {user?.restaurant?.name ?? 'Your Restaurant'}
               </p>
@@ -431,7 +439,7 @@ export default function KDSContainer() {
         </div>
       </header>
 
-      <main className="p-4 sm:p-6 space-y-6">
+      <main data-tour-content className="p-4 sm:p-6 space-y-6">
 
         {/* ── Flagged Feedback Alerts Panel ───────────────────────────── */}
         {flaggedFeedback.length > 0 && (

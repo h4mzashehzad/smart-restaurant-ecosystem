@@ -483,7 +483,7 @@ class AdminAnalyticsController extends Controller
 
         $pointsRedeemed = (int) LoyaltyTransaction::query()
             ->where('transaction_type', 'redeemed')
-            ->whereHas('user.orders', fn ($q) => $q->where('restaurant_id', $restaurantId))
+            ->whereHas('order', fn ($q) => $q->where('restaurant_id', $restaurantId))
             ->where('created_at', '>=', $startDate)
             ->sum(DB::raw('ABS(points)'));
 

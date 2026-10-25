@@ -342,7 +342,17 @@ io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
 
   // ── Kitchen Display joins ─────────────────────────────────────────────────
+  socket.on('kitchen:leave', () => {
+    socket.data.kitchenGeneration = (socket.data.kitchenGeneration || 0) + 1;
+    for (const room of socket.rooms) {
+      if (room.startsWith('kitchen:restaurant_')) socket.leave(room);
+    }
+    delete socket.data.staffToken;
+    delete socket.data.restaurantId;
+  });
   socket.on('kitchen:join', async (membership) => {
+    const generation = (socket.data.kitchenGeneration || 0) + 1;
+    socket.data.kitchenGeneration = generation;
     const { restaurantId, token } = membership || {};
     try {
       const fetch = (await import('node-fetch')).default;
@@ -350,6 +360,10 @@ io.on('connection', (socket) => {
       if (!auth.ok) throw new Error('Authentication failed');
       const { data: staff } = await auth.json();
       if (staff.is_active === false || !['admin', 'staff'].includes(staff.role) || Number(staff.restaurant_id) !== Number(restaurantId)) throw new Error('Restaurant access denied');
+      if (socket.data.kitchenGeneration !== generation) return;
+      for (const room of socket.rooms) {
+        if (room.startsWith('kitchen:restaurant_')) socket.leave(room);
+      }
       socket.data.staffToken = token;
       socket.data.restaurantId = Number(restaurantId);
     } catch {
@@ -367,7 +381,7 @@ io.on('connection', (socket) => {
       });
       if (!response.ok) throw new Error('Cannot load active orders');
       const { data: orders } = await response.json();
-      socket.emit('kitchen:initial:orders', orders || []);
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:orders', orders || []);
     } catch (error) {
       console.error('[Kitchen] Cannot load initial orders:', error.message);
     }
@@ -381,7 +395,7 @@ io.on('connection', (socket) => {
           return d ? JSON.parse(d) : null;
         })
       );
-      socket.emit('kitchen:initial:service-requests', serviceRequests.filter(Boolean));
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:service-requests', serviceRequests.filter(Boolean));
       console.log(`[Kitchen] Sent ${serviceRequests.filter(Boolean).length} pending service requests to ${socket.id}`);
     } catch (error) {
       console.error('[Kitchen] Error sending initial service requests:', error);
@@ -407,7 +421,7 @@ io.on('connection', (socket) => {
         await redis.srem(`feedback:flagged:${restaurantId}`, ...staleIds);
       }
 
-      socket.emit('kitchen:initial:flagged-feedback', flaggedFeedback);
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:flagged-feedback', flaggedFeedback);
       console.log(`[Kitchen] Sent ${flaggedFeedback.length} flagged feedback alerts to ${socket.id}`);
     } catch (error) {
       console.error('[Kitchen] Error sending flagged feedback:', error);
@@ -421,7 +435,7 @@ io.on('connection', (socket) => {
       });
       if (!response.ok) throw new Error('Cannot load reservations');
       const { data: reservations } = await response.json();
-      socket.emit('kitchen:initial:reservations', reservations || []);
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:reservations', reservations || []);
     } catch (error) {
       console.error('[Kitchen] Cannot load initial reservations:', error.message);
     }
@@ -445,7 +459,7 @@ io.on('connection', (socket) => {
         await redis.srem(`queue:active:${restaurantId}`, ...staleQueueIds);
       }
 
-      socket.emit('kitchen:initial:queue', queueEntries);
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:queue', queueEntries);
       console.log(`[Kitchen] Sent ${queueEntries.length} queue entries to ${socket.id}`);
     } catch (error) {
       console.error('[Kitchen] Error sending queue entries:', error);
@@ -470,7 +484,7 @@ io.on('connection', (socket) => {
         await redis.srem(`cash-payments:pending:${restaurantId}`, ...staleCashIds);
       }
 
-      socket.emit('kitchen:initial:cash-payments', cashPayments);
+      if (socket.data.kitchenGeneration === generation) socket.emit('kitchen:initial:cash-payments', cashPayments);
       console.log(`[Kitchen] Sent ${cashPayments.length} pending cash payments to ${socket.id}`);
     } catch (error) {
       console.error('[Kitchen] Error sending cash payments:', error);
@@ -539,7 +553,7 @@ io.on('connection', (socket) => {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/waiter-request-action`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${socket.data.staffToken || ''}`, Accept: 'application/json' },
         body: JSON.stringify({ request_id: requestId, action: 'acknowledge' })
       });
       if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
@@ -557,7 +571,7 @@ io.on('connection', (socket) => {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/waiter-request-action`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${socket.data.staffToken || ''}`, Accept: 'application/json' },
         body: JSON.stringify({ request_id: requestId, action: 'resolve' })
       });
       if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);
@@ -570,7 +584,20 @@ io.on('connection', (socket) => {
 
   // ── Kitchen staff: dismiss flagged feedback alert ────────────────────
   socket.on('feedback:flag:dismiss', async ({ feedbackId, restaurantId }) => {
-    console.log(`[Feedback] Dismiss flagged feedback ${feedbackId}`);
+    if (!socket.data.staffToken || Number(restaurantId) !== socket.data.restaurantId) {
+      socket.emit('error', { message: 'Restaurant access denied.' });
+      return;
+    }
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${process.env.LARAVEL_API_URL}/api/admin/feedback/${feedbackId}/dismiss-flag`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${socket.data.staffToken}`, Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error('Feedback access denied');
+    } catch {
+      socket.emit('error', { message: 'Could not dismiss this feedback alert.' });
+      return;
+    }
     await redis.srem(`feedback:flagged:${restaurantId}`, String(feedbackId));
     await redis.del(`feedback:flagged:${feedbackId}:details`);
     io.to(`kitchen:restaurant_${restaurantId}`).emit('feedback:flag:dismissed', { feedbackId });
@@ -602,7 +629,7 @@ io.on('connection', (socket) => {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${process.env.LARAVEL_API_URL}/api/webhooks/queue-status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${socket.data.staffToken || ''}`, Accept: 'application/json' },
         body: JSON.stringify({ entry_id: entryId, status })
       });
       if (!response.ok) throw new Error(`Webhook failed: ${response.statusText}`);

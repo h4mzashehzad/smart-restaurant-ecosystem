@@ -120,6 +120,7 @@ class QueueController extends Controller
      */
     public function updateStatus(Request $request, QueueEntry $entry): JsonResponse
     {
+        abort_unless((int) $entry->restaurant_id === $this->restaurantId($request), 404);
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:called,seated,cancelled,no_show',
         ]);

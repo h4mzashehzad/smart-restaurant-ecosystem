@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             CustomizableIngredientsSeeder::class,
             // Optional: php artisan db:seed --class=AnalyticsDemoSeeder
             AnalyticsDemoSeeder::class,
+            AdditionalRestaurantsSeeder::class,
         ]);
     }
 }

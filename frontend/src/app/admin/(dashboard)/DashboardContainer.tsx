@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { RestaurantSetupChecklist } from '@/components/admin/onboarding/RestaurantSetupChecklist';
 import { useQuery } from '@tanstack/react-query';
 import {
   ClipboardList,
@@ -25,9 +26,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-PK', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'PKR',
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -85,11 +86,13 @@ export default function DashboardContainer() {
         description="Here's what's happening at your restaurant today."
       />
 
+      <RestaurantSetupChecklist />
+
       {isError ? (
         <ErrorState onRetry={() => refetch()} description="Couldn't load dashboard stats." />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-tour-dashboard className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Today's Orders"
               value={stats?.today_orders ?? 0}

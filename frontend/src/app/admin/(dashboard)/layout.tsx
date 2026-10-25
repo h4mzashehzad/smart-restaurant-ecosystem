@@ -11,12 +11,12 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
   useEffect(() => {
     if (loading) return;
-    if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
+    if (!user || !user.restaurant_id || user.is_active === false || (user.role !== 'admin' && user.role !== 'staff')) {
       router.replace('/admin/login');
     }
   }, [user, loading, router]);
 
-  if (loading || !user || (user.role !== 'admin' && user.role !== 'staff')) {
+  if (loading || !user || !user.restaurant_id || user.is_active === false || (user.role !== 'admin' && user.role !== 'staff')) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="flex gap-1.5">

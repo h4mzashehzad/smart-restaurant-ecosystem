@@ -11,6 +11,7 @@ export interface CashPayment {
     order_number: string;
     table_number?: string;
     table_id?: number;
+    table?: { table_number?: string } | null;
     items_summary?: { name?: string; quantity: number }[];
   } | null;
 }
@@ -22,8 +23,9 @@ interface CashPaymentCardProps {
 }
 
 export default function CashPaymentCard({ payment, onConfirm, confirming }: CashPaymentCardProps) {
-  const tableLabel = payment.order?.table_number
-    ? `Table ${payment.order.table_number}`
+  const tableNumber = payment.order?.table_number ?? payment.order?.table?.table_number;
+  const tableLabel = tableNumber
+    ? `Table ${tableNumber}`
     : payment.order?.table_id
       ? `Table #${payment.order.table_id}`
       : 'Table —';

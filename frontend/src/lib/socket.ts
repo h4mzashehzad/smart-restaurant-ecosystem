@@ -52,6 +52,12 @@ class SocketClient {
     this.kitchenSubscribers = 0;
   }
 
+  resetKitchen() {
+    this.socket?.emit('kitchen:leave');
+    this.pendingKitchen = null;
+    this.kitchenSubscribers = 0;
+  }
+
   // ── Kitchen Display ─────────────────────────────────────────────────────
   joinKitchen(restaurantId: number) {
     this.kitchenSubscribers += 1;
@@ -63,6 +69,7 @@ class SocketClient {
   leaveKitchen() {
     this.kitchenSubscribers = Math.max(0, this.kitchenSubscribers - 1);
     if (this.kitchenSubscribers === 0) {
+      this.socket?.emit('kitchen:leave');
       this.pendingKitchen = null;
     }
   }

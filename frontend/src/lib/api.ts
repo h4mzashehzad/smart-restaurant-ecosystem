@@ -187,8 +187,8 @@ class ApiClient {
     return response.data.data;
   }
 
-  async getRecommendations() {
-    const response = await this.client.get('/menu-items/recommended');
+  async getRecommendations(restaurantId: number) {
+    const response = await this.client.get('/menu-items/recommended', { params: { restaurant_id: restaurantId } });
     return response.data; // Return full object {success, data, source}
   }
 
@@ -329,9 +329,9 @@ class ApiClient {
 
   async getActiveServiceRequests(restaurantId: number) {
     const response = await this.client.get(
-      `/service-requests?restaurant_id=${restaurantId}&status=pending&status=acknowledged`
+      `/service-requests?restaurant_id=${restaurantId}&status=pending,acknowledged,in_progress&per_page=100`
     );
-    return response.data.data;
+    return response.data.data.data ?? response.data.data;
   }
 
   // Feedback endpoints
@@ -421,7 +421,7 @@ class ApiClient {
   }
 
   async getRestaurantQueue(restaurantId: number) {
-    const response = await this.client.get(`/admin/restaurants/${restaurantId}/queue`);
+    const response = await this.client.get('/admin/queue', { params: { restaurant_id: restaurantId } });
     return response.data.data;
   }
 

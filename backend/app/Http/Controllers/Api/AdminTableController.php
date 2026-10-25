@@ -189,10 +189,11 @@ class AdminTableController extends Controller
         $restaurant = Restaurant::findOrFail($restaurantId);
 
         if (! $table->qr_code_url) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No QR code image is available for this table. Regenerate the QR code first.',
-            ], 404);
+            return response($this->qrCodeGenerator->generateSvg($table), 200, [
+                'Content-Type' => 'image/svg+xml',
+                'Content-Disposition' => 'attachment; filename="table-'.Str::slug($table->table_number).'-qr.svg"',
+                'Cache-Control' => 'no-store',
+            ]);
         }
 
         $fileName = 'table-'.$table->table_number.'-qr.svg';

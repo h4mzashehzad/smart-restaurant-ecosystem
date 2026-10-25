@@ -177,3 +177,7 @@ body {
     @apply font-sans;
   }
 }
+/* Keep horizontal overflow from public screenshots and tour targets contained. */
+html, body { overflow-x: clip; }
+[data-tour-highlight="true"] { outline: 3px solid var(--primary); outline-offset: 5px; border-radius: 8px; scroll-margin-block: 100px 240px; }
+@media (prefers-reduced-motion: reduce) { .animate-fade-in-up { animation: none; opacity: 1; } }
